@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import type { DroneId } from './types/drone'
 import { getDroneById } from './data/drones'
 import { useGeolocation } from './hooks/useGeolocation'
@@ -15,6 +16,7 @@ import NearbyCheckSection from './components/sections/NearbyCheckSection'
 import WeatherSection from './components/sections/WeatherSection'
 
 export default function App() {
+  const queryClient = useQueryClient()
   const [selectedDrone, setSelectedDrone] = useState<DroneId>('matrice-350-rtk')
   const [maxAltitude, setMaxAltitude] = useState<number>(() => {
     const saved = localStorage.getItem('maxAltitude')
@@ -43,7 +45,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-base text-text">
       <div className="mx-auto max-w-2xl space-y-4 p-4">
-        <Header onRefresh={weather.refresh} lastUpdated={weather.lastUpdated} themeSetting={themeSetting} onCycleTheme={cycleTheme} />
+        <Header onRefresh={() => queryClient.invalidateQueries()} lastUpdated={weather.lastUpdated} themeSetting={themeSetting} onCycleTheme={cycleTheme} />
         <RahmenangabenSection
           city={geocode.city}
           country={geocode.country}

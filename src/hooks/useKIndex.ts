@@ -1,7 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { fetchKIndex } from '../services/kIndexApi'
-
-const REFRESH_INTERVAL = 1_800_000 // 30 Minuten
 
 interface UseKIndexResult {
   kIndex: number | null
@@ -10,39 +8,15 @@ interface UseKIndexResult {
 }
 
 export function useKIndex(): UseKIndexResult {
-  const [kIndex, setKIndex] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const query = useQuery({
+    queryKey: ['kindex'],
+    queryFn: fetchKIndex,
+    refetchInterval: 30 * 60 * 1000,
+  })
 
-  useEffect(() => {
-    let active = true
-
-    async function load() {
-      try {
-        const result = await fetchKIndex()
-        if (active) {
-          setKIndex(result.kIndex)
-          setError(null)
-        }
-      } catch (err) {
-        if (active) {
-          setError(err instanceof Error ? err.message : 'K-Index konnte nicht geladen werden')
-        }
-      } finally {
-        if (active) {
-          setLoading(false)
-        }
-      }
-    }
-
-    load()
-
-    const interval = setInterval(load, REFRESH_INTERVAL)
-    return () => {
-      active = false
-      clearInterval(interval)
-    }
-  }, [])
-
-  return { kIndex, loading, error }
+  return {
+    kIndex: query.data?.kIndex ?? null,
+    loading: query.isLoading,
+    error: query.error ? (query.error instanceof Error ? query.error.message : 'K-Index konnte nicht geladen werden') : null,
+  }
 }

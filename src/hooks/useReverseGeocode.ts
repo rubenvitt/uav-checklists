@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { reverseGeocode } from '../services/geocodeApi'
 
 interface UseGeocodeResult {
@@ -8,39 +8,17 @@ interface UseGeocodeResult {
 }
 
 export function useReverseGeocode(lat: number | null, lon: number | null): UseGeocodeResult {
-  const [city, setCity] = useState<string | null>(null)
-  const [country, setCountry] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const query = useQuery({
+    queryKey: ['geocode', lat, lon],
+    queryFn: () => reverseGeocode(lat!, lon!),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    enabled: lat !== null && lon !== null,
+  })
 
-  useEffect(() => {
-    if (lat === null || lon === null) return
-
-    let active = true
-    setLoading(true)
-
-    reverseGeocode(lat, lon)
-      .then((result) => {
-        if (active) {
-          setCity(result.city)
-          setCountry(result.country)
-        }
-      })
-      .catch(() => {
-        if (active) {
-          setCity(null)
-          setCountry(null)
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false)
-        }
-      })
-
-    return () => {
-      active = false
-    }
-  }, [lat, lon])
-
-  return { city, country, loading }
+  return {
+    city: query.data?.city ?? null,
+    country: query.data?.country ?? null,
+    loading: query.isLoading,
+  }
 }
