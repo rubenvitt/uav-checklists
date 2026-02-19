@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router'
+import { PiShieldCheck } from 'react-icons/pi'
 import { useCallback, useRef, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { MissionProvider } from './context/MissionContext'
@@ -26,6 +27,10 @@ function OverviewLayout() {
           onCycleTheme={cycleTheme}
         />
         <MissionOverview />
+        <footer className="flex items-center justify-center gap-1.5 py-6 text-[11px] text-text-muted/40">
+          <PiShieldCheck className="text-sm" />
+          Alle Daten bleiben lokal auf deinem Gerät.
+        </footer>
       </div>
     </div>
   )
@@ -89,6 +94,10 @@ function MissionLayoutInner({ missionLabel, currentPhase }: {
         )}
         {currentPhase === 'fluege' && <FluegePhase />}
         {currentPhase === 'nachbereitung' && <NachbereitungPhase />}
+        <footer className="flex items-center justify-center gap-1.5 py-6 text-[11px] text-text-muted/40">
+          <PiShieldCheck className="text-sm" />
+          Alle Daten bleiben lokal auf deinem Gerät.
+        </footer>
       </div>
     </div>
   )
