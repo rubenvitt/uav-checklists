@@ -27,7 +27,7 @@ export default function Header({ onRefresh, lastUpdated, themeSetting, onCycleTh
   return (
     <header className="flex items-center justify-between py-4">
       <div>
-        <h1 className="text-2xl font-bold text-text">UAV Flugwetter</h1>
+        <h1 className="text-2xl font-bold text-text">UAV Vorflugkontrolle</h1>
         {timeString && (
           <p className="text-xs text-text-muted mt-1">
             Zuletzt aktualisiert: {timeString}

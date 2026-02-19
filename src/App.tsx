@@ -8,16 +8,9 @@ import { useReverseGeocode } from './hooks/useReverseGeocode'
 import { useTheme } from './hooks/useTheme'
 import { computeAssessment } from './utils/assessment'
 import Header from './components/Header'
-import LocationBar from './components/LocationBar'
-import DroneSelector from './components/DroneSelector'
-import FlightAssessment from './components/FlightAssessment'
-import MetricGrid from './components/MetricGrid'
-import Recommendations from './components/Recommendations'
-import SunTimes from './components/SunTimes'
-import AltitudeSelector from './components/AltitudeSelector'
-import WindByAltitude from './components/WindByAltitude'
-import HourlyForecast from './components/HourlyForecast'
-import LoadingSpinner from './components/LoadingSpinner'
+import RahmenangabenSection from './components/sections/RahmenangabenSection'
+import ExternalToolsSection from './components/sections/ExternalToolsSection'
+import WeatherSection from './components/sections/WeatherSection'
 
 export default function App() {
   const [selectedDrone, setSelectedDrone] = useState<DroneId>('matrice-350-rtk')
@@ -48,38 +41,31 @@ export default function App() {
     <div className="min-h-screen bg-base text-text">
       <div className="mx-auto max-w-2xl space-y-4 p-4">
         <Header onRefresh={weather.refresh} lastUpdated={weather.lastUpdated} themeSetting={themeSetting} onCycleTheme={cycleTheme} />
-        <LocationBar
+        <RahmenangabenSection
           city={geocode.city}
           country={geocode.country}
-          loading={geocode.loading}
+          geocodeLoading={geocode.loading}
           isManual={geo.isManual}
           manualName={geo.manualName}
           needsManualLocation={geo.needsManualLocation}
           onManualLocation={geo.setManualLocation}
           onClearManual={geo.clearManualLocation}
+          selectedDrone={selectedDrone}
+          onSelectDrone={setSelectedDrone}
+          maxAltitude={maxAltitude}
+          onChangeAltitude={setMaxAltitude}
         />
-        <DroneSelector selectedDrone={selectedDrone} onSelect={setSelectedDrone} />
-        <AltitudeSelector value={maxAltitude} onChange={setMaxAltitude} />
-
-        {isLoading && <LoadingSpinner />}
-
-        {error && !isLoading && (
-          <div className="rounded-xl bg-warning-bg border border-warning/30 px-5 py-4 text-center">
-            <p className="text-sm text-warning">{error}</p>
-          </div>
-        )}
-
-        {assessment && !isLoading && (
-          <>
-            <FlightAssessment status={assessment.overall} />
-            <MetricGrid metrics={assessment.metrics} />
-            <Recommendations recommendations={assessment.recommendations} />
-          </>
-        )}
-
-        {weather.sun && <SunTimes sunrise={weather.sun.sunrise} sunset={weather.sun.sunset} />}
-        {weather.windByAltitude && <WindByAltitude data={weather.windByAltitude} maxAltitude={maxAltitude} />}
-        {weather.hourlyForecast && <HourlyForecast data={weather.hourlyForecast} drone={drone} />}
+        <ExternalToolsSection latitude={geo.latitude} longitude={geo.longitude} />
+        <WeatherSection
+          assessment={assessment}
+          sun={weather.sun}
+          windByAltitude={weather.windByAltitude}
+          hourlyForecast={weather.hourlyForecast}
+          maxAltitude={maxAltitude}
+          drone={drone}
+          isLoading={isLoading}
+          error={error}
+        />
       </div>
     </div>
   )
