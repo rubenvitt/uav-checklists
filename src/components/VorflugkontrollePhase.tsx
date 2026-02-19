@@ -210,14 +210,6 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
   return (
     <>
       <RahmenangabenSection
-        city={geocode.city}
-        country={geocode.country}
-        geocodeLoading={geocode.loading}
-        isManual={geo.isManual}
-        manualName={geo.manualName}
-        needsManualLocation={geo.needsManualLocation}
-        onManualLocation={geo.setManualLocation}
-        onClearManual={geo.clearManualLocation}
         selectedDrone={selectedDrone}
         onSelectDrone={setSelectedDrone}
         maxAltitude={maxAltitude}
