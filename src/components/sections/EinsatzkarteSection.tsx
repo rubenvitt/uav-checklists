@@ -37,37 +37,31 @@ export default function EinsatzkarteSection({ latitude, longitude, locked }: Ein
   const [, setSnapshot] = useMissionPersistedState<string>('einsatzkarte:snapshot', '')
   const mapRef = useRef<EinsatzMapHandle>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const snapshotTakenRef = useRef(false)
+  const tilesReadyRef = useRef(false)
 
   const captureSnapshot = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
       try {
         const image = await mapRef.current?.captureImage()
-        if (image) {
-          setSnapshot(image)
-          snapshotTakenRef.current = true
-        }
+        if (image) setSnapshot(image)
       } catch {
-        // Snapshot capture can fail if tiles haven't loaded yet
+        // Capture can fail if container is hidden / zero-size
       }
-    }, 1500)
+    }, 500)
   }, [setSnapshot])
 
-  // Capture snapshot when features change
+  // Capture when map settles (tile load + moveend after fitBounds/pan)
+  const handleMapUpdate = useCallback(() => {
+    tilesReadyRef.current = true
+    captureSnapshot()
+  }, [captureSnapshot])
+
+  // Re-capture when features change, but only after tiles have loaded once
   useEffect(() => {
+    if (!tilesReadyRef.current) return
     captureSnapshot()
   }, [mapData, captureSnapshot])
-
-  // Also capture an initial snapshot once the map has loaded tiles
-  useEffect(() => {
-    if (latitude === null || longitude === null) return
-    // Give tiles time to load, then capture
-    const timer = setTimeout(() => {
-      if (!snapshotTakenRef.current) captureSnapshot()
-    }, 3000)
-    return () => clearTimeout(timer)
-  }, [latitude, longitude, captureSnapshot])
 
   useEffect(() => {
     return () => {
@@ -102,6 +96,7 @@ export default function EinsatzkarteSection({ latitude, longitude, locked }: Ein
               longitude={longitude}
               mapData={mapData}
               setMapData={setMapData}
+              onMapUpdate={handleMapUpdate}
             />
           </Suspense>
 

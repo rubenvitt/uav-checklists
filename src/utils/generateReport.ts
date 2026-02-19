@@ -214,7 +214,7 @@ export function generateReport(data: ReportData) {
     const imgHeight = imgWidth * 0.6
     checkPageBreak(imgHeight + 5)
     try {
-      doc.addImage(data.mapImage, 'PNG', margin, y, imgWidth, imgHeight)
+      doc.addImage(data.mapImage, 'JPEG', margin, y, imgWidth, imgHeight)
       y += imgHeight + 5
     } catch {
       // Image could not be added
