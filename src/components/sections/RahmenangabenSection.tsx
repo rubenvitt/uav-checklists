@@ -20,7 +20,7 @@ interface RahmenangabenSectionProps {
 
 export default function RahmenangabenSection(props: RahmenangabenSectionProps) {
   return (
-    <div className="space-y-3">
+    <div className="divide-y divide-surface-alt rounded-xl bg-surface">
       <LocationBar
         city={props.city}
         country={props.country}

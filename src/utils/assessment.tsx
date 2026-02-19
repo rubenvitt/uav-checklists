@@ -1,3 +1,5 @@
+import { PiWind, PiMagnet, PiEye } from 'react-icons/pi'
+import { WiStrongWind, WiThermometer, WiRain, WiHumidity, WiBarometer, WiFog } from 'react-icons/wi'
 import type { WeatherData, WindAtAltitude } from '../types/weather'
 import type { DroneSpec } from '../types/drone'
 import type { AssessmentResult, MetricAssessment, MetricStatus } from '../types/assessment'
@@ -64,7 +66,7 @@ export function computeAssessment(
       value: formatWind(windSpeed),
       unit: 'km/h',
       status: evaluateWind(windSpeed, drone.maxWindSpeed),
-      icon: '💨',
+      icon: <WiStrongWind />,
       detail: windDetail,
     },
     {
@@ -73,7 +75,7 @@ export function computeAssessment(
       value: formatWind(windGusts),
       unit: 'km/h',
       status: evaluateGusts(windGusts, drone.maxWindSpeed),
-      icon: '🌊',
+      icon: <PiWind />,
       detail: gustsDetail,
     },
     {
@@ -82,7 +84,7 @@ export function computeAssessment(
       value: formatKIndex(kIndex),
       unit: '',
       status: evaluateKIndex(kIndex),
-      icon: '🧲',
+      icon: <PiMagnet />,
     },
     {
       key: 'temperature',
@@ -90,7 +92,7 @@ export function computeAssessment(
       value: formatTemperature(weather.temperature),
       unit: '°C',
       status: evaluateTemperature(weather.temperature, drone.minTemp, drone.maxTemp),
-      icon: '🌡️',
+      icon: <WiThermometer />,
     },
     {
       key: 'precipitation',
@@ -102,7 +104,7 @@ export function computeAssessment(
         weather.precipitation,
         drone.ipRating !== null,
       ),
-      icon: '🌧️',
+      icon: <WiRain />,
     },
     {
       key: 'visibility',
@@ -110,7 +112,7 @@ export function computeAssessment(
       value: formatVisibility(weather.visibility / 1000),
       unit: formatVisibilityUnit(weather.visibility / 1000),
       status: evaluateVisibility(weather.visibility / 1000),
-      icon: '👁️',
+      icon: <PiEye />,
     },
     {
       key: 'humidity',
@@ -118,7 +120,7 @@ export function computeAssessment(
       value: formatPercent(weather.humidity),
       unit: '%',
       status: evaluateHumidity(weather.humidity),
-      icon: '💧',
+      icon: <WiHumidity />,
     },
     {
       key: 'pressure',
@@ -126,7 +128,7 @@ export function computeAssessment(
       value: formatPressure(weather.pressure),
       unit: 'hPa',
       status: evaluatePressure(weather.pressure),
-      icon: '🔽',
+      icon: <WiBarometer />,
     },
     {
       key: 'dewPoint',
@@ -134,7 +136,7 @@ export function computeAssessment(
       value: formatDewPoint(weather.dewPoint),
       unit: '°C',
       status: evaluateDewPoint(weather.temperature, weather.dewPoint),
-      icon: '🌫️',
+      icon: <WiFog />,
     },
   ]
 

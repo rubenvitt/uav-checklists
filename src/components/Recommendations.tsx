@@ -1,3 +1,5 @@
+import { PiLightning } from 'react-icons/pi'
+
 interface RecommendationsProps {
   recommendations: string[]
 }
@@ -10,8 +12,8 @@ export default function Recommendations({ recommendations }: RecommendationsProp
       <h2 className="mb-3 text-sm font-semibold text-text">Empfehlungen</h2>
       <ul className="space-y-2">
         {recommendations.map((rec, i) => (
-          <li key={i} className="flex gap-2 text-sm text-text-muted">
-            <span>⚡</span>
+          <li key={i} className="flex items-center gap-2 text-sm text-text-muted">
+            <PiLightning className="shrink-0" />
             <span>{rec}</span>
           </li>
         ))}

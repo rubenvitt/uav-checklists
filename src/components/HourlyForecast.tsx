@@ -1,3 +1,9 @@
+import type { ReactNode } from 'react'
+import { PiWind, PiEye, PiChartBar } from 'react-icons/pi'
+import {
+  WiDaySunny, WiDayCloudy, WiFog, WiDayRainMix, WiRain, WiSnow,
+  WiThunderstorm, WiThermometer, WiStrongWind, WiHumidity, WiBarometer,
+} from 'react-icons/wi'
 import type { HourlyForecastPoint } from '../types/weather'
 import type { DroneSpec } from '../types/drone'
 import type { MetricStatus } from '../types/assessment'
@@ -12,21 +18,15 @@ import {
   evaluateDewPoint,
 } from '../data/thresholds'
 
-interface HourlyForecastProps {
-  data: HourlyForecastPoint[]
-  drone: DroneSpec
-}
-
-function weatherEmoji(code: number): string {
-  if (code === 0) return '☀️'
-  if (code <= 3) return '⛅'
-  if (code <= 48) return '🌫️'
-  if (code <= 57) return '🌦️'
-  if (code <= 67) return '🌧️'
-  if (code <= 77) return '🌨️'
-  if (code <= 82) return '🌧️'
-  if (code <= 86) return '🌨️'
-  return '⛈️'
+function weatherIcon(code: number): ReactNode {
+  if (code === 0) return <WiDaySunny />
+  if (code <= 3) return <WiDayCloudy />
+  if (code <= 48) return <WiFog />
+  if (code <= 57) return <WiDayRainMix />
+  if (code <= 67) return <WiRain />
+  if (code <= 77) return <WiSnow />
+  if (code <= 86) return <WiRain />
+  return <WiThunderstorm />
 }
 
 const statusBg: Record<MetricStatus, string> = {
@@ -37,48 +37,48 @@ const statusBg: Record<MetricStatus, string> = {
 
 interface MetricRow {
   label: string
-  icon: string
+  icon: ReactNode
   render: (p: HourlyForecastPoint) => string
   status: (p: HourlyForecastPoint) => MetricStatus
 }
 
-export default function HourlyForecast({ data, drone }: HourlyForecastProps) {
+export default function HourlyForecast({ data, drone }: { data: HourlyForecastPoint[]; drone: DroneSpec }) {
   const hasIp = drone.ipRating !== null
 
   const rows: MetricRow[] = [
     {
       label: 'Temperatur',
-      icon: '🌡️',
+      icon: <WiThermometer />,
       render: (p) => `${Math.round(p.temperature)}°C`,
       status: (p) => evaluateTemperature(p.temperature, drone.minTemp, drone.maxTemp),
     },
     {
       label: 'Wind',
-      icon: '💨',
+      icon: <WiStrongWind />,
       render: (p) => `${p.windSpeed.toFixed(1)}`,
       status: (p) => evaluateWind(p.windSpeed, drone.maxWindSpeed),
     },
     {
       label: 'Böen',
-      icon: '🌊',
+      icon: <PiWind />,
       render: (p) => `${p.windGusts.toFixed(1)}`,
       status: (p) => evaluateGusts(p.windGusts, drone.maxWindSpeed),
     },
     {
       label: 'Feuchte',
-      icon: '💧',
+      icon: <WiHumidity />,
       render: (p) => `${Math.round(p.humidity)}%`,
       status: (p) => evaluateHumidity(p.humidity),
     },
     {
       label: 'Niederschl.',
-      icon: '🌧️',
+      icon: <WiRain />,
       render: (p) => `${Math.round(p.precipitationProbability)}%`,
       status: (p) => evaluatePrecipitation(p.precipitationProbability, 0, hasIp),
     },
     {
       label: 'Sicht',
-      icon: '👁️',
+      icon: <PiEye />,
       render: (p) => {
         const km = p.visibility / 1000
         return km < 1 ? `${Math.round(p.visibility)}m` : `${km.toFixed(1)}km`
@@ -87,13 +87,13 @@ export default function HourlyForecast({ data, drone }: HourlyForecastProps) {
     },
     {
       label: 'Druck',
-      icon: '🔽',
+      icon: <WiBarometer />,
       render: (p) => `${Math.round(p.pressure)}`,
       status: (p) => evaluatePressure(p.pressure),
     },
     {
       label: 'Taupunkt',
-      icon: '🌫️',
+      icon: <WiFog />,
       render: (p) => `${p.dewPoint.toFixed(1)}°C`,
       status: (p) => evaluateDewPoint(p.temperature, p.dewPoint),
     },
@@ -101,7 +101,9 @@ export default function HourlyForecast({ data, drone }: HourlyForecastProps) {
 
   return (
     <div className="rounded-xl bg-surface px-4 py-4">
-      <h3 className="mb-3 text-sm font-semibold text-text">📊 24-Stunden-Vorhersage</h3>
+      <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-text">
+        <PiChartBar className="text-lg" /> 24-Stunden-Vorhersage
+      </h3>
       <div className="overflow-x-auto pb-2">
         <table className="w-full border-separate border-spacing-1">
           <thead>
@@ -117,7 +119,7 @@ export default function HourlyForecast({ data, drone }: HourlyForecastProps) {
               <td className="sticky left-0 z-10 bg-surface" />
               {data.map((p) => (
                 <td key={p.time} className="pb-1 text-center text-base">
-                  {weatherEmoji(p.weatherCode)}
+                  {weatherIcon(p.weatherCode)}
                 </td>
               ))}
             </tr>
@@ -126,7 +128,7 @@ export default function HourlyForecast({ data, drone }: HourlyForecastProps) {
             {rows.map((row) => (
               <tr key={row.label}>
                 <td className="sticky left-0 z-10 bg-surface pr-2 text-xs text-text-muted whitespace-nowrap">
-                  {row.icon} {row.label}
+                  <span className="inline-flex items-center gap-1">{row.icon} {row.label}</span>
                 </td>
                 {data.map((p) => (
                   <td

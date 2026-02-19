@@ -1,12 +1,40 @@
-import { useState } from 'react'
+import { useEffect, type ReactNode } from 'react'
+import {
+  PiAirplaneTilt, PiShieldStar, PiLock, PiFirstAid, PiShieldCheck,
+  PiSiren, PiLeaf, PiLightning, PiFactory, PiAnchor, PiSwimmingPool,
+  PiTrain, PiRoadHorizon, PiBoat, PiPlug, PiCellSignalHigh,
+  PiMapPin, PiCheck, PiArrowCounterClockwise,
+} from 'react-icons/pi'
+import { usePersistedState } from '../../hooks/usePersistedState'
 import type { MetricStatus } from '../../types/assessment'
 import type { NearbyCategory } from '../../services/overpassApi'
 import ChecklistSection from '../ChecklistSection'
+
+const CATEGORY_ICONS: Record<string, ReactNode> = {
+  aviation: <PiAirplaneTilt />,
+  military: <PiShieldStar />,
+  prison: <PiLock />,
+  hospital: <PiFirstAid />,
+  police: <PiShieldCheck />,
+  fire_station: <PiSiren />,
+  nature: <PiLeaf />,
+  energy: <PiLightning />,
+  industrial: <PiFactory />,
+  harbour: <PiAnchor />,
+  swimming: <PiSwimmingPool />,
+  railway: <PiTrain />,
+  highway: <PiRoadHorizon />,
+  waterway: <PiBoat />,
+  powerline: <PiPlug />,
+  celltower: <PiCellSignalHigh />,
+}
 
 interface NearbyCheckSectionProps {
   categories: NearbyCategory[]
   loading: boolean
   error: string | null
+  locked?: boolean
+  onManualChecksChange?: (checked: Record<string, boolean>) => void
 }
 
 const MANUAL_CHECKS = [
@@ -32,8 +60,14 @@ function formatDistance(meters: number): string {
   return `${meters} m`
 }
 
-export default function NearbyCheckSection({ categories, loading, error }: NearbyCheckSectionProps) {
-  const [checked, setChecked] = useState<Record<string, boolean>>({})
+export default function NearbyCheckSection({ categories, loading, error, locked, onManualChecksChange }: NearbyCheckSectionProps) {
+  const [checked, setChecked] = usePersistedState<Record<string, boolean>>('nearby:manualChecks', {})
+
+  useEffect(() => {
+    onManualChecksChange?.(checked)
+  }, [checked, onManualChecksChange])
+
+  const hasAnyCheck = Object.values(checked).some(Boolean)
 
   const status = getOverallStatus(categories)
   const badge = loading
@@ -45,7 +79,7 @@ export default function NearbyCheckSection({ categories, loading, error }: Nearb
         : { label: 'Frei', status: 'good' as MetricStatus }
 
   return (
-    <ChecklistSection title="Umgebungsprüfung" icon="📍" badge={badge} loading={loading}>
+    <ChecklistSection title="Umgebungsprüfung" icon={<PiMapPin />} badge={badge} loading={loading} locked={locked}>
       {error && (
         <div className="rounded-lg bg-warning-bg px-4 py-3 text-sm text-warning">{error}</div>
       )}
@@ -61,7 +95,7 @@ export default function NearbyCheckSection({ categories, loading, error }: Nearb
           {categories.map((cat) => (
             <div key={cat.key} className="rounded-lg bg-surface-alt px-4 py-3">
               <div className="flex items-center gap-2">
-                <span className="text-base">{cat.icon}</span>
+                <span className="text-base flex items-center text-text-muted">{CATEGORY_ICONS[cat.key]}</span>
                 <span className="flex-1 text-sm font-medium text-text">{cat.label}</span>
                 <span className="rounded-full bg-base px-2 py-0.5 text-xs text-text-muted">
                   {cat.items.length}
@@ -85,9 +119,20 @@ export default function NearbyCheckSection({ categories, loading, error }: Nearb
           ))}
 
           <div className="border-t border-surface-alt pt-3">
-            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-text-muted">
-              Manuelle Prüfungen
-            </p>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+                Manuelle Prüfungen
+              </p>
+              {hasAnyCheck && (
+                <button
+                  onClick={() => setChecked({})}
+                  className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-text-muted transition-colors hover:bg-surface-alt hover:text-text"
+                >
+                  <PiArrowCounterClockwise />
+                  Zurücksetzen
+                </button>
+              )}
+            </div>
             <div className="space-y-0.5">
               {MANUAL_CHECKS.map((c) => (
                 <button
@@ -102,7 +147,7 @@ export default function NearbyCheckSection({ categories, loading, error }: Nearb
                         : 'border-text-muted/30 text-transparent'
                     }`}
                   >
-                    ✓
+                    <PiCheck />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className={`text-sm transition-colors ${checked[c.key] ? 'text-text-muted' : 'text-text'}`}>

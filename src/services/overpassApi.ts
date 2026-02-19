@@ -9,7 +9,6 @@ export interface NearbyItem {
 export interface NearbyCategory {
   key: string
   label: string
-  icon: string
   items: NearbyItem[]
   isLinear: boolean
 }
@@ -17,7 +16,6 @@ export interface NearbyCategory {
 interface CategoryDef {
   key: string
   label: string
-  icon: string
   isLinear: boolean
   match: (tags: Record<string, string>) => boolean
   getName: (tags: Record<string, string>) => string
@@ -27,7 +25,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'aviation',
     label: 'Flugplätze & Heliports',
-    icon: '\u2708\uFE0F',
     isLinear: false,
     match: (tags) => tags.aeroway === 'aerodrome' || tags.aeroway === 'helipad',
     getName: (tags) => tags.name || (tags.aeroway === 'helipad' ? 'Hubschrauberlandeplatz' : 'Flugplatz'),
@@ -35,7 +32,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'military',
     label: 'Militärische Anlagen',
-    icon: '\uD83C\uDF96\uFE0F',
     isLinear: false,
     match: (tags) => tags.landuse === 'military' || !!tags.military,
     getName: (tags) => tags.name || 'Militärisches Gelände',
@@ -43,7 +39,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'prison',
     label: 'Justizvollzugsanstalten',
-    icon: '\uD83D\uDD12',
     isLinear: false,
     match: (tags) => tags.amenity === 'prison',
     getName: (tags) => tags.name || 'JVA',
@@ -51,7 +46,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'hospital',
     label: 'Krankenhäuser',
-    icon: '\uD83C\uDFE5',
     isLinear: false,
     match: (tags) => tags.amenity === 'hospital',
     getName: (tags) => tags.name || 'Krankenhaus',
@@ -59,7 +53,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'police',
     label: 'Sicherheitsbehörden',
-    icon: '\uD83D\uDE94',
     isLinear: false,
     match: (tags) => tags.amenity === 'police',
     getName: (tags) => tags.name || 'Polizeidienststelle',
@@ -67,7 +60,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'fire_station',
     label: 'Feuerwehr / BOS',
-    icon: '\uD83D\uDE92',
     isLinear: false,
     match: (tags) => tags.amenity === 'fire_station',
     getName: (tags) => tags.name || 'Feuerwache',
@@ -75,7 +67,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'nature',
     label: 'Naturschutzgebiete',
-    icon: '\uD83C\uDF3F',
     isLinear: false,
     match: (tags) => tags.leisure === 'nature_reserve',
     getName: (tags) => tags.name || 'Schutzgebiet',
@@ -83,7 +74,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'energy',
     label: 'Energieanlagen',
-    icon: '\u26A1',
     isLinear: false,
     match: (tags) => !!tags.power && ['plant', 'substation', 'generator'].includes(tags.power),
     getName: (tags) => {
@@ -96,7 +86,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'industrial',
     label: 'Industrieanlagen',
-    icon: '\uD83C\uDFED',
     isLinear: false,
     match: (tags) => tags.landuse === 'industrial',
     getName: (tags) => tags.name || 'Industriegebiet',
@@ -104,7 +93,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'harbour',
     label: 'Hafenanlagen',
-    icon: '\u2693',
     isLinear: false,
     match: (tags) => tags.landuse === 'harbour' || tags.leisure === 'marina',
     getName: (tags) => tags.name || 'Hafen',
@@ -112,7 +100,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'swimming',
     label: 'Freibäder',
-    icon: '\uD83C\uDFCA',
     isLinear: false,
     match: (tags) => tags.leisure === 'swimming_pool' || tags.leisure === 'water_park',
     getName: (tags) => tags.name || 'Schwimmbad',
@@ -120,7 +107,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'railway',
     label: 'Bahnanlagen',
-    icon: '\uD83D\uDE82',
     isLinear: true,
     match: (tags) => !!tags.railway && ['rail', 'station', 'halt', 'light_rail', 'subway', 'tram'].includes(tags.railway),
     getName: (tags) => {
@@ -131,7 +117,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'highway',
     label: 'Bundesfernstraßen',
-    icon: '\uD83D\uDEE3\uFE0F',
     isLinear: true,
     match: (tags) => !!tags.highway && ['motorway', 'trunk'].includes(tags.highway),
     getName: (tags) => tags.name || tags.ref || (tags.highway === 'motorway' ? 'Autobahn' : 'Bundesstraße'),
@@ -139,7 +124,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'waterway',
     label: 'Bundeswasserstraßen',
-    icon: '\uD83D\uDEA2',
     isLinear: true,
     match: (tags) => {
       const isWaterway = tags.waterway === 'river' || tags.waterway === 'canal'
@@ -150,7 +134,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'powerline',
     label: 'Stromleitungen & -masten',
-    icon: '\uD83D\uDD0C',
     isLinear: true,
     match: (tags) => tags.power === 'tower' || tags.power === 'pole',
     getName: () => 'Strommast',
@@ -158,7 +141,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
   {
     key: 'celltower',
     label: 'Mobilfunkmasten',
-    icon: '\uD83D\uDCE1',
     isLinear: false,
     match: (tags) => {
       if (tags.man_made === 'communications_tower') return true
@@ -315,7 +297,6 @@ export async function fetchNearbyPOIs(lat: number, lon: number): Promise<NearbyC
     results.push({
       key: def.key,
       label: def.label,
-      icon: def.icon,
       items: def.isLinear ? deduped.slice(0, 5) : deduped,
       isLinear: def.isLinear,
     })

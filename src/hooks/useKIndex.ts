@@ -11,6 +11,8 @@ export function useKIndex(): UseKIndexResult {
   const query = useQuery({
     queryKey: ['kindex'],
     queryFn: fetchKIndex,
+    staleTime: 15 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     refetchInterval: 30 * 60 * 1000,
   })
 

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { PiMagnifyingGlass, PiMapPin, PiPencilSimple } from 'react-icons/pi'
 import { forwardGeocode, type GeocodeSuggestion } from '../services/geocodeApi'
 
 interface LocationBarProps {
@@ -80,14 +81,14 @@ export default function LocationBar({
 
   if (showSearch) {
     return (
-      <div className="rounded-xl bg-surface px-4 py-3">
+      <div className="px-4 py-3">
         {needsManualLocation && !editing && (
           <p className="mb-2 text-xs text-text-muted">
             Kein GPS-Zugriff — bitte gib deinen Standort ein:
           </p>
         )}
         <div className="flex items-center gap-2">
-          <span className="text-lg">🔍</span>
+          <span className="text-lg flex items-center"><PiMagnifyingGlass /></span>
           <input
             ref={inputRef}
             type="text"
@@ -142,8 +143,8 @@ export default function LocationBar({
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-xl bg-surface px-4 py-3">
-      <span className="text-lg">📍</span>
+    <div className="flex items-center gap-2 px-4 py-3">
+      <span className="text-lg flex items-center"><PiMapPin /></span>
       <span className="flex-1 text-sm text-text-muted">{displayText}</span>
       <div className="flex items-center gap-1">
         {isManual && (
@@ -160,7 +161,7 @@ export default function LocationBar({
           className="rounded-md px-2 py-1 text-xs text-text-muted transition-colors hover:bg-surface-alt hover:text-text"
           title="Standort manuell eingeben"
         >
-          ✏️
+          <PiPencilSimple />
         </button>
       </div>
     </div>

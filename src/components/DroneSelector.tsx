@@ -8,7 +8,7 @@ interface DroneSelectorProps {
 
 export default function DroneSelector({ selectedDrone, onSelect }: DroneSelectorProps) {
   return (
-    <div className="rounded-xl bg-surface px-4 py-3">
+    <div className="px-4 py-3">
       <label htmlFor="drone-select" className="mb-1 block text-xs text-text-muted">
         Drohne auswählen
       </label>

@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 export type MetricStatus = 'good' | 'caution' | 'warning'
 
 export type MetricKey =
@@ -17,7 +19,7 @@ export interface MetricAssessment {
   value: string
   unit: string
   status: MetricStatus
-  icon: string
+  icon: ReactNode
   detail?: string
 }
 

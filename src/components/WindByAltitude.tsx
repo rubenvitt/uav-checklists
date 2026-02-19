@@ -1,3 +1,4 @@
+import { WiStrongWind } from 'react-icons/wi'
 import type { WindAtAltitude } from '../types/weather'
 
 interface WindByAltitudeProps {
@@ -32,7 +33,9 @@ export default function WindByAltitude({ data, maxAltitude }: WindByAltitudeProp
 
   return (
     <div className="rounded-xl bg-surface px-4 py-4">
-      <h3 className="mb-3 text-sm font-semibold text-text">💨 Wind nach Höhe</h3>
+      <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-text">
+        <WiStrongWind className="text-lg" /> Wind nach Höhe
+      </h3>
       <div className="space-y-2">
         {sorted.map((row) => {
           const aboveMax = row.altitude > maxAltitude

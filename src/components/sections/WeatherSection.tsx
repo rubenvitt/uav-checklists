@@ -1,3 +1,4 @@
+import { WiDayCloudyHigh } from 'react-icons/wi'
 import type { AssessmentResult, MetricStatus } from '../../types/assessment'
 import type { SunData, WindAtAltitude, HourlyForecastPoint } from '../../types/weather'
 import type { DroneSpec } from '../../types/drone'
@@ -19,6 +20,7 @@ interface WeatherSectionProps {
   drone: DroneSpec
   isLoading: boolean
   error: string | null
+  locked?: boolean
 }
 
 const badgeLabel: Record<MetricStatus, string> = {
@@ -27,13 +29,13 @@ const badgeLabel: Record<MetricStatus, string> = {
   warning: 'Warnung',
 }
 
-export default function WeatherSection({ assessment, sun, windByAltitude, hourlyForecast, maxAltitude, drone, isLoading, error }: WeatherSectionProps) {
+export default function WeatherSection({ assessment, sun, windByAltitude, hourlyForecast, maxAltitude, drone, isLoading, error, locked }: WeatherSectionProps) {
   const badge = assessment
     ? { label: badgeLabel[assessment.overall], status: assessment.overall }
     : undefined
 
   return (
-    <ChecklistSection title="Wetterbedingungen" icon="🌤️" badge={badge} loading={isLoading} defaultOpen={true}>
+    <ChecklistSection title="Wetterbedingungen" icon={<WiDayCloudyHigh />} badge={badge} loading={isLoading} locked={locked} defaultOpen={true}>
       {isLoading && <LoadingSpinner />}
 
       {error && !isLoading && (

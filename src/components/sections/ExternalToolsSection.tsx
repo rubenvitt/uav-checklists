@@ -1,8 +1,10 @@
+import { PiLink } from 'react-icons/pi'
 import ChecklistSection from '../ChecklistSection'
 
 interface ExternalToolsSectionProps {
   latitude: number | null
   longitude: number | null
+  locked?: boolean
 }
 
 interface ExternalLinkProps {
@@ -41,14 +43,14 @@ function ExternalLink({ href, label, description, disabled, disabledHint }: Exte
   )
 }
 
-export default function ExternalToolsSection({ latitude, longitude }: ExternalToolsSectionProps) {
+export default function ExternalToolsSection({ latitude, longitude, locked }: ExternalToolsSectionProps) {
   const hasCoords = latitude !== null && longitude !== null
   const geoZonesUrl = hasCoords
     ? `https://maptool-dipul.dfs.de/geozones/@${longitude},${latitude}?language=de&zoom=12.2`
     : null
 
   return (
-    <ChecklistSection title="Externe Prüfungen" icon="🔗" defaultOpen={false}>
+    <ChecklistSection title="Externe Prüfungen" icon={<PiLink />} locked={locked} defaultOpen={false}>
       <div className="space-y-2">
         <ExternalLink
           href={geoZonesUrl}

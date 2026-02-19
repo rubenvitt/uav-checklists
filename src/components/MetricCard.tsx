@@ -15,7 +15,7 @@ export default function MetricCard({ metric }: MetricCardProps) {
     <div className="flex items-stretch overflow-hidden rounded-xl bg-surface">
       <div className={`w-1.5 ${statusColors[metric.status]}`} />
       <div className="flex flex-1 items-center gap-3 px-4 py-3">
-        <span className="text-xl">{metric.icon}</span>
+        <span className="text-xl flex items-center">{metric.icon}</span>
         <div className="flex-1">
           <p className="text-xs text-text-muted">{metric.label}</p>
           <p className="text-sm font-semibold text-text">

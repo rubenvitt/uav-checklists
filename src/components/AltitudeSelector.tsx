@@ -7,7 +7,7 @@ interface AltitudeSelectorProps {
 
 export default function AltitudeSelector({ value, onChange }: AltitudeSelectorProps) {
   return (
-    <div className="rounded-xl bg-surface px-4 py-3">
+    <div className="px-4 py-3">
       <p className="mb-2 text-xs text-text-muted">Max. Flughöhe</p>
       <div className="flex flex-wrap gap-2">
         {ALTITUDE_PRESETS.map((alt) => (
