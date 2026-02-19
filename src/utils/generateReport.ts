@@ -61,6 +61,7 @@ export interface ReportData {
   truppstaerke?: TruppstaerkeData
   einsatzauftrag?: EinsatzauftragData
   anmeldungen?: AnmeldungItem[]
+  mapImage?: string
   location: string
   drone: DroneSpec
   maxAltitude: number
@@ -203,6 +204,20 @@ export function generateReport(data: ReportData) {
         doc.text(item.detail, margin + 80, y)
       }
       y += 5
+    }
+  }
+
+  // === EINSATZKARTE ===
+  if (data.mapImage) {
+    drawSectionTitle('Einsatzkarte')
+    const imgWidth = contentWidth
+    const imgHeight = imgWidth * 0.6
+    checkPageBreak(imgHeight + 5)
+    try {
+      doc.addImage(data.mapImage, 'PNG', margin, y, imgWidth, imgHeight)
+      y += imgHeight + 5
+    } catch {
+      // Image could not be added
     }
   }
 

@@ -39,3 +39,31 @@ body {
 #root {
   min-height: 100dvh;
 }
+
+/* Leaflet map theming */
+.leaflet-container {
+  background-color: var(--color-surface-alt);
+}
+
+.dark .leaflet-tile-pane {
+  filter: brightness(0.8) contrast(1.1) saturate(0.8);
+}
+
+.dark .leaflet-control-zoom a {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-surface-alt);
+}
+
+.dark .leaflet-control-zoom a:hover {
+  background-color: var(--color-surface-alt);
+}
+
+.dark .leaflet-control-attribution {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text-muted);
+}
+
+.dark .leaflet-control-attribution a {
+  color: var(--color-text-muted);
+}

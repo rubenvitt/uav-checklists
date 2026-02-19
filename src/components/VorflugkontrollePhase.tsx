@@ -183,12 +183,16 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
         }
       }
 
+      // Map snapshot from Einsatzdaten phase
+      const mapImage = readStorage<string>('einsatzkarte:snapshot', '', missionId)
+
       const data: ReportData = {
         missionLabel: mission?.label,
         einsatzdetails,
         truppstaerke,
         einsatzauftrag,
         anmeldungen: anmeldungenItems,
+        mapImage: mapImage || undefined,
         location: locationName,
         drone,
         maxAltitude,
