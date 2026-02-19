@@ -1,4 +1,4 @@
-import type { WeatherData } from '../types/weather'
+import type { WeatherData, WindAtAltitude } from '../types/weather'
 import type { DroneSpec } from '../types/drone'
 import type { AssessmentResult, MetricAssessment, MetricStatus } from '../types/assessment'
 import {
@@ -24,27 +24,57 @@ import {
   formatDewPoint,
 } from './formatting'
 
+function findMaxWind(windByAltitude: WindAtAltitude[], maxAltitude: number) {
+  const relevant = windByAltitude.filter((w) => w.altitude <= maxAltitude)
+  if (relevant.length === 0) return { speed: 0, gusts: 0, speedAlt: 0, gustsAlt: 0 }
+
+  let maxSpeed = relevant[0]
+  let maxGusts = relevant[0]
+  for (const w of relevant) {
+    if (w.windSpeed > maxSpeed.windSpeed) maxSpeed = w
+    if (w.windGusts > maxGusts.windGusts) maxGusts = w
+  }
+  return {
+    speed: maxSpeed.windSpeed,
+    gusts: maxGusts.windGusts,
+    speedAlt: maxSpeed.altitude,
+    gustsAlt: maxGusts.altitude,
+  }
+}
+
 export function computeAssessment(
   weather: WeatherData,
   kIndex: number,
   drone: DroneSpec,
+  windByAltitude?: WindAtAltitude[],
+  maxAltitude?: number,
 ): AssessmentResult {
+  const hasAltitudeData = windByAltitude && windByAltitude.length > 0 && maxAltitude != null
+  const maxWind = hasAltitudeData ? findMaxWind(windByAltitude, maxAltitude) : null
+
+  const windSpeed = maxWind ? maxWind.speed : weather.windSpeed
+  const windGusts = maxWind ? maxWind.gusts : weather.windGusts
+  const windDetail = maxWind && maxWind.speedAlt > 10 ? `max. bei ${maxWind.speedAlt} m` : undefined
+  const gustsDetail = maxWind && maxWind.gustsAlt > 10 ? `max. bei ${maxWind.gustsAlt} m` : undefined
+
   const metrics: MetricAssessment[] = [
     {
       key: 'wind',
       label: 'Wind',
-      value: formatWind(weather.windSpeed),
+      value: formatWind(windSpeed),
       unit: 'km/h',
-      status: evaluateWind(weather.windSpeed, drone.maxWindSpeed),
+      status: evaluateWind(windSpeed, drone.maxWindSpeed),
       icon: '💨',
+      detail: windDetail,
     },
     {
       key: 'gusts',
       label: 'Böen',
-      value: formatWind(weather.windGusts),
+      value: formatWind(windGusts),
       unit: 'km/h',
-      status: evaluateGusts(weather.windGusts, drone.maxWindSpeed),
+      status: evaluateGusts(windGusts, drone.maxWindSpeed),
       icon: '🌊',
+      detail: gustsDetail,
     },
     {
       key: 'kIndex',

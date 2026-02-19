@@ -27,23 +27,76 @@ function formatTime(isoString: string): string {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
-function buildWindByAltitude(hourly: Record<string, number[]>, idx: number): WindAtAltitude[] {
+interface AltitudeAnchor {
+  altitude: number
+  speed: number
+  gusts: number
+  direction: number
+}
+
+function interpolateAtAltitude(alt: number, anchors: AltitudeAnchor[]): WindAtAltitude {
+  if (alt <= anchors[0].altitude) {
+    const a = anchors[0]
+    return { altitude: alt, windSpeed: a.speed, windGusts: a.gusts, windDirection: a.direction }
+  }
+  if (alt >= anchors[anchors.length - 1].altitude) {
+    const a = anchors[anchors.length - 1]
+    return { altitude: alt, windSpeed: a.speed, windGusts: a.gusts, windDirection: a.direction }
+  }
+  for (let i = 0; i < anchors.length - 1; i++) {
+    const lo = anchors[i]
+    const hi = anchors[i + 1]
+    if (alt >= lo.altitude && alt <= hi.altitude) {
+      const t = (alt - lo.altitude) / (hi.altitude - lo.altitude)
+      return {
+        altitude: alt,
+        windSpeed: lerp(lo.speed, hi.speed, t),
+        windGusts: lerp(lo.gusts, hi.gusts, t),
+        windDirection: lerpAngle(lo.direction, hi.direction, t),
+      }
+    }
+  }
+  const a = anchors[anchors.length - 1]
+  return { altitude: alt, windSpeed: a.speed, windGusts: a.gusts, windDirection: a.direction }
+}
+
+function buildAltitudeSteps(maxAltitude: number): number[] {
+  const steps: number[] = [10]
+  const interval = maxAltitude <= 50 ? 10 : 30
+  for (let alt = interval === 10 ? 20 : 30; alt <= maxAltitude; alt += interval) {
+    if (alt !== 10) steps.push(alt)
+  }
+  if (steps[steps.length - 1] !== maxAltitude) steps.push(maxAltitude)
+  // one step above
+  const nextStep = maxAltitude + interval
+  steps.push(nextStep)
+  return steps
+}
+
+function buildWindByAltitude(hourly: Record<string, number[]>, idx: number, maxAltitude: number): WindAtAltitude[] {
   const w10 = hourly.wind_speed_10m[idx]
   const w80 = hourly.wind_speed_80m[idx]
   const w120 = hourly.wind_speed_120m[idx]
+  const w180 = hourly.wind_speed_180m[idx]
   const gusts10 = hourly.wind_gusts_10m[idx]
 
   const d10 = hourly.wind_direction_10m[idx]
   const d80 = hourly.wind_direction_80m[idx]
   const d120 = hourly.wind_direction_120m[idx]
+  const d180 = hourly.wind_direction_180m[idx]
 
-  return [
-    { altitude: 10, windSpeed: w10, windGusts: gusts10, windDirection: d10 },
-    { altitude: 30, windSpeed: lerp(w10, w80, 20 / 70), windGusts: gusts10 * 1.1, windDirection: lerpAngle(d10, d80, 20 / 70) },
-    { altitude: 60, windSpeed: lerp(w10, w80, 50 / 70), windGusts: gusts10 * 1.2, windDirection: lerpAngle(d10, d80, 50 / 70) },
-    { altitude: 90, windSpeed: lerp(w80, w120, 10 / 40), windGusts: gusts10 * 1.3, windDirection: lerpAngle(d80, d120, 10 / 40) },
-    { altitude: 120, windSpeed: w120, windGusts: gusts10 * 1.35, windDirection: d120 },
+  // gust scaling factor: linear increase from 1.0 at 10m to ~1.35 at 120m, ~1.5 at 180m
+  const gustAt = (alt: number) => gusts10 * lerp(1.0, 1.5, Math.min(alt, 180) / 180)
+
+  const anchors: AltitudeAnchor[] = [
+    { altitude: 10, speed: w10, gusts: gustAt(10), direction: d10 },
+    { altitude: 80, speed: w80, gusts: gustAt(80), direction: d80 },
+    { altitude: 120, speed: w120, gusts: gustAt(120), direction: d120 },
+    { altitude: 180, speed: w180, gusts: gustAt(180), direction: d180 },
   ]
+
+  const steps = buildAltitudeSteps(maxAltitude)
+  return steps.map((alt) => interpolateAtAltitude(alt, anchors))
 }
 
 function buildHourlyForecast(hourly: Record<string, (number | string)[]>, startIdx: number): HourlyForecastPoint[] {
@@ -78,7 +131,7 @@ function buildSunData(daily: Record<string, string[]>): SunData {
   }
 }
 
-export async function fetchWeather(lat: number, lon: number): Promise<WeatherResponse> {
+export async function fetchWeather(lat: number, lon: number, maxAltitude: number = 120): Promise<WeatherResponse> {
   const params = new URLSearchParams({
     latitude: lat.toString(),
     longitude: lon.toString(),
@@ -145,7 +198,7 @@ export async function fetchWeather(lat: number, lon: number): Promise<WeatherRes
   return {
     current,
     sun: buildSunData(json.daily),
-    windByAltitude: buildWindByAltitude(json.hourly, hourlyIdx),
+    windByAltitude: buildWindByAltitude(json.hourly, hourlyIdx, maxAltitude),
     hourlyForecast: buildHourlyForecast(json.hourly, hourlyIdx),
   }
 }

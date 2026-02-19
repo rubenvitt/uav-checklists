@@ -18,6 +18,7 @@ export interface MetricAssessment {
   unit: string
   status: MetricStatus
   icon: string
+  detail?: string
 }
 
 export interface AssessmentResult {

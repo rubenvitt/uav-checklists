@@ -21,6 +21,9 @@ export default function MetricCard({ metric }: MetricCardProps) {
           <p className="text-sm font-semibold text-text">
             {metric.value} <span className="font-normal text-text-muted">{metric.unit}</span>
           </p>
+          {metric.detail && (
+            <p className="text-xs text-text-muted">{metric.detail}</p>
+          )}
         </div>
       </div>
     </div>

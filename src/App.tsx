@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { DroneId } from './types/drone'
 import { getDroneById } from './data/drones'
 import { useGeolocation } from './hooks/useGeolocation'
@@ -14,14 +14,23 @@ import FlightAssessment from './components/FlightAssessment'
 import MetricGrid from './components/MetricGrid'
 import Recommendations from './components/Recommendations'
 import SunTimes from './components/SunTimes'
+import AltitudeSelector from './components/AltitudeSelector'
 import WindByAltitude from './components/WindByAltitude'
 import HourlyForecast from './components/HourlyForecast'
 import LoadingSpinner from './components/LoadingSpinner'
 
 export default function App() {
   const [selectedDrone, setSelectedDrone] = useState<DroneId>('matrice-350-rtk')
+  const [maxAltitude, setMaxAltitude] = useState<number>(() => {
+    const saved = localStorage.getItem('maxAltitude')
+    return saved ? Number(saved) : 120
+  })
   const geo = useGeolocation()
-  const weather = useWeather(geo.latitude, geo.longitude)
+  const weather = useWeather(geo.latitude, geo.longitude, maxAltitude)
+
+  useEffect(() => {
+    localStorage.setItem('maxAltitude', String(maxAltitude))
+  }, [maxAltitude])
   const { setting: themeSetting, cycle: cycleTheme } = useTheme(weather.sun ?? null)
   const kIndex = useKIndex()
   const geocode = useReverseGeocode(geo.latitude, geo.longitude)
@@ -29,7 +38,7 @@ export default function App() {
   const drone = getDroneById(selectedDrone)
   const assessment =
     weather.current && kIndex.kIndex !== null
-      ? computeAssessment(weather.current, kIndex.kIndex, drone)
+      ? computeAssessment(weather.current, kIndex.kIndex, drone, weather.windByAltitude ?? undefined, maxAltitude)
       : null
 
   const isLoading = geo.loading || weather.loading || kIndex.loading
@@ -50,6 +59,7 @@ export default function App() {
           onClearManual={geo.clearManualLocation}
         />
         <DroneSelector selectedDrone={selectedDrone} onSelect={setSelectedDrone} />
+        <AltitudeSelector value={maxAltitude} onChange={setMaxAltitude} />
 
         {isLoading && <LoadingSpinner />}
 
@@ -68,7 +78,7 @@ export default function App() {
         )}
 
         {weather.sun && <SunTimes sunrise={weather.sun.sunrise} sunset={weather.sun.sunset} />}
-        {weather.windByAltitude && <WindByAltitude data={weather.windByAltitude} />}
+        {weather.windByAltitude && <WindByAltitude data={weather.windByAltitude} maxAltitude={maxAltitude} />}
         {weather.hourlyForecast && <HourlyForecast data={weather.hourlyForecast} drone={drone} />}
       </div>
     </div>

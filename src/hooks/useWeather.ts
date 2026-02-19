@@ -15,7 +15,7 @@ interface UseWeatherResult {
   lastUpdated: Date | null
 }
 
-export function useWeather(lat: number | null, lon: number | null): UseWeatherResult {
+export function useWeather(lat: number | null, lon: number | null, maxAltitude: number = 120): UseWeatherResult {
   const [current, setCurrent] = useState<WeatherData | null>(null)
   const [sun, setSun] = useState<SunData | null>(null)
   const [windByAltitude, setWindByAltitude] = useState<WindAtAltitude[] | null>(null)
@@ -31,7 +31,7 @@ export function useWeather(lat: number | null, lon: number | null): UseWeatherRe
     setError(null)
 
     try {
-      const res = await fetchWeather(lat, lon)
+      const res = await fetchWeather(lat, lon, maxAltitude)
       setCurrent(res.current)
       setSun(res.sun)
       setWindByAltitude(res.windByAltitude)
@@ -42,7 +42,7 @@ export function useWeather(lat: number | null, lon: number | null): UseWeatherRe
     } finally {
       setLoading(false)
     }
-  }, [lat, lon])
+  }, [lat, lon, maxAltitude])
 
   useEffect(() => {
     load()
