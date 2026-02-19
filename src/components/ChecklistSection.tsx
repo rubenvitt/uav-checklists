@@ -5,6 +5,7 @@ interface ChecklistSectionProps {
   title: string
   icon: string
   badge?: { label: string; status: MetricStatus }
+  loading?: boolean
   defaultOpen?: boolean
   children: React.ReactNode
 }
@@ -15,7 +16,7 @@ const badgeColors: Record<MetricStatus, string> = {
   warning: 'bg-warning-bg text-warning',
 }
 
-export default function ChecklistSection({ title, icon, badge, defaultOpen = false, children }: ChecklistSectionProps) {
+export default function ChecklistSection({ title, icon, badge, loading, defaultOpen = false, children }: ChecklistSectionProps) {
   const [open, setOpen] = useState(defaultOpen)
 
   return (
@@ -26,7 +27,13 @@ export default function ChecklistSection({ title, icon, badge, defaultOpen = fal
       >
         <span className="text-lg">{icon}</span>
         <span className="flex-1 font-semibold text-text">{title}</span>
-        {badge && (
+        {loading && (
+          <svg className="h-4 w-4 animate-spin text-text-muted" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+        )}
+        {!loading && badge && (
           <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeColors[badge.status]}`}>
             {badge.label}
           </span>

@@ -5,11 +5,13 @@ import { useGeolocation } from './hooks/useGeolocation'
 import { useWeather } from './hooks/useWeather'
 import { useKIndex } from './hooks/useKIndex'
 import { useReverseGeocode } from './hooks/useReverseGeocode'
+import { useNearbyCheck } from './hooks/useNearbyCheck'
 import { useTheme } from './hooks/useTheme'
 import { computeAssessment } from './utils/assessment'
 import Header from './components/Header'
 import RahmenangabenSection from './components/sections/RahmenangabenSection'
 import ExternalToolsSection from './components/sections/ExternalToolsSection'
+import NearbyCheckSection from './components/sections/NearbyCheckSection'
 import WeatherSection from './components/sections/WeatherSection'
 
 export default function App() {
@@ -19,6 +21,7 @@ export default function App() {
     return saved ? Number(saved) : 120
   })
   const geo = useGeolocation()
+  const nearby = useNearbyCheck(geo.latitude, geo.longitude)
   const weather = useWeather(geo.latitude, geo.longitude, maxAltitude)
 
   useEffect(() => {
@@ -56,6 +59,7 @@ export default function App() {
           onChangeAltitude={setMaxAltitude}
         />
         <ExternalToolsSection latitude={geo.latitude} longitude={geo.longitude} />
+        <NearbyCheckSection categories={nearby.categories} loading={nearby.loading} error={nearby.error} />
         <WeatherSection
           assessment={assessment}
           sun={weather.sun}

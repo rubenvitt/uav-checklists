@@ -33,7 +33,7 @@ export default function WeatherSection({ assessment, sun, windByAltitude, hourly
     : undefined
 
   return (
-    <ChecklistSection title="Wetterbedingungen" icon="🌤️" badge={badge} defaultOpen={true}>
+    <ChecklistSection title="Wetterbedingungen" icon="🌤️" badge={badge} loading={isLoading} defaultOpen={true}>
       {isLoading && <LoadingSpinner />}
 
       {error && !isLoading && (
