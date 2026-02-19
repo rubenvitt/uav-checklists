@@ -8,9 +8,10 @@ import { useKIndex } from '../hooks/useKIndex'
 import { useReverseGeocode } from '../hooks/useReverseGeocode'
 import { useNearbyCheck } from '../hooks/useNearbyCheck'
 import { useMissionPersistedState, clearMissionFormStorageByPrefix } from '../hooks/useMissionPersistedState'
+import { readStorage } from '../hooks/usePersistedState'
 import { computeAssessment } from '../utils/assessment'
 import type { ArcClass } from './ArcDetermination'
-import { generateReport, type ReportData } from '../utils/generateReport'
+import { generateReport, type ReportData, type EinsatzdetailsData } from '../utils/generateReport'
 import { getMission } from '../utils/missionStorage'
 import RahmenangabenSection from './sections/RahmenangabenSection'
 import ExternalToolsSection from './sections/ExternalToolsSection'
@@ -71,8 +72,25 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
         : geocode.city
           ? geocode.country ? `${geocode.city}, ${geocode.country}` : geocode.city
           : 'Unbekannt'
+      const FLUG_ANLASS_LABELS: Record<string, string> = {
+        einsatz: 'Einsatz',
+        uebung: 'Übung',
+        ausbildung: 'Ausbildung',
+        testflug: 'Testflug/Wartung',
+      }
+      const flugAnlassRaw = readStorage<string>('flugAnlass', 'einsatz', missionId)
+      const einsatzdetails: EinsatzdetailsData = {
+        flugAnlass: FLUG_ANLASS_LABELS[flugAnlassRaw] ?? flugAnlassRaw,
+        einsatzstichwort: readStorage<string>('einsatzstichwort', '', missionId),
+        alarmzeit: readStorage<string>('alarmzeit', '', missionId),
+        alarmierungDurch: readStorage<string>('alarmierungDurch', '', missionId),
+        anforderndeStelle: readStorage<string>('anforderndeStelle', '', missionId),
+        einsatzleiter: readStorage<string>('einsatzleiter', '', missionId),
+        abschnittsleiter: readStorage<string>('abschnittsleiter', '', missionId),
+      }
       const data: ReportData = {
         missionLabel: mission?.label,
+        einsatzdetails,
         location: locationName,
         drone,
         maxAltitude,

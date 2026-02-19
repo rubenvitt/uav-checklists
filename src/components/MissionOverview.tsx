@@ -8,12 +8,14 @@ import { generateMissionReport } from '../utils/generateMissionReport'
 import type { Mission, MissionPhase } from '../types/mission'
 
 const PHASE_LABELS: Record<MissionPhase, string> = {
+  einsatzdaten: 'Einsatzdaten',
   vorflugkontrolle: 'Vorflugkontrolle',
   fluege: 'Flüge',
   nachbereitung: 'Nachbereitung',
 }
 
 const PHASE_COLORS: Record<MissionPhase, string> = {
+  einsatzdaten: 'bg-surface-alt text-text-muted',
   vorflugkontrolle: 'bg-caution-bg text-caution',
   fluege: 'bg-good-bg text-good',
   nachbereitung: 'bg-surface-alt text-text-muted',
@@ -31,7 +33,7 @@ export default function MissionOverview() {
 
   const handleCreate = () => {
     const mission = create()
-    navigate(`/mission/${mission.id}/vorflugkontrolle`)
+    navigate(`/mission/${mission.id}/einsatzdaten`)
   }
 
   const handleDelete = (missionId: string) => {

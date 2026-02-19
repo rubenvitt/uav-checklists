@@ -1,4 +1,4 @@
-export type MissionPhase = 'vorflugkontrolle' | 'fluege' | 'nachbereitung'
+export type MissionPhase = 'einsatzdaten' | 'vorflugkontrolle' | 'fluege' | 'nachbereitung'
 
 export interface Mission {
   id: string

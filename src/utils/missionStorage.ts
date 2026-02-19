@@ -3,6 +3,18 @@ import type { Mission } from '../types/mission'
 const MISSIONS_KEY = 'uav-missions'
 const MISSION_TTL = 56 * 60 * 60 * 1000 // 56h
 
+export function generateId(): string {
+  // crypto.randomUUID() requires a secure context (HTTPS/localhost).
+  // Fallback for HTTP access over LAN.
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try { return crypto.randomUUID() } catch { /* fall through */ }
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
+  })
+}
+
 export function loadMissions(): Mission[] {
   try {
     const raw = localStorage.getItem(MISSIONS_KEY)
@@ -21,10 +33,10 @@ export function createMission(): Mission {
   const now = new Date()
   const label = `Einsatz ${now.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
   const mission: Mission = {
-    id: crypto.randomUUID(),
+    id: generateId(),
     createdAt: Date.now(),
     label,
-    phase: 'vorflugkontrolle',
+    phase: 'einsatzdaten',
   }
   const missions = loadMissions()
   missions.push(mission)

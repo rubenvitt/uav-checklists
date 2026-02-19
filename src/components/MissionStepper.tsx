@@ -1,8 +1,9 @@
 import { useNavigate, useParams } from 'react-router'
-import { PiCheckCircle, PiAirplaneTakeoff, PiClipboardText } from 'react-icons/pi'
+import { PiCheckCircle, PiAirplaneTakeoff, PiClipboardText, PiNotePencil } from 'react-icons/pi'
 import type { MissionPhase } from '../types/mission'
 
 const STEPS: Array<{ phase: MissionPhase; label: string; icon: React.ReactNode }> = [
+  { phase: 'einsatzdaten', label: 'Einsatzdaten', icon: <PiNotePencil /> },
   { phase: 'vorflugkontrolle', label: 'Vorflugkontrolle', icon: <PiClipboardText /> },
   { phase: 'fluege', label: 'Flüge', icon: <PiAirplaneTakeoff /> },
   { phase: 'nachbereitung', label: 'Nachbereitung', icon: <PiCheckCircle /> },

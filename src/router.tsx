@@ -9,6 +9,7 @@ import type { MissionPhase } from './types/mission'
 import Header from './components/Header'
 import MissionOverview from './components/MissionOverview'
 import MissionStepper from './components/MissionStepper'
+import EinsatzdatenPhase from './components/EinsatzdatenPhase'
 import VorflugkontrollePhase from './components/VorflugkontrollePhase'
 import FluegePhase from './components/FluegePhase'
 import NachbereitungPhase from './components/NachbereitungPhase'
@@ -38,7 +39,7 @@ function MissionLayout() {
   const mission = getMission(missionId)
   if (!mission || isMissionExpired(mission)) return <Navigate to="/" replace />
 
-  const validPhases: MissionPhase[] = ['vorflugkontrolle', 'fluege', 'nachbereitung']
+  const validPhases: MissionPhase[] = ['einsatzdaten', 'vorflugkontrolle', 'fluege', 'nachbereitung']
   if (!validPhases.includes(phase as MissionPhase)) return <Navigate to="/" replace />
 
   const currentPhase = phase as MissionPhase
@@ -82,6 +83,7 @@ function MissionLayoutInner({ missionLabel, currentPhase }: {
           onExportPdf={currentPhase === 'vorflugkontrolle' ? () => exportPdfRef.current?.() : undefined}
         />
         <MissionStepper currentPhase={currentPhase} />
+        {currentPhase === 'einsatzdaten' && <EinsatzdatenPhase />}
         {currentPhase === 'vorflugkontrolle' && (
           <VorflugkontrollePhase setExportPdf={setExportPdf} />
         )}

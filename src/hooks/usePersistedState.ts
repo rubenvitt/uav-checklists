@@ -12,7 +12,7 @@ function buildPrefix(missionId?: string): string {
   return missionId ? `${PREFIX}${missionId}:` : PREFIX
 }
 
-function readStorage<T>(key: string, fallback: T, missionId?: string): T {
+export function readStorage<T>(key: string, fallback: T, missionId?: string): T {
   try {
     const raw = localStorage.getItem(buildPrefix(missionId) + key)
     if (!raw) return fallback

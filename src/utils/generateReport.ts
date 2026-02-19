@@ -28,8 +28,19 @@ const MANUAL_CHECK_LABELS: Record<string, string> = {
   residential: 'Wohngrundstücke',
 }
 
+export interface EinsatzdetailsData {
+  flugAnlass: string
+  einsatzstichwort: string
+  alarmzeit: string
+  alarmierungDurch: string
+  anforderndeStelle: string
+  einsatzleiter: string
+  abschnittsleiter: string
+}
+
 export interface ReportData {
   missionLabel?: string
+  einsatzdetails?: EinsatzdetailsData
   location: string
   drone: DroneSpec
   maxAltitude: number
@@ -106,6 +117,19 @@ export function generateReport(data: ReportData) {
   doc.setTextColor(100, 100, 100)
   doc.text(`${dateStr}  ${timeStr}`, margin, y)
   y += 10
+
+  // === EINSATZDETAILS ===
+  if (data.einsatzdetails) {
+    const d = data.einsatzdetails
+    drawSectionTitle('Einsatzdetails')
+    if (d.flugAnlass) drawKeyValue('Anlass des Fluges', d.flugAnlass)
+    if (d.einsatzstichwort) drawKeyValue('Einsatzstichwort', d.einsatzstichwort)
+    if (d.alarmzeit) drawKeyValue('Alarmzeit', d.alarmzeit)
+    if (d.alarmierungDurch) drawKeyValue('Alarmierung durch', d.alarmierungDurch)
+    if (d.anforderndeStelle) drawKeyValue('Anfordernde Stelle', d.anforderndeStelle)
+    if (d.einsatzleiter) drawKeyValue('Einsatzleiter', d.einsatzleiter)
+    if (d.abschnittsleiter) drawKeyValue('Abschnittsleiter', d.abschnittsleiter)
+  }
 
   // === RAHMENANGABEN ===
   drawSectionTitle('Rahmenangaben')

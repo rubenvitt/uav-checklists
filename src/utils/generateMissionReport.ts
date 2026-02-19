@@ -6,7 +6,7 @@ import type { ArcClass } from '../components/ArcDetermination'
 import { getDroneById } from '../data/drones'
 import { getMission } from './missionStorage'
 import { computeAssessment } from './assessment'
-import { generateReport, type ReportData } from './generateReport'
+import { generateReport, type ReportData, type EinsatzdetailsData } from './generateReport'
 
 const PREFIX = 'uav-form:'
 const TTL = 56 * 60 * 60 * 1000
@@ -155,8 +155,27 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     }
   }
 
+  const FLUG_ANLASS_LABELS: Record<string, string> = {
+    einsatz: 'Einsatz',
+    uebung: 'Übung',
+    ausbildung: 'Ausbildung',
+    testflug: 'Testflug/Wartung',
+  }
+
+  const flugAnlassRaw = readMissionField<string>(missionId, 'flugAnlass', 'einsatz')
+  const einsatzdetails: EinsatzdetailsData = {
+    flugAnlass: FLUG_ANLASS_LABELS[flugAnlassRaw] ?? flugAnlassRaw,
+    einsatzstichwort: readMissionField<string>(missionId, 'einsatzstichwort', ''),
+    alarmzeit: readMissionField<string>(missionId, 'alarmzeit', ''),
+    alarmierungDurch: readMissionField<string>(missionId, 'alarmierungDurch', ''),
+    anforderndeStelle: readMissionField<string>(missionId, 'anforderndeStelle', ''),
+    einsatzleiter: readMissionField<string>(missionId, 'einsatzleiter', ''),
+    abschnittsleiter: readMissionField<string>(missionId, 'abschnittsleiter', ''),
+  }
+
   const data: ReportData = {
     missionLabel: mission.label,
+    einsatzdetails,
     location: locationName,
     drone,
     maxAltitude,

@@ -1,4 +1,4 @@
-import { loadMissions, saveMissions } from './missionStorage'
+import { loadMissions, saveMissions, generateId } from './missionStorage'
 import type { Mission } from '../types/mission'
 
 const MIGRATED_KEY = 'uav-migrated'
@@ -26,10 +26,10 @@ export function migrateOldData() {
   // Create a migration mission
   const now = new Date()
   const mission: Mission = {
-    id: crypto.randomUUID(),
+    id: generateId(),
     createdAt: Date.now(),
     label: `Einsatz ${now.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} (migriert)`,
-    phase: 'vorflugkontrolle',
+    phase: 'einsatzdaten',
   }
 
   // Migrate form keys
