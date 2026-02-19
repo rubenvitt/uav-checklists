@@ -16,6 +16,7 @@ import { getMission } from '../utils/missionStorage'
 import RahmenangabenSection from './sections/RahmenangabenSection'
 import ExternalToolsSection from './sections/ExternalToolsSection'
 import NearbyCheckSection from './sections/NearbyCheckSection'
+import AnmeldungenSection from './sections/AnmeldungenSection'
 import RiskClassSection from './sections/RiskClassSection'
 import WeatherSection from './sections/WeatherSection'
 
@@ -160,11 +161,34 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
         ? { template: TEMPLATE_LABELS[missionTemplate] || missionTemplate, details: auftragDetails, freitext: missionFreitext }
         : undefined
 
+      // Fluganmeldungen
+      const anmeldungenChecked = readStorage<Record<string, boolean>>('anmeldungen:checked', {}, missionId)
+      const anmeldungenAdditional = readStorage<Array<{ label: string; detail: string }>>('anmeldungen:additional', [], missionId)
+      const anmeldungenItems: Array<{ label: string; detail: string; checked: boolean }> = [
+        { label: 'Leitstelle', detail: '19222', checked: !!anmeldungenChecked['leitstelle'] },
+        { label: 'Polizei', detail: '110', checked: !!anmeldungenChecked['polizei'] },
+      ]
+      const hasRailway = nearby.categories.some((c: { key: string }) => c.key === 'railway')
+      const hasWaterway = nearby.categories.some((c: { key: string }) => c.key === 'waterway')
+      if (hasRailway) {
+        anmeldungenItems.push({ label: 'Bahn (DB Netz)', detail: 'Bahnlinien im Einsatzgebiet', checked: !!anmeldungenChecked['bahn'] })
+      }
+      if (hasWaterway) {
+        anmeldungenItems.push({ label: 'Wasserstraßen- und Schifffahrtsamt', detail: 'Wasserstraßen im Einsatzgebiet', checked: !!anmeldungenChecked['wsa'] })
+      }
+      for (let i = 0; i < anmeldungenAdditional.length; i++) {
+        const a = anmeldungenAdditional[i]
+        if (a.label.trim() || a.detail.trim()) {
+          anmeldungenItems.push({ label: a.label || 'Weitere Stelle', detail: a.detail, checked: !!anmeldungenChecked[`custom_${i}`] })
+        }
+      }
+
       const data: ReportData = {
         missionLabel: mission?.label,
         einsatzdetails,
         truppstaerke,
         einsatzauftrag,
+        anmeldungen: anmeldungenItems,
         location: locationName,
         drone,
         maxAltitude,
@@ -197,6 +221,7 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
       />
       <ExternalToolsSection latitude={geo.latitude} longitude={geo.longitude} locked={!hasLocation} />
       <NearbyCheckSection categories={nearby.categories} loading={nearby.loading} error={nearby.error} locked={!hasLocation} onManualChecksChange={handleManualChecksChange} />
+      <AnmeldungenSection categories={nearby.categories} />
       <RiskClassSection key={soraResetKey} locked={!hasLocation} onSoraChange={handleSoraChange} />
       <WeatherSection
         assessment={assessment}

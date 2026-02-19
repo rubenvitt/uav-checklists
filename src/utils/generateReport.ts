@@ -49,11 +49,18 @@ export interface EinsatzauftragData {
   freitext: string
 }
 
+export interface AnmeldungItem {
+  label: string
+  detail: string
+  checked: boolean
+}
+
 export interface ReportData {
   missionLabel?: string
   einsatzdetails?: EinsatzdetailsData
   truppstaerke?: TruppstaerkeData
   einsatzauftrag?: EinsatzauftragData
+  anmeldungen?: AnmeldungItem[]
   location: string
   drone: DroneSpec
   maxAltitude: number
@@ -178,6 +185,24 @@ export function generateReport(data: ReportData) {
       const lines = doc.splitTextToSize(data.einsatzauftrag.freitext, contentWidth - 4)
       doc.text(lines, margin, y)
       y += lines.length * 4.5
+    }
+  }
+
+  // === FLUGANMELDUNGEN ===
+  if (data.anmeldungen && data.anmeldungen.length > 0) {
+    drawSectionTitle('Fluganmeldungen')
+    for (const item of data.anmeldungen) {
+      checkPageBreak(6)
+      const symbol = item.checked ? '[X]' : '[ ]'
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(80, 80, 80)
+      doc.text(`${symbol}  ${item.label}`, margin + 2, y)
+      if (item.detail) {
+        doc.setTextColor(150, 150, 150)
+        doc.text(item.detail, margin + 80, y)
+      }
+      y += 5
     }
   }
 
