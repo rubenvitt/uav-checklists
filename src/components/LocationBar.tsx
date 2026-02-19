@@ -7,6 +7,7 @@ interface LocationBarProps {
   loading: boolean
   isManual: boolean
   manualName: string | null
+  needsManualLocation: boolean
   onManualLocation: (location: { latitude: number; longitude: number; name: string }) => void
   onClearManual: () => void
 }
@@ -17,10 +18,12 @@ export default function LocationBar({
   loading,
   isManual,
   manualName,
+  needsManualLocation,
   onManualLocation,
   onClearManual,
 }: LocationBarProps) {
   const [editing, setEditing] = useState(false)
+  const showSearch = editing || needsManualLocation
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<GeocodeSuggestion[]>([])
   const [searching, setSearching] = useState(false)
@@ -28,10 +31,10 @@ export default function LocationBar({
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null)
 
   useEffect(() => {
-    if (editing) {
+    if (editing || needsManualLocation) {
       inputRef.current?.focus()
     }
-  }, [editing])
+  }, [editing, needsManualLocation])
 
   useEffect(() => {
     if (!query.trim() || query.trim().length < 2) {
@@ -75,9 +78,14 @@ export default function LocationBar({
     setSuggestions([])
   }
 
-  if (editing) {
+  if (showSearch) {
     return (
       <div className="rounded-xl bg-surface px-4 py-3">
+        {needsManualLocation && !editing && (
+          <p className="mb-2 text-xs text-text-muted">
+            Kein GPS-Zugriff — bitte gib deinen Standort ein:
+          </p>
+        )}
         <div className="flex items-center gap-2">
           <span className="text-lg">🔍</span>
           <input
@@ -88,12 +96,14 @@ export default function LocationBar({
             placeholder="Ort eingeben..."
             className="flex-1 bg-transparent text-sm text-text outline-none placeholder:text-text-muted/50"
           />
-          <button
-            onClick={handleCancel}
-            className="rounded-md px-2 py-1 text-xs text-text-muted transition-colors hover:bg-surface-alt hover:text-text"
-          >
-            Abbrechen
-          </button>
+          {editing && (
+            <button
+              onClick={handleCancel}
+              className="rounded-md px-2 py-1 text-xs text-text-muted transition-colors hover:bg-surface-alt hover:text-text"
+            >
+              Abbrechen
+            </button>
+          )}
         </div>
 
         {searching && (

@@ -15,6 +15,7 @@ interface GeolocationState {
   loading: boolean
   isManual: boolean
   manualName: string | null
+  needsManualLocation: boolean
   setManualLocation: (location: ManualLocation) => void
   clearManualLocation: () => void
 }
@@ -51,6 +52,7 @@ export function useGeolocation(): GeolocationState {
           loading: false,
           isManual: true,
           manualName: saved.name,
+          needsManualLocation: false,
         }
       : {
           latitude: null,
@@ -59,6 +61,7 @@ export function useGeolocation(): GeolocationState {
           loading: true,
           isManual: false,
           manualName: null,
+          needsManualLocation: false,
         }
   )
 
@@ -69,8 +72,9 @@ export function useGeolocation(): GeolocationState {
     if (!navigator.geolocation) {
       setState((prev) => ({
         ...prev,
-        error: 'Geolocation wird von diesem Browser nicht unterstützt',
+        error: null,
         loading: false,
+        needsManualLocation: true,
       }))
       return
     }
@@ -84,30 +88,18 @@ export function useGeolocation(): GeolocationState {
           loading: false,
           isManual: false,
           manualName: null,
+          needsManualLocation: false,
         })
       },
-      (error) => {
-        let message: string
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            message = 'Standortzugriff wurde verweigert'
-            break
-          case error.POSITION_UNAVAILABLE:
-            message = 'Standort ist nicht verfügbar'
-            break
-          case error.TIMEOUT:
-            message = 'Standortabfrage hat zu lange gedauert'
-            break
-          default:
-            message = 'Unbekannter Fehler bei der Standortabfrage'
-        }
+      () => {
         setState({
           latitude: null,
           longitude: null,
-          error: message,
+          error: null,
           loading: false,
           isManual: false,
           manualName: null,
+          needsManualLocation: true,
         })
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -123,6 +115,7 @@ export function useGeolocation(): GeolocationState {
       loading: false,
       isManual: true,
       manualName: location.name,
+      needsManualLocation: false,
     })
   }, [])
 
@@ -135,6 +128,7 @@ export function useGeolocation(): GeolocationState {
       loading: true,
       isManual: false,
       manualName: null,
+      needsManualLocation: false,
     })
 
     // Re-fetch GPS
@@ -148,30 +142,18 @@ export function useGeolocation(): GeolocationState {
             loading: false,
             isManual: false,
             manualName: null,
+            needsManualLocation: false,
           })
         },
-        (error) => {
-          let message: string
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              message = 'Standortzugriff wurde verweigert'
-              break
-            case error.POSITION_UNAVAILABLE:
-              message = 'Standort ist nicht verfügbar'
-              break
-            case error.TIMEOUT:
-              message = 'Standortabfrage hat zu lange gedauert'
-              break
-            default:
-              message = 'Unbekannter Fehler bei der Standortabfrage'
-          }
+        () => {
           setState({
             latitude: null,
             longitude: null,
-            error: message,
+            error: null,
             loading: false,
             isManual: false,
             manualName: null,
+            needsManualLocation: true,
           })
         },
         { enableHighAccuracy: true, timeout: 10000 }

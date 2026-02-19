@@ -33,7 +33,7 @@ export default function App() {
       : null
 
   const isLoading = geo.loading || weather.loading || kIndex.loading
-  const error = geo.error || weather.error || kIndex.error
+  const error = weather.error || kIndex.error
 
   return (
     <div className="min-h-screen bg-base text-text">
@@ -45,6 +45,7 @@ export default function App() {
           loading={geocode.loading}
           isManual={geo.isManual}
           manualName={geo.manualName}
+          needsManualLocation={geo.needsManualLocation}
           onManualLocation={geo.setManualLocation}
           onClearManual={geo.clearManualLocation}
         />
