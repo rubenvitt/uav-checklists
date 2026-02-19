@@ -1,5 +1,6 @@
 import { PiUsersThree, PiPlus, PiX } from 'react-icons/pi'
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
+import ChecklistSection from '../ChecklistSection'
 
 type CrewRole = 'fernpilot' | 'luftraumbeobachter' | 'bildauswerter'
 
@@ -41,6 +42,11 @@ export default function TruppstaerkeSection() {
 
   const hasCriticalGap = !fk.trim() || !fp.trim() || !lrb.trim()
 
+  const badge = {
+    label: `${fkCount}/${othersCount}//${total}`,
+    status: hasCriticalGap ? 'caution' as const : 'good' as const,
+  }
+
   function addMember(role: CrewRole) {
     setAdditional((prev) => [...prev, { role, name: '' }])
   }
@@ -54,84 +60,72 @@ export default function TruppstaerkeSection() {
   }
 
   return (
-    <div className="rounded-xl bg-surface overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-4">
-        <span className="text-lg flex items-center text-text-muted">
-          <PiUsersThree />
-        </span>
-        <span className="flex-1 font-semibold text-text">Truppstärke</span>
-        <span
-          className={`rounded-full px-2.5 py-0.5 text-xs font-medium font-mono tracking-wide ${
-            hasCriticalGap ? 'bg-caution-bg text-caution' : 'bg-surface-alt text-text-muted'
-          }`}
-        >
-          {fkCount}/{othersCount}//<span className="underline">{total}</span>
-        </span>
-      </div>
+    <ChecklistSection title="Truppstärke" icon={<PiUsersThree />} badge={badge}>
+      <div className="-mx-5 -mt-1">
+        <div className="divide-y divide-surface-alt">
+          {BASE_ROLES.map(({ key, label, critical }) => {
+            const isEmpty = !names[key].trim()
+            const showWarning = isEmpty && critical
 
-      <div className="divide-y divide-surface-alt">
-        {BASE_ROLES.map(({ key, label, critical }) => {
-          const isEmpty = !names[key].trim()
-          const showWarning = isEmpty && critical
+            return (
+              <div key={key} className="px-4 py-3">
+                <label
+                  className={`mb-1 block text-xs ${
+                    showWarning ? 'text-caution' : 'text-text-muted'
+                  }`}
+                >
+                  {label}
+                </label>
+                <input
+                  type="text"
+                  value={names[key]}
+                  onChange={(e) => setters[key](e.target.value)}
+                  placeholder="Name eingeben..."
+                  className={`w-full rounded-lg px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted ${
+                    showWarning ? 'bg-caution-bg/30' : 'bg-surface-alt'
+                  }`}
+                />
+              </div>
+            )
+          })}
 
-          return (
-            <div key={key} className="px-4 py-3">
-              <label
-                className={`mb-1 block text-xs ${
-                  showWarning ? 'text-caution' : 'text-text-muted'
-                }`}
+          {additional.map((member, i) => (
+            <div key={i} className="flex items-center gap-2 px-4 py-3">
+              <div className="flex-1">
+                <label className="mb-1 block text-xs text-text-muted">{ROLE_LABELS[member.role]}</label>
+                <input
+                  type="text"
+                  value={member.name}
+                  onChange={(e) => updateMemberName(i, e.target.value)}
+                  placeholder="Name eingeben..."
+                  className="w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => removeMember(i)}
+                className="mt-5 rounded p-1 text-text-muted hover:text-warning transition-colors"
               >
-                {label}
-              </label>
-              <input
-                type="text"
-                value={names[key]}
-                onChange={(e) => setters[key](e.target.value)}
-                placeholder="Name eingeben..."
-                className={`w-full rounded-lg px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted ${
-                  showWarning ? 'bg-caution-bg/30' : 'bg-surface-alt'
-                }`}
-              />
+                <PiX />
+              </button>
             </div>
-          )
-        })}
+          ))}
+        </div>
 
-        {additional.map((member, i) => (
-          <div key={i} className="flex items-center gap-2 px-4 py-3">
-            <div className="flex-1">
-              <label className="mb-1 block text-xs text-text-muted">{ROLE_LABELS[member.role]}</label>
-              <input
-                type="text"
-                value={member.name}
-                onChange={(e) => updateMemberName(i, e.target.value)}
-                placeholder="Name eingeben..."
-                className="w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted"
-              />
-            </div>
+        <div className="px-4 py-3 flex flex-wrap gap-2">
+          {ADDABLE_ROLES.map((role) => (
             <button
+              key={role}
               type="button"
-              onClick={() => removeMember(i)}
-              className="mt-5 rounded p-1 text-text-muted hover:text-warning transition-colors"
+              onClick={() => addMember(role)}
+              className="flex items-center gap-1 rounded-lg bg-surface-alt px-3 py-1.5 text-xs text-text-muted hover:text-text transition-colors"
             >
-              <PiX />
+              <PiPlus className="text-[0.6rem]" />
+              {ROLE_LABELS[role]}
             </button>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-
-      <div className="px-4 py-3 flex flex-wrap gap-2">
-        {ADDABLE_ROLES.map((role) => (
-          <button
-            key={role}
-            type="button"
-            onClick={() => addMember(role)}
-            className="flex items-center gap-1 rounded-lg bg-surface-alt px-3 py-1.5 text-xs text-text-muted hover:text-text transition-colors"
-          >
-            <PiPlus className="text-[0.6rem]" />
-            {ROLE_LABELS[role]}
-          </button>
-        ))}
-      </div>
-    </div>
+    </ChecklistSection>
   )
 }

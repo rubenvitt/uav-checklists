@@ -6,7 +6,7 @@ import type { ArcClass } from '../components/ArcDetermination'
 import { getDroneById } from '../data/drones'
 import { getMission } from './missionStorage'
 import { computeAssessment } from './assessment'
-import { generateReport, type ReportData, type EinsatzdetailsData } from './generateReport'
+import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData } from './generateReport'
 
 const PREFIX = 'uav-form:'
 const TTL = 56 * 60 * 60 * 1000
@@ -173,9 +173,82 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     abschnittsleiter: readMissionField<string>(missionId, 'abschnittsleiter', ''),
   }
 
+  // Truppstärke
+  const crewFk = readMissionField<string>(missionId, 'crew_fk', '')
+  const crewFp = readMissionField<string>(missionId, 'crew_fp', '')
+  const crewLrb = readMissionField<string>(missionId, 'crew_lrb', '')
+  const crewBa = readMissionField<string>(missionId, 'crew_ba', '')
+  const crewAdditional = readMissionField<Array<{ role: string; name: string }>>(missionId, 'crew_additional', [])
+  const CREW_ROLE_LABELS: Record<string, string> = {
+    fernpilot: 'Fernpilot',
+    luftraumbeobachter: 'Luftraumbeobachter',
+    bildauswerter: 'Bildauswerter',
+  }
+  const crewMembers: Array<{ role: string; name: string }> = []
+  if (crewFk.trim()) crewMembers.push({ role: 'Führungskraft', name: crewFk })
+  if (crewFp.trim()) crewMembers.push({ role: 'Fernpilot', name: crewFp })
+  if (crewLrb.trim()) crewMembers.push({ role: 'Luftraumbeobachter', name: crewLrb })
+  if (crewBa.trim()) crewMembers.push({ role: 'Bildauswerter', name: crewBa })
+  for (const m of crewAdditional) {
+    if (m.name.trim()) {
+      crewMembers.push({ role: CREW_ROLE_LABELS[m.role] || m.role, name: m.name })
+    }
+  }
+  const fkCount = crewFk.trim() ? 1 : 0
+  const othersCount = [crewFp, crewLrb, crewBa].filter(n => n.trim()).length + crewAdditional.filter(m => m.name.trim()).length
+  const truppstaerke: TruppstaerkeData | undefined = crewMembers.length > 0
+    ? { members: crewMembers, summary: `${fkCount}/${othersCount}//${fkCount + othersCount}` }
+    : undefined
+
+  // Einsatzauftrag
+  const missionTemplate = readMissionField<string>(missionId, 'mission_template', '')
+  const missionFreitext = readMissionField<string>(missionId, 'mission_freitext', '')
+  const TEMPLATE_LABELS: Record<string, string> = {
+    personensuche: 'Personensuche',
+    erkundung: 'Erkundung',
+    transport: 'Transport',
+    ueberwachung: 'Überwachung',
+    custom: 'Sonstiges',
+  }
+  const auftragDetails: Array<{ label: string; value: string }> = []
+  const templateFields: Record<string, Array<{ key: string; label: string }>> = {
+    personensuche: [
+      { key: 'mission_person_name', label: 'Name / Beschreibung' },
+      { key: 'mission_person_alter', label: 'Alter' },
+      { key: 'mission_person_geschlecht', label: 'Geschlecht' },
+      { key: 'mission_person_position', label: 'Letzte bekannte Position' },
+      { key: 'mission_person_kleidung', label: 'Kleidung / Merkmale' },
+      { key: 'mission_person_vermisst_seit', label: 'Seit wann vermisst' },
+    ],
+    erkundung: [
+      { key: 'mission_erkundung_gebiet', label: 'Erkundungsgebiet / -objekt' },
+      { key: 'mission_erkundung_art', label: 'Art der Erkundung' },
+    ],
+    transport: [
+      { key: 'mission_transport_gut', label: 'Transportgut' },
+      { key: 'mission_transport_ziel', label: 'Zielort' },
+    ],
+    ueberwachung: [
+      { key: 'mission_ueberwachung_objekt', label: 'Überwachungsobjekt / -gebiet' },
+      { key: 'mission_ueberwachung_dauer', label: 'Dauer / Intervall' },
+    ],
+  }
+  const fields = templateFields[missionTemplate]
+  if (fields) {
+    for (const f of fields) {
+      const v = readMissionField<string>(missionId, f.key, '')
+      if (v) auftragDetails.push({ label: f.label, value: v })
+    }
+  }
+  const einsatzauftrag: EinsatzauftragData | undefined = missionTemplate
+    ? { template: TEMPLATE_LABELS[missionTemplate] || missionTemplate, details: auftragDetails, freitext: missionFreitext }
+    : undefined
+
   const data: ReportData = {
     missionLabel: mission.label,
     einsatzdetails,
+    truppstaerke,
+    einsatzauftrag,
     location: locationName,
     drone,
     maxAltitude,

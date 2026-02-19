@@ -38,9 +38,22 @@ export interface EinsatzdetailsData {
   abschnittsleiter: string
 }
 
+export interface TruppstaerkeData {
+  members: Array<{ role: string; name: string }>
+  summary: string
+}
+
+export interface EinsatzauftragData {
+  template: string
+  details: Array<{ label: string; value: string }>
+  freitext: string
+}
+
 export interface ReportData {
   missionLabel?: string
   einsatzdetails?: EinsatzdetailsData
+  truppstaerke?: TruppstaerkeData
+  einsatzauftrag?: EinsatzauftragData
   location: string
   drone: DroneSpec
   maxAltitude: number
@@ -129,6 +142,43 @@ export function generateReport(data: ReportData) {
     if (d.anforderndeStelle) drawKeyValue('Anfordernde Stelle', d.anforderndeStelle)
     if (d.einsatzleiter) drawKeyValue('Einsatzleiter', d.einsatzleiter)
     if (d.abschnittsleiter) drawKeyValue('Abschnittsleiter', d.abschnittsleiter)
+  }
+
+  // === TRUPPSTAERKE ===
+  if (data.truppstaerke && data.truppstaerke.members.length > 0) {
+    drawSectionTitle('Truppstärke')
+    for (const member of data.truppstaerke.members) {
+      drawKeyValue(member.role, member.name)
+    }
+    checkPageBreak(7)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(100, 100, 100)
+    doc.text('Gesamt', margin, y)
+    doc.setTextColor(30, 30, 30)
+    doc.text(data.truppstaerke.summary, margin + 60, y)
+    y += 5.5
+  }
+
+  // === EINSATZAUFTRAG ===
+  if (data.einsatzauftrag) {
+    drawSectionTitle('Einsatzauftrag')
+    drawKeyValue('Art', data.einsatzauftrag.template)
+    for (const detail of data.einsatzauftrag.details) {
+      drawKeyValue(detail.label, detail.value)
+    }
+    if (data.einsatzauftrag.freitext) {
+      checkPageBreak(15)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(100, 100, 100)
+      doc.text('Weitere Informationen', margin, y)
+      y += 4
+      doc.setTextColor(30, 30, 30)
+      const lines = doc.splitTextToSize(data.einsatzauftrag.freitext, contentWidth - 4)
+      doc.text(lines, margin, y)
+      y += lines.length * 4.5
+    }
   }
 
   // === RAHMENANGABEN ===
