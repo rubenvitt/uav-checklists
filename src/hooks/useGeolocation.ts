@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 
-const STORAGE_KEY = 'uav-manual-location'
+const BASE_STORAGE_KEY = 'uav-manual-location'
+
+function storageKey(missionId?: string): string {
+  return missionId ? `${BASE_STORAGE_KEY}:${missionId}` : BASE_STORAGE_KEY
+}
 
 interface ManualLocation {
   latitude: number
@@ -20,9 +24,9 @@ interface GeolocationState {
   clearManualLocation: () => void
 }
 
-function loadManualLocation(): ManualLocation | null {
+function loadManualLocation(missionId?: string): ManualLocation | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(storageKey(missionId))
     if (!raw) return null
     const parsed = JSON.parse(raw)
     if (
@@ -38,8 +42,8 @@ function loadManualLocation(): ManualLocation | null {
   return null
 }
 
-export function useGeolocation(): GeolocationState {
-  const saved = loadManualLocation()
+export function useGeolocation(missionId?: string): GeolocationState {
+  const saved = loadManualLocation(missionId)
 
   const [state, setState] = useState<
     Omit<GeolocationState, 'setManualLocation' | 'clearManualLocation'>
@@ -67,7 +71,7 @@ export function useGeolocation(): GeolocationState {
 
   // GPS fallback — only runs when no manual location is set
   useEffect(() => {
-    if (loadManualLocation()) return
+    if (loadManualLocation(missionId)) return
 
     if (!navigator.geolocation) {
       setState((prev) => ({
@@ -104,10 +108,10 @@ export function useGeolocation(): GeolocationState {
       },
       { enableHighAccuracy: true, timeout: 10000 }
     )
-  }, [])
+  }, [missionId])
 
   const setManualLocation = useCallback((location: ManualLocation) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(location))
+    localStorage.setItem(storageKey(missionId), JSON.stringify(location))
     setState({
       latitude: location.latitude,
       longitude: location.longitude,
@@ -117,10 +121,10 @@ export function useGeolocation(): GeolocationState {
       manualName: location.name,
       needsManualLocation: false,
     })
-  }, [])
+  }, [missionId])
 
   const clearManualLocation = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(storageKey(missionId))
     setState({
       latitude: null,
       longitude: null,
@@ -159,7 +163,7 @@ export function useGeolocation(): GeolocationState {
         { enableHighAccuracy: true, timeout: 10000 }
       )
     }
-  }, [])
+  }, [missionId])
 
   return { ...state, setManualLocation, clearManualLocation }
 }

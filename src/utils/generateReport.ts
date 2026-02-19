@@ -29,6 +29,7 @@ const MANUAL_CHECK_LABELS: Record<string, string> = {
 }
 
 export interface ReportData {
+  missionLabel?: string
   location: string
   drone: DroneSpec
   maxAltitude: number
@@ -93,6 +94,13 @@ export function generateReport(data: ReportData) {
   doc.setTextColor(30, 30, 30)
   doc.text('UAV Vorflugkontrolle', margin, y)
   y += 7
+  if (data.missionLabel) {
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(80, 80, 80)
+    doc.text(data.missionLabel, margin, y)
+    y += 6
+  }
   doc.setFontSize(10)
   doc.setFont('helvetica', 'normal')
   doc.setTextColor(100, 100, 100)

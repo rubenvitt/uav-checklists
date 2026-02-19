@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { PiCheck } from 'react-icons/pi'
-import { usePersistedState } from '../hooks/usePersistedState'
+import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
 
 interface GrcDeterminationProps {
   onGrcChange: (grc: number | null) => void
@@ -46,11 +46,11 @@ function CheckItem({ checked, onChange, label, desc }: { checked: boolean; onCha
 }
 
 export default function GrcDetermination({ onGrcChange }: GrcDeterminationProps) {
-  const [controlledGround, setControlledGround] = usePersistedState<boolean | null>('grc:controlledGround', null)
-  const [flightType, setFlightType] = usePersistedState<'vlos' | 'bvlos' | null>('grc:flightType', null)
-  const [areaType, setAreaType] = usePersistedState<'sparse' | 'dense' | 'crowd' | null>('grc:areaType', null)
-  const [strategicMitigation, setStrategicMitigation] = usePersistedState('grc:strategicMitigation', false)
-  const [emergencyPlan, setEmergencyPlan] = usePersistedState('grc:emergencyPlan', false)
+  const [controlledGround, setControlledGround] = useMissionPersistedState<boolean | null>('grc:controlledGround', null)
+  const [flightType, setFlightType] = useMissionPersistedState<'vlos' | 'bvlos' | null>('grc:flightType', null)
+  const [areaType, setAreaType] = useMissionPersistedState<'sparse' | 'dense' | 'crowd' | null>('grc:areaType', null)
+  const [strategicMitigation, setStrategicMitigation] = useMissionPersistedState('grc:strategicMitigation', false)
+  const [emergencyPlan, setEmergencyPlan] = useMissionPersistedState('grc:emergencyPlan', false)
 
   const intrinsicGrc =
     controlledGround === true

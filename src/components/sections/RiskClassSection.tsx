@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from 'react'
 import { PiScales } from 'react-icons/pi'
 import type { MetricStatus } from '../../types/assessment'
-import { clearFormStorageByPrefix } from '../../hooks/usePersistedState'
+import { useMissionId } from '../../context/MissionContext'
+import { clearMissionFormStorageByPrefix } from '../../hooks/useMissionPersistedState'
 import ChecklistSection from '../ChecklistSection'
 import GrcDetermination from '../GrcDetermination'
 import ArcDetermination, { type ArcClass } from '../ArcDetermination'
@@ -27,6 +28,7 @@ interface RiskClassSectionProps {
 }
 
 export default function RiskClassSection({ locked, onSoraChange }: RiskClassSectionProps) {
+  const missionId = useMissionId()
   const [finalGrc, setFinalGrc] = useState<number | null>(null)
   const [arcClass, setArcClass] = useState<ArcClass | null>(null)
   const [resetKey, setResetKey] = useState(0)
@@ -35,8 +37,8 @@ export default function RiskClassSection({ locked, onSoraChange }: RiskClassSect
   const handleArcChange = useCallback((arc: ArcClass | null) => setArcClass(arc), [])
 
   const handleReset = () => {
-    clearFormStorageByPrefix('grc:')
-    clearFormStorageByPrefix('arc:')
+    clearMissionFormStorageByPrefix('grc:', missionId)
+    clearMissionFormStorageByPrefix('arc:', missionId)
     setResetKey((k) => k + 1)
     setFinalGrc(null)
     setArcClass(null)

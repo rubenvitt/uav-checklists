@@ -5,7 +5,7 @@ import {
   PiTrain, PiRoadHorizon, PiBoat, PiPlug, PiCellSignalHigh,
   PiMapPin, PiCheck, PiArrowCounterClockwise,
 } from 'react-icons/pi'
-import { usePersistedState } from '../../hooks/usePersistedState'
+import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
 import type { MetricStatus } from '../../types/assessment'
 import type { NearbyCategory } from '../../services/overpassApi'
 import ChecklistSection from '../ChecklistSection'
@@ -61,7 +61,7 @@ function formatDistance(meters: number): string {
 }
 
 export default function NearbyCheckSection({ categories, loading, error, locked, onManualChecksChange }: NearbyCheckSectionProps) {
-  const [checked, setChecked] = usePersistedState<Record<string, boolean>>('nearby:manualChecks', {})
+  const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>('nearby:manualChecks', {})
 
   useEffect(() => {
     onManualChecksChange?.(checked)

@@ -1,20 +1,24 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 
 const PREFIX = 'uav-form:'
-const TTL = 8 * 60 * 60 * 1000 // 8h
+const TTL = 56 * 60 * 60 * 1000 // 56h
 
 interface StoredEntry<T> {
   value: T
   timestamp: number
 }
 
-function readStorage<T>(key: string, fallback: T): T {
+function buildPrefix(missionId?: string): string {
+  return missionId ? `${PREFIX}${missionId}:` : PREFIX
+}
+
+function readStorage<T>(key: string, fallback: T, missionId?: string): T {
   try {
-    const raw = localStorage.getItem(PREFIX + key)
+    const raw = localStorage.getItem(buildPrefix(missionId) + key)
     if (!raw) return fallback
     const entry: StoredEntry<T> = JSON.parse(raw)
     if (Date.now() - entry.timestamp > TTL) {
-      localStorage.removeItem(PREFIX + key)
+      localStorage.removeItem(buildPrefix(missionId) + key)
       return fallback
     }
     return entry.value
@@ -23,15 +27,18 @@ function readStorage<T>(key: string, fallback: T): T {
   }
 }
 
-function writeStorage<T>(key: string, value: T) {
+function writeStorage<T>(key: string, value: T, missionId?: string) {
   const entry: StoredEntry<T> = { value, timestamp: Date.now() }
-  localStorage.setItem(PREFIX + key, JSON.stringify(entry))
+  localStorage.setItem(buildPrefix(missionId) + key, JSON.stringify(entry))
 }
 
-export function usePersistedState<T>(key: string, initialValue: T): [T, (v: T | ((prev: T) => T)) => void] {
-  const [state, setState] = useState<T>(() => readStorage(key, initialValue))
+export function usePersistedState<T>(key: string, initialValue: T, missionId?: string): [T, (v: T | ((prev: T) => T)) => void] {
+  const fullKey = missionId ? `${missionId}:${key}` : key
+  const [state, setState] = useState<T>(() => readStorage(key, initialValue, missionId))
   const keyRef = useRef(key)
+  const missionIdRef = useRef(missionId)
   keyRef.current = key
+  missionIdRef.current = missionId
 
   const setPersistedState = useCallback(
     (valueOrUpdater: T | ((prev: T) => T)) => {
@@ -39,7 +46,7 @@ export function usePersistedState<T>(key: string, initialValue: T): [T, (v: T | 
         const next = typeof valueOrUpdater === 'function'
           ? (valueOrUpdater as (prev: T) => T)(prev)
           : valueOrUpdater
-        writeStorage(keyRef.current, next)
+        writeStorage(keyRef.current, next, missionIdRef.current)
         return next
       })
     },
@@ -48,15 +55,15 @@ export function usePersistedState<T>(key: string, initialValue: T): [T, (v: T | 
 
   // Sync if key changes (e.g. after storage clear + remount)
   useEffect(() => {
-    const stored = readStorage(key, initialValue)
+    const stored = readStorage(key, initialValue, missionId)
     setState(stored)
-  }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fullKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return [state, setPersistedState]
 }
 
-export function clearFormStorageByPrefix(prefix: string) {
-  const fullPrefix = PREFIX + prefix
+export function clearFormStorageByPrefix(prefix: string, missionId?: string) {
+  const fullPrefix = buildPrefix(missionId) + prefix
   const keysToRemove: string[] = []
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i)

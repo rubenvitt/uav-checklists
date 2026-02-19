@@ -6,12 +6,12 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
 import './index.css'
-import App from './App.tsx'
+import AppRouter from './router.tsx'
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      gcTime: 8 * 60 * 60 * 1000, // 8h — longest cache (nearby)
+      gcTime: 56 * 60 * 60 * 1000, // 56h
     },
   },
 })
@@ -22,8 +22,8 @@ const persister = createSyncStoragePersister({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: 8 * 60 * 60 * 1000 }}>
-      <App />
+    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: 56 * 60 * 60 * 1000 }}>
+      <AppRouter />
       <TanStackDevtools plugins={[
         { name: 'TanStack Query', render: <ReactQueryDevtoolsPanel />, defaultOpen: true },
       ]} />
