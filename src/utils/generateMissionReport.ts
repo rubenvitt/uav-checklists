@@ -6,7 +6,7 @@ import type { ArcClass } from '../components/ArcDetermination'
 import { getDroneById } from '../data/drones'
 import { getMission } from './missionStorage'
 import { computeAssessment } from './assessment'
-import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData } from './generateReport'
+import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type AnmeldungItem } from './generateReport'
 
 const PREFIX = 'uav-form:'
 const TTL = 56 * 60 * 60 * 1000
@@ -244,11 +244,41 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     ? { template: TEMPLATE_LABELS[missionTemplate] || missionTemplate, details: auftragDetails, freitext: missionFreitext }
     : undefined
 
+  // Fluganmeldungen
+  const anmeldungenChecked = readMissionField<Record<string, boolean>>(missionId, 'anmeldungen:checked', {})
+  const anmeldungenAdditional = readMissionField<Array<{ label: string; detail: string }>>(missionId, 'anmeldungen:additional', [])
+  const anmeldungenItems: AnmeldungItem[] = [
+    { label: 'Leitstelle', detail: '19222', checked: !!anmeldungenChecked['leitstelle'] },
+    { label: 'Polizei', detail: '110', checked: !!anmeldungenChecked['polizei'] },
+  ]
+  const hasRailway = categories.some((c) => c.key === 'railway')
+  const hasWaterway = categories.some((c) => c.key === 'waterway')
+  if (hasRailway) {
+    anmeldungenItems.push({ label: 'Bahn (DB Netz)', detail: 'Bahnlinien im Einsatzgebiet', checked: !!anmeldungenChecked['bahn'] })
+  }
+  if (hasWaterway) {
+    anmeldungenItems.push({ label: 'Wasserstraßen- und Schifffahrtsamt', detail: 'Wasserstraßen im Einsatzgebiet', checked: !!anmeldungenChecked['wsa'] })
+  }
+  for (let i = 0; i < anmeldungenAdditional.length; i++) {
+    const a = anmeldungenAdditional[i]
+    if (a.label.trim() || a.detail.trim()) {
+      anmeldungenItems.push({ label: a.label || 'Weitere Stelle', detail: a.detail, checked: !!anmeldungenChecked[`custom_${i}`] })
+    }
+  }
+
+  // Map image from Einsatzdaten phase
+  const karteMode = readMissionField<'map' | 'photo'>(missionId, 'einsatzkarte:mode', 'map')
+  const mapImage = karteMode === 'photo'
+    ? readMissionField<string>(missionId, 'einsatzkarte:photo', '')
+    : readMissionField<string>(missionId, 'einsatzkarte:snapshot', '')
+
   const data: ReportData = {
     missionLabel: mission.label,
     einsatzdetails,
     truppstaerke,
     einsatzauftrag,
+    anmeldungen: anmeldungenItems,
+    mapImage: mapImage || undefined,
     location: locationName,
     drone,
     maxAltitude,
