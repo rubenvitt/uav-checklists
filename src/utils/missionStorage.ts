@@ -2,6 +2,7 @@ import type { Mission } from '../types/mission'
 
 const MISSIONS_KEY = 'uav-missions'
 const MISSION_TTL = 56 * 60 * 60 * 1000 // 56h
+const COMPLETED_TTL = 24 * 60 * 60 * 1000 // 24h
 
 export function generateId(): string {
   // crypto.randomUUID() requires a secure context (HTTPS/localhost).
@@ -59,11 +60,23 @@ export function updateMissionPhase(missionId: string, phase: Mission['phase']) {
   }
 }
 
+export function completeMission(missionId: string) {
+  const missions = loadMissions()
+  const mission = missions.find((m) => m.id === missionId)
+  if (mission) {
+    mission.completedAt = Date.now()
+    saveMissions(missions)
+  }
+}
+
 export function getMission(missionId: string): Mission | undefined {
   return loadMissions().find((m) => m.id === missionId)
 }
 
 export function isMissionExpired(mission: Mission): boolean {
+  if (mission.completedAt) {
+    return Date.now() - mission.completedAt > COMPLETED_TTL
+  }
   return Date.now() - mission.createdAt > MISSION_TTL
 }
 
@@ -91,8 +104,10 @@ export function clearMissionStorage(missionId: string) {
 }
 
 export function getRemainingTime(mission: Mission): string {
-  const elapsed = Date.now() - mission.createdAt
-  const remaining = MISSION_TTL - elapsed
+  const ttl = mission.completedAt ? COMPLETED_TTL : MISSION_TTL
+  const base = mission.completedAt ?? mission.createdAt
+  const elapsed = Date.now() - base
+  const remaining = ttl - elapsed
   if (remaining <= 0) return 'Abgelaufen'
   const hours = Math.floor(remaining / (60 * 60 * 1000))
   const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000))

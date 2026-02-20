@@ -5,6 +5,7 @@ import {
   createMission as createMissionStorage,
   deleteMission as deleteMissionStorage,
   updateMissionPhase as updateMissionPhaseStorage,
+  completeMission as completeMissionStorage,
   cleanExpiredMissions,
 } from '../utils/missionStorage'
 
@@ -53,10 +54,15 @@ export function useMissions() {
     refresh()
   }, [])
 
+  const complete = useCallback((missionId: string) => {
+    completeMissionStorage(missionId)
+    refresh()
+  }, [])
+
   const clean = useCallback(() => {
     cleanExpiredMissions()
     refresh()
   }, [])
 
-  return { missions, create, remove, updatePhase, clean }
+  return { missions, create, remove, updatePhase, complete, clean }
 }
