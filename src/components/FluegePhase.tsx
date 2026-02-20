@@ -1,7 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
-import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown } from 'react-icons/pi'
+import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren } from 'react-icons/pi'
 import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
-import type { FlightLogEntry } from '../types/flightLog'
+import type { FlightLogEntry, LandingStatus } from '../types/flightLog'
+
+const LANDING_STATUS_CONFIG: Record<LandingStatus, { label: string; color: string; bgColor: string; borderColor: string; icon: React.ReactNode }> = {
+  ok: { label: 'In Ordnung', color: 'text-good', bgColor: 'bg-good', borderColor: 'border-good', icon: <PiCheck /> },
+  auffaellig: { label: 'Mit Auffälligkeiten', color: 'text-caution', bgColor: 'bg-caution', borderColor: 'border-caution', icon: <PiWarning /> },
+  notfall: { label: 'Notfall', color: 'text-warning', bgColor: 'bg-warning', borderColor: 'border-warning', icon: <PiSiren /> },
+}
+
+const LANDING_STATUS_ORDER: LandingStatus[] = ['ok', 'auffaellig', 'notfall']
 
 function generateId() {
   return typeof crypto !== 'undefined' && crypto.randomUUID
@@ -63,7 +71,7 @@ export default function FluegePhase() {
       blockOn: null,
       fernpilot: defaultFp,
       lrb: defaultLrb,
-      landungOk: true,
+      landungStatus: 'ok',
       bemerkung: '',
     }
     setEntries((prev) => [...prev, entry])
@@ -289,15 +297,7 @@ function CompletedFlightCard({
             {entry.fernpilot || '—'} / {entry.lrb || '—'}
           </p>
         </div>
-        {entry.landungOk ? (
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-good-bg text-good">
-            <PiCheck className="text-xs" />
-          </span>
-        ) : (
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-warning-bg text-warning">
-            <PiWarning className="text-xs" />
-          </span>
-        )}
+        <LandingStatusBadge status={entry.landungStatus} />
         <span className={`text-text-muted transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}>
           <PiCaretDown className="text-sm" />
         </span>
@@ -352,25 +352,13 @@ function CompletedFlightCard({
             />
           </div>
 
-          {/* Landung OK toggle */}
+          {/* Landungsstatus */}
           <div className="px-4 py-2.5">
-            <button
-              onClick={() => onUpdate({ landungOk: !entry.landungOk })}
-              className="flex w-full items-center gap-2 text-left"
-            >
-              <span
-                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs transition-colors ${
-                  entry.landungOk
-                    ? 'border-good bg-good text-white'
-                    : 'border-warning bg-warning text-white'
-                }`}
-              >
-                {entry.landungOk ? <PiCheck /> : <PiWarning />}
-              </span>
-              <span className={`text-xs ${entry.landungOk ? 'text-good' : 'text-warning'}`}>
-                {entry.landungOk ? 'Landung in Ordnung' : 'Landung mit Auffälligkeiten'}
-              </span>
-            </button>
+            <label className="mb-1.5 block text-[10px] text-text-muted">Landung</label>
+            <LandingStatusSelector
+              value={entry.landungStatus}
+              onChange={(v) => onUpdate({ landungStatus: v })}
+            />
           </div>
 
           {/* Bemerkung */}
@@ -397,6 +385,54 @@ function CompletedFlightCard({
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/* ── Landungsstatus ────────────────────────────────────────── */
+
+function LandingStatusBadge({ status }: { status: LandingStatus }) {
+  const cfg = LANDING_STATUS_CONFIG[status]
+  const bgMap: Record<LandingStatus, string> = {
+    ok: 'bg-good-bg text-good',
+    auffaellig: 'bg-caution-bg text-caution',
+    notfall: 'bg-warning-bg text-warning',
+  }
+  return (
+    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs ${bgMap[status]}`}>
+      {cfg.icon}
+    </span>
+  )
+}
+
+function LandingStatusSelector({
+  value,
+  onChange,
+}: {
+  value: LandingStatus
+  onChange: (v: LandingStatus) => void
+}) {
+  return (
+    <div className="flex gap-1.5">
+      {LANDING_STATUS_ORDER.map((status) => {
+        const cfg = LANDING_STATUS_CONFIG[status]
+        const isActive = value === status
+        return (
+          <button
+            key={status}
+            type="button"
+            onClick={() => onChange(status)}
+            className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
+              isActive
+                ? `${cfg.bgColor} text-white`
+                : 'bg-surface-alt text-text-muted hover:text-text'
+            }`}
+          >
+            <span className="text-[0.65rem]">{cfg.icon}</span>
+            {cfg.label}
+          </button>
+        )
+      })}
     </div>
   )
 }

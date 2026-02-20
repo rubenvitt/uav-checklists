@@ -480,8 +480,11 @@ export function generateReport(data: ReportData) {
 
       // Landing status
       if (flight.blockOn) {
-        const statusStr = flight.landungOk ? 'In Ordnung' : 'Auffälligkeiten'
-        const [r, g, b]: [number, number, number] = flight.landungOk ? [34, 139, 34] : [200, 50, 50]
+        const landungLabels: Record<string, string> = { ok: 'In Ordnung', auffaellig: 'Mit Auffälligkeiten', notfall: 'Notfall' }
+        const landungColors: Record<string, [number, number, number]> = { ok: [34, 139, 34], auffaellig: [200, 150, 0], notfall: [200, 50, 50] }
+        const status = flight.landungStatus ?? 'ok'
+        const statusStr = landungLabels[status] ?? 'In Ordnung'
+        const [r, g, b] = landungColors[status] ?? [34, 139, 34]
         checkPageBreak(6)
         doc.setFontSize(9)
         doc.setFont('helvetica', 'normal')

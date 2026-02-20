@@ -1,9 +1,11 @@
+export type LandingStatus = 'ok' | 'auffaellig' | 'notfall'
+
 export interface FlightLogEntry {
   id: string
   blockOff: string // ISO timestamp for takeoff
   blockOn: string | null // ISO timestamp for landing, null = still in flight
   fernpilot: string
   lrb: string
-  landungOk: boolean // default true, set on landing
+  landungStatus: LandingStatus // default 'ok'
   bemerkung: string // optional remarks
 }
