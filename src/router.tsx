@@ -47,10 +47,15 @@ function MissionLayout() {
   const validPhases: MissionPhase[] = ['einsatzdaten', 'vorflugkontrolle', 'fluege', 'nachbereitung']
   if (!validPhases.includes(phase as MissionPhase)) return <Navigate to="/" replace />
 
+  // Completed missions can only be viewed on the nachbereitung phase
+  if (mission.completedAt && phase !== 'nachbereitung') {
+    return <Navigate to={`/mission/${missionId}/nachbereitung`} replace />
+  }
+
   const currentPhase = phase as MissionPhase
 
-  // Update stored phase
-  if (mission.phase !== currentPhase) {
+  // Update stored phase (skip for completed missions)
+  if (!mission.completedAt && mission.phase !== currentPhase) {
     updateMissionPhase(missionId, currentPhase)
   }
 
@@ -59,14 +64,16 @@ function MissionLayout() {
       <MissionLayoutInner
         missionLabel={mission.label}
         currentPhase={currentPhase}
+        isCompleted={!!mission.completedAt}
       />
     </MissionProvider>
   )
 }
 
-function MissionLayoutInner({ missionLabel, currentPhase }: {
+function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
   missionLabel: string
   currentPhase: MissionPhase
+  isCompleted: boolean
 }) {
   const queryClient = useQueryClient()
   const { setting: themeSetting, cycle: cycleTheme } = useTheme(null)
@@ -84,10 +91,10 @@ function MissionLayoutInner({ missionLabel, currentPhase }: {
           missionLabel={missionLabel}
           themeSetting={themeSetting}
           onCycleTheme={cycleTheme}
-          onRefresh={() => queryClient.invalidateQueries()}
+          onRefresh={isCompleted ? undefined : () => queryClient.invalidateQueries()}
           onExportPdf={currentPhase === 'vorflugkontrolle' ? () => exportPdfRef.current?.() : undefined}
         />
-        <MissionStepper currentPhase={currentPhase} />
+        {!isCompleted && <MissionStepper currentPhase={currentPhase} />}
         {currentPhase === 'einsatzdaten' && <EinsatzdatenPhase />}
         {currentPhase === 'vorflugkontrolle' && (
           <VorflugkontrollePhase setExportPdf={setExportPdf} />

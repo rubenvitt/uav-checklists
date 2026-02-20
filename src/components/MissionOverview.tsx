@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { PiPlus, PiTrash, PiClock, PiMapTrifold, PiFilePdf } from 'react-icons/pi'
+import { PiPlus, PiTrash, PiClock, PiMapTrifold, PiFilePdf, PiCheckCircle } from 'react-icons/pi'
 import { useMissions } from '../hooks/useMissions'
 import { getRemainingTime } from '../utils/missionStorage'
 import { generateMissionReport } from '../utils/generateMissionReport'
@@ -52,13 +52,16 @@ export default function MissionOverview() {
     return () => clearTimeout(timer)
   }, [confirmDelete])
 
+  const activeMissions = missions.filter((m) => !m.completedAt)
+  const completedMissions = missions.filter((m) => !!m.completedAt)
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-text">Einsätze</h2>
           <p className="text-sm text-text-muted">
-            {missions.length === 0 ? 'Keine aktiven Einsätze' : `${missions.length} aktive${missions.length === 1 ? 'r' : ''} Einsatz${missions.length === 1 ? '' : 'e'}`}
+            {activeMissions.length === 0 ? 'Keine aktiven Einsätze' : `${activeMissions.length} aktive${activeMissions.length === 1 ? 'r' : ''} Einsatz${activeMissions.length === 1 ? '' : 'e'}`}
           </p>
         </div>
         <button
@@ -81,7 +84,7 @@ export default function MissionOverview() {
       )}
 
       <div className="space-y-3">
-        {missions.map((mission) => (
+        {activeMissions.map((mission) => (
           <MissionCard
             key={mission.id}
             mission={mission}
@@ -92,6 +95,24 @@ export default function MissionOverview() {
           />
         ))}
       </div>
+
+      {completedMissions.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-text-muted">
+            Abgeschlossen ({completedMissions.length})
+          </h3>
+          {completedMissions.map((mission) => (
+            <MissionCard
+              key={mission.id}
+              mission={mission}
+              isConfirmingDelete={confirmDelete === mission.id}
+              onNavigate={() => navigate(`/mission/${mission.id}/nachbereitung`)}
+              onDelete={() => handleDelete(mission.id)}
+              onExportPdf={() => generateMissionReport(mission.id, queryClient)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -103,20 +124,34 @@ function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onExpo
   onDelete: () => void
   onExportPdf: () => void
 }) {
+  const isCompleted = !!mission.completedAt
   const iconBtnClass = 'rounded-lg p-2 text-text-muted transition-colors'
 
   return (
     <button
       onClick={onNavigate}
-      className="w-full rounded-xl bg-surface p-4 text-left transition-colors hover:bg-surface-alt active:scale-[0.99]"
+      className={`w-full rounded-xl p-4 text-left transition-colors active:scale-[0.99] ${
+        isCompleted
+          ? 'bg-surface/60 opacity-75 hover:bg-surface-alt/60'
+          : 'bg-surface hover:bg-surface-alt'
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-text truncate">{mission.label}</p>
+          <p className={`text-sm font-medium truncate ${isCompleted ? 'text-text-muted' : 'text-text'}`}>
+            {mission.label}
+          </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${PHASE_COLORS[mission.phase]}`}>
-              {PHASE_LABELS[mission.phase]}
-            </span>
+            {isCompleted ? (
+              <span className="flex items-center gap-1 rounded-full bg-good-bg px-2.5 py-0.5 text-xs font-medium text-good">
+                <PiCheckCircle />
+                Abgeschlossen
+              </span>
+            ) : (
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${PHASE_COLORS[mission.phase]}`}>
+                {PHASE_LABELS[mission.phase]}
+              </span>
+            )}
             <span className="flex items-center gap-1 text-xs text-text-muted">
               <PiClock />
               {getRemainingTime(mission)}
