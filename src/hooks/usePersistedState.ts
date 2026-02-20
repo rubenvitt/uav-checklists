@@ -27,9 +27,18 @@ export function readStorage<T>(key: string, fallback: T, missionId?: string): T 
   }
 }
 
+let pendingNotify = false
+
 function writeStorage<T>(key: string, value: T, missionId?: string) {
   const entry: StoredEntry<T> = { value, timestamp: Date.now() }
   localStorage.setItem(buildPrefix(missionId) + key, JSON.stringify(entry))
+  if (!pendingNotify) {
+    pendingNotify = true
+    queueMicrotask(() => {
+      pendingNotify = false
+      window.dispatchEvent(new Event('persisted-storage-write'))
+    })
+  }
 }
 
 export function usePersistedState<T>(key: string, initialValue: T, missionId?: string): [T, (v: T | ((prev: T) => T)) => void] {
@@ -60,6 +69,16 @@ export function usePersistedState<T>(key: string, initialValue: T, missionId?: s
   }, [fullKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return [state, setPersistedState]
+}
+
+/** Subscribe to localStorage writes — triggers re-render so `readStorage` calls pick up fresh data. */
+export function useStorageEvent() {
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const handler = () => setTick((n) => n + 1)
+    window.addEventListener('persisted-storage-write', handler)
+    return () => window.removeEventListener('persisted-storage-write', handler)
+  }, [])
 }
 
 export function clearFormStorageByPrefix(prefix: string, missionId?: string) {

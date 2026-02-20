@@ -128,9 +128,12 @@ function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onExpo
   const iconBtnClass = 'rounded-lg p-2 text-text-muted transition-colors'
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onNavigate}
-      className={`w-full rounded-xl p-4 text-left transition-colors active:scale-[0.99] ${
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate() } }}
+      className={`w-full rounded-xl p-4 text-left transition-colors active:scale-[0.99] cursor-pointer ${
         isCompleted
           ? 'bg-surface/60 opacity-75 hover:bg-surface-alt/60'
           : 'bg-surface hover:bg-surface-alt'
@@ -187,6 +190,6 @@ function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onExpo
           </button>
         </div>
       </div>
-    </button>
+    </div>
   )
 }

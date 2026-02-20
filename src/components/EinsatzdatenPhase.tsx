@@ -6,6 +6,7 @@ import EinsatzdetailsSection from './sections/EinsatzdetailsSection'
 import EinsatzauftragSection from './sections/EinsatzauftragSection'
 import TruppstaerkeSection from './sections/TruppstaerkeSection'
 import EinsatzkarteSection from './sections/EinsatzkarteSection'
+import MissionsbriefingSection from './sections/MissionsbriefingSection'
 
 export default function EinsatzdatenPhase() {
   const missionId = useMissionId()
@@ -35,6 +36,7 @@ export default function EinsatzdatenPhase() {
         longitude={geo.longitude}
         locked={!hasLocation}
       />
+      <MissionsbriefingSection />
     </div>
   )
 }
