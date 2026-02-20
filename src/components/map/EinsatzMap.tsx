@@ -30,7 +30,6 @@ interface EinsatzMapProps {
   longitude: number
   mapData: MapData
   setMapData: (v: MapData | ((prev: MapData) => MapData)) => void
-  onMapUpdate?: () => void
 }
 
 function boundsFromFeatures(features: MapData['features']): L.LatLngBounds | null {
@@ -134,21 +133,6 @@ function MapInner({ mapData, setMapData }: { mapData: MapData; setMapData: Einsa
   )
 }
 
-/** Forwards moveend events so the snapshot captures the settled view (after fitBounds). */
-function MapMoveEndNotifier({ onMoveEnd }: { onMoveEnd: () => void }) {
-  const map = useMap()
-  const ref = useRef(onMoveEnd)
-  ref.current = onMoveEnd
-
-  useEffect(() => {
-    const handler = () => ref.current()
-    map.on('moveend', handler)
-    return () => { map.off('moveend', handler) }
-  }, [map])
-
-  return null
-}
-
 function MapCenterUpdater({ latitude, longitude }: { latitude: number; longitude: number }) {
   const map = useMap()
   const initializedRef = useRef(false)
@@ -165,7 +149,7 @@ function MapCenterUpdater({ latitude, longitude }: { latitude: number; longitude
 }
 
 const EinsatzMap = forwardRef<EinsatzMapHandle, EinsatzMapProps>(function EinsatzMap(
-  { latitude, longitude, mapData, setMapData, onMapUpdate },
+  { latitude, longitude, mapData, setMapData },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -189,9 +173,7 @@ const EinsatzMap = forwardRef<EinsatzMapHandle, EinsatzMapProps>(function Einsat
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           crossOrigin="anonymous"
-          eventHandlers={{ load: () => onMapUpdate?.() }}
         />
-        <MapMoveEndNotifier onMoveEnd={() => onMapUpdate?.()} />
         <MapSizeInvalidator mapData={mapData} />
         <MapCenterUpdater latitude={latitude} longitude={longitude} />
         <MapInner mapData={mapData} setMapData={setMapData} />
