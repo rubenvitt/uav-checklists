@@ -437,7 +437,7 @@ export function generateReport(data: ReportData) {
     doc.setFontSize(8)
     doc.setFont('helvetica', 'italic')
     doc.setTextColor(150, 150, 150)
-    doc.text('Hinweis: Jeden Start und jede Landung an die zuständige Stelle melden.', margin, y)
+    doc.text('Hinweis: Jeden Start und jede Landung an FüKw oder Abschnittsleiter melden.', margin, y)
     y += 6
 
     for (let i = 0; i < data.flightLog.length; i++) {

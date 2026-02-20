@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown } from 'react-icons/pi'
 import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
 import type { FlightLogEntry } from '../types/flightLog'
@@ -31,13 +31,30 @@ function toLocalInput(iso: string): string {
   return local.toISOString().slice(0, 16)
 }
 
+interface AdditionalMember {
+  role: string
+  name: string
+}
+
+function useCrewSuggestions(): string[] {
+  const [fk] = useMissionPersistedState<string>('crew_fk', '')
+  const [fp] = useMissionPersistedState<string>('crew_fp', '')
+  const [lrb] = useMissionPersistedState<string>('crew_lrb', '')
+  const [ba] = useMissionPersistedState<string>('crew_ba', '')
+  const [additional] = useMissionPersistedState<AdditionalMember[]>('crew_additional', [])
+
+  const names = [fk, fp, lrb, ba, ...additional.map((m) => m.name)]
+  return [...new Set(names.filter((n) => n.trim()))]
+}
+
 export default function FluegePhase() {
   const [entries, setEntries] = useMissionPersistedState<FlightLogEntry[]>('flightlog:entries', [])
   const [defaultFp] = useMissionPersistedState<string>('crew_fp', '')
   const [defaultLrb] = useMissionPersistedState<string>('crew_lrb', '')
+  const crewSuggestions = useCrewSuggestions()
 
   const activeEntry = entries.find((e) => e.blockOn === null)
-  const completedEntries = entries.filter((e) => e.blockOn !== null)
+  const completedEntries = entries.filter((e) => e.blockOn !== null).slice().reverse()
 
   function startFlight() {
     const entry: FlightLogEntry = {
@@ -78,7 +95,7 @@ export default function FluegePhase() {
         <div>
           <p className="text-sm font-medium text-text">Meldepflicht Start & Landung</p>
           <p className="mt-0.5 text-xs text-text-muted">
-            Jeden Start und jede Landung an die zuständige Stelle melden (z.B. Leitstelle, Polizei).
+            Jeden Start und jede Landung an FüKw oder Abschnittsleiter melden.
           </p>
         </div>
       </div>
@@ -87,6 +104,7 @@ export default function FluegePhase() {
       {activeEntry && (
         <ActiveFlightCard
           entry={activeEntry}
+          suggestions={crewSuggestions}
           onLand={() => landFlight(activeEntry.id)}
           onUpdate={(updates) => updateEntry(activeEntry.id, updates)}
           onRemove={() => removeEntry(activeEntry.id)}
@@ -114,7 +132,8 @@ export default function FluegePhase() {
             <CompletedFlightCard
               key={entry.id}
               entry={entry}
-              index={idx + 1}
+              index={completedEntries.length - idx}
+              suggestions={crewSuggestions}
               onUpdate={(updates) => updateEntry(entry.id, updates)}
               onRemove={() => removeEntry(entry.id)}
             />
@@ -142,11 +161,13 @@ export default function FluegePhase() {
 
 function ActiveFlightCard({
   entry,
+  suggestions,
   onLand,
   onUpdate,
   onRemove,
 }: {
   entry: FlightLogEntry
+  suggestions: string[]
   onLand: () => void
   onUpdate: (u: Partial<FlightLogEntry>) => void
   onRemove: () => void
@@ -178,26 +199,22 @@ function ActiveFlightCard({
             className="w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted"
           />
         </div>
-        <div className="px-4 py-3">
-          <label className="mb-1 block text-xs text-text-muted">Fernpilot</label>
-          <input
-            type="text"
-            value={entry.fernpilot}
-            onChange={(e) => onUpdate({ fernpilot: e.target.value })}
-            placeholder="Name des Fernpiloten"
-            className="w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted"
-          />
-        </div>
-        <div className="px-4 py-3">
-          <label className="mb-1 block text-xs text-text-muted">Luftraumbeobachter</label>
-          <input
-            type="text"
-            value={entry.lrb}
-            onChange={(e) => onUpdate({ lrb: e.target.value })}
-            placeholder="Name des LRB"
-            className="w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted"
-          />
-        </div>
+        <NameAutocomplete
+          label="Fernpilot"
+          value={entry.fernpilot}
+          onChange={(v) => onUpdate({ fernpilot: v })}
+          suggestions={suggestions}
+          placeholder="Name des Fernpiloten"
+          size="normal"
+        />
+        <NameAutocomplete
+          label="Luftraumbeobachter"
+          value={entry.lrb}
+          onChange={(v) => onUpdate({ lrb: v })}
+          suggestions={suggestions}
+          placeholder="Name des LRB"
+          size="normal"
+        />
         <div className="px-4 py-3">
           <label className="mb-1 block text-xs text-text-muted">Bemerkung</label>
           <input
@@ -235,11 +252,13 @@ function ActiveFlightCard({
 function CompletedFlightCard({
   entry,
   index,
+  suggestions,
   onUpdate,
   onRemove,
 }: {
   entry: FlightLogEntry
   index: number
+  suggestions: string[]
   onUpdate: (u: Partial<FlightLogEntry>) => void
   onRemove: () => void
 }) {
@@ -315,26 +334,22 @@ function CompletedFlightCard({
 
           {/* Fernpilot + LRB */}
           <div className="flex gap-4 px-4 py-2.5">
-            <div className="flex-1">
-              <label className="mb-1 block text-[10px] text-text-muted">Fernpilot</label>
-              <input
-                type="text"
-                value={entry.fernpilot}
-                onChange={(e) => onUpdate({ fernpilot: e.target.value })}
-                placeholder="Name"
-                className="w-full rounded bg-surface-alt px-2 py-1 text-xs text-text outline-none focus:ring-1 focus:ring-text-muted"
-              />
-            </div>
-            <div className="flex-1">
-              <label className="mb-1 block text-[10px] text-text-muted">LRB</label>
-              <input
-                type="text"
-                value={entry.lrb}
-                onChange={(e) => onUpdate({ lrb: e.target.value })}
-                placeholder="Name"
-                className="w-full rounded bg-surface-alt px-2 py-1 text-xs text-text outline-none focus:ring-1 focus:ring-text-muted"
-              />
-            </div>
+            <NameAutocomplete
+              label="Fernpilot"
+              value={entry.fernpilot}
+              onChange={(v) => onUpdate({ fernpilot: v })}
+              suggestions={suggestions}
+              placeholder="Name"
+              size="compact"
+            />
+            <NameAutocomplete
+              label="LRB"
+              value={entry.lrb}
+              onChange={(v) => onUpdate({ lrb: v })}
+              suggestions={suggestions}
+              placeholder="Name"
+              size="compact"
+            />
           </div>
 
           {/* Landung OK toggle */}
@@ -382,6 +397,140 @@ function CompletedFlightCard({
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/* ── Name-Autocomplete ────────────────────────────────────── */
+
+function NameAutocomplete({
+  label,
+  value,
+  onChange,
+  suggestions,
+  placeholder,
+  size,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  suggestions: string[]
+  placeholder?: string
+  size: 'normal' | 'compact'
+}) {
+  const [focused, setFocused] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+
+  const filtered = focused
+    ? value.trim()
+      ? suggestions.filter((s) => s.toLowerCase().includes(value.toLowerCase()) && s !== value)
+      : suggestions.filter((s) => s !== value)
+    : []
+
+  useEffect(() => {
+    setActiveIndex(-1)
+  }, [filtered.length, value])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setFocused(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    if (activeIndex < 0 || !listRef.current) return
+    const item = listRef.current.children[activeIndex] as HTMLElement | undefined
+    item?.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex])
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (filtered.length === 0) return
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setActiveIndex((i) => (i < filtered.length - 1 ? i + 1 : 0))
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setActiveIndex((i) => (i > 0 ? i - 1 : filtered.length - 1))
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (activeIndex >= 0 && activeIndex < filtered.length) {
+          onChange(filtered[activeIndex])
+          setFocused(false)
+        }
+        break
+      case 'Escape':
+        setFocused(false)
+        break
+    }
+  }
+
+  const isCompact = size === 'compact'
+
+  return (
+    <div className={isCompact ? 'flex-1' : 'px-4 py-3'}>
+      <label className={`mb-1 block ${isCompact ? 'text-[10px]' : 'text-xs'} text-text-muted`}>
+        {label}
+      </label>
+      <div ref={wrapperRef} className="relative">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          role="combobox"
+          aria-expanded={filtered.length > 0}
+          aria-activedescendant={activeIndex >= 0 ? `flight-${label}-${activeIndex}` : undefined}
+          aria-autocomplete="list"
+          className={
+            isCompact
+              ? 'w-full rounded bg-surface-alt px-2 py-1 text-xs text-text outline-none focus:ring-1 focus:ring-text-muted'
+              : 'w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted'
+          }
+        />
+        {filtered.length > 0 && (
+          <ul
+            ref={listRef}
+            role="listbox"
+            className="absolute left-0 right-0 z-10 mt-1 max-h-36 overflow-y-auto rounded-lg border border-surface-alt bg-surface shadow-lg"
+          >
+            {filtered.map((s, i) => (
+              <li
+                key={s}
+                id={`flight-${label}-${i}`}
+                role="option"
+                aria-selected={i === activeIndex}
+              >
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    onChange(s)
+                    setFocused(false)
+                  }}
+                  onMouseEnter={() => setActiveIndex(i)}
+                  className={`w-full px-3 py-2 text-left ${isCompact ? 'text-xs' : 'text-sm'} text-text transition-colors ${
+                    i === activeIndex ? 'bg-surface-alt' : ''
+                  }`}
+                >
+                  {s}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   )
 }
