@@ -55,6 +55,11 @@ export interface AnmeldungItem {
   checked: boolean
 }
 
+export interface ChecklistGroupData {
+  title: string
+  items: Array<{ label: string; checked: boolean }>
+}
+
 export interface ReportData {
   missionLabel?: string
   einsatzdetails?: EinsatzdetailsData
@@ -71,6 +76,8 @@ export interface ReportData {
   arc: ArcClass | null
   sail: number | null
   assessment: AssessmentResult | null
+  checklistGroups?: ChecklistGroupData[]
+  flugfreigabe?: string | null
 }
 
 function formatDistance(meters: number): string {
@@ -366,6 +373,57 @@ export function generateReport(data: ReportData) {
     doc.setTextColor(100, 100, 100)
     doc.text('Wetterdaten nicht verfuegbar.', margin, y)
     y += 6
+  }
+
+  // === TECHNISCHE VORFLUGKONTROLLE ===
+  if (data.checklistGroups && data.checklistGroups.length > 0) {
+    for (const group of data.checklistGroups) {
+      drawSectionTitle(group.title)
+      const groupChecked = group.items.filter((i) => i.checked).length
+      const groupTotal = group.items.length
+      checkPageBreak(7)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(100, 100, 100)
+      doc.text(`${groupChecked} von ${groupTotal} bestätigt`, margin, y)
+      y += 5
+
+      for (const item of group.items) {
+        checkPageBreak(5.5)
+        const symbol = item.checked ? '[X]' : '[ ]'
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(80, 80, 80)
+        doc.text(`${symbol}  ${item.label}`, margin + 2, y)
+        y += 4.5
+      }
+    }
+  }
+
+  // === FLUGFREIGABE ===
+  if (data.flugfreigabe !== undefined) {
+    drawSectionTitle('Flugfreigabe')
+    if (data.flugfreigabe) {
+      const freigabeDate = new Date(data.flugfreigabe)
+      const freigabeTime = freigabeDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+      const freigabeDateStr = freigabeDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(34, 139, 34)
+      doc.text('Flug freigegeben', margin, y)
+      y += 5
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Freigabe erteilt: ${freigabeDateStr} ${freigabeTime} Uhr`, margin, y)
+      y += 6
+    } else {
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(200, 50, 50)
+      doc.text('Flug NICHT freigegeben', margin, y)
+      y += 6
+    }
   }
 
   // === FOOTER (Seitenzahlen) ===

@@ -11,7 +11,7 @@ import { useMissionPersistedState, clearMissionFormStorageByPrefix } from '../ho
 import { readStorage } from '../hooks/usePersistedState'
 import { computeAssessment } from '../utils/assessment'
 import type { ArcClass } from './ArcDetermination'
-import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData } from '../utils/generateReport'
+import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type ChecklistGroupData } from '../utils/generateReport'
 import { getMission } from '../utils/missionStorage'
 import RahmenangabenSection from './sections/RahmenangabenSection'
 import ExternalToolsSection from './sections/ExternalToolsSection'
@@ -19,6 +19,9 @@ import NearbyCheckSection from './sections/NearbyCheckSection'
 import AnmeldungenSection from './sections/AnmeldungenSection'
 import RiskClassSection from './sections/RiskClassSection'
 import WeatherSection from './sections/WeatherSection'
+import { AufstiegsortSection, UavCheckSection, RemoteControllerSection, AUFSTIEGSORT_ITEMS, UAV_ITEMS, RC_ITEMS } from './sections/TechnischeKontrolleSections'
+import FlugbriefingSection, { FLUGBRIEFING_ITEMS } from './sections/FlugbriefingSection'
+import FunktionskontrolleSection, { FUNKTIONS_ITEMS } from './sections/FunktionskontrolleSection'
 
 interface VorflugkontrollePhaseProps {
   setExportPdf: (fn: () => void) => void
@@ -189,6 +192,37 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
         ? readStorage<string>('einsatzkarte:photo', '', missionId)
         : readStorage<string>('einsatzkarte:snapshot', '', missionId)
 
+      // Technische Vorflugkontrolle Checklisten
+      const aufstiegsortChecked = readStorage<Record<string, boolean>>('techcheck:aufstiegsort', {}, missionId)
+      const uavChecked = readStorage<Record<string, boolean>>('techcheck:uav', {}, missionId)
+      const rcChecked = readStorage<Record<string, boolean>>('techcheck:rc', {}, missionId)
+      const flugbriefingChecked = readStorage<Record<string, boolean>>('flugbriefing:checked', {}, missionId)
+      const funktionstestChecked = readStorage<Record<string, boolean>>('techcheck:funktionstest', {}, missionId)
+      const flugfreigabe = readStorage<string | null>('flugfreigabe', null, missionId)
+
+      const checklistGroups: ChecklistGroupData[] = [
+        {
+          title: 'Aufstiegsort',
+          items: AUFSTIEGSORT_ITEMS.map((i) => ({ label: i.label, checked: !!aufstiegsortChecked[i.key] })),
+        },
+        {
+          title: 'UAV',
+          items: UAV_ITEMS.map((i) => ({ label: i.label, checked: !!uavChecked[i.key] })),
+        },
+        {
+          title: 'Remote Controller (A und B)',
+          items: RC_ITEMS.map((i) => ({ label: i.label, checked: !!rcChecked[i.key] })),
+        },
+        {
+          title: 'Flugbriefing',
+          items: FLUGBRIEFING_ITEMS.map((i) => ({ label: i.label, checked: !!flugbriefingChecked[i.key] })),
+        },
+        {
+          title: 'Funktionskontrolle (3 m Aufstieg)',
+          items: FUNKTIONS_ITEMS.map((i) => ({ label: i.label, checked: !!funktionstestChecked[i.key] })),
+        },
+      ]
+
       const data: ReportData = {
         missionLabel: mission?.label,
         einsatzdetails,
@@ -205,6 +239,8 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
         arc: soraData.arc,
         sail: soraData.sail,
         assessment,
+        checklistGroups,
+        flugfreigabe,
       }
       generateReport(data)
     })
@@ -233,6 +269,11 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
         error={weather.error || kIndex.error}
         locked={!hasLocation}
       />
+      <AufstiegsortSection />
+      <UavCheckSection />
+      <RemoteControllerSection />
+      <FlugbriefingSection />
+      <FunktionskontrolleSection />
     </>
   )
 }
