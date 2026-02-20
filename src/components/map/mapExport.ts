@@ -63,6 +63,12 @@ export async function captureMapImage(mapContainer: HTMLElement): Promise<string
     const clone = svg.cloneNode(true) as SVGSVGElement
     clone.setAttribute('width', String(svgRect.width))
     clone.setAttribute('height', String(svgRect.height))
+    // Remove the CSS transform that Leaflet uses to position the SVG
+    // within the overlay pane. getBoundingClientRect() already accounts
+    // for this transform when calculating canvas draw position, so keeping
+    // it in the serialized SVG would apply the offset twice (shapes shift
+    // toward upper-left).
+    clone.style.transform = 'none'
 
     const svgData = new XMLSerializer().serializeToString(clone)
     const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
