@@ -1,7 +1,5 @@
 import { PiMegaphone, PiCheck, PiWarning } from 'react-icons/pi'
-import { useMissionId } from '../../context/MissionContext'
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
-import { readStorage, useStorageEvent } from '../../hooks/usePersistedState'
 import ChecklistSection from '../ChecklistSection'
 
 // ---------------------------------------------------------------------------
@@ -145,8 +143,6 @@ function WarningHint({ children }: { children: React.ReactNode }) {
 // ---------------------------------------------------------------------------
 
 export default function MissionsbriefingSection() {
-  const missionId = useMissionId()
-  useStorageEvent()
   const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>('briefing:checked', {})
 
   const checkedCount = BRIEFING_ITEMS.filter((item) => checked[item.key]).length
@@ -162,36 +158,36 @@ export default function MissionsbriefingSection() {
     setChecked((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
-  // --- Read all mission data from localStorage ---
+  // --- Read all mission data reactively via store ---
 
-  const flugAnlassRaw = readStorage<string>('flugAnlass', 'einsatz', missionId)
+  const [flugAnlassRaw] = useMissionPersistedState<string>('flugAnlass', 'einsatz')
   const flugAnlass = FLUG_ANLASS_LABELS[flugAnlassRaw] ?? flugAnlassRaw
-  const stichwort = readStorage<string>('einsatzstichwort', '', missionId)
-  const alarmzeit = readStorage<string>('alarmzeit', '', missionId)
-  const einsatzleiter = readStorage<string>('einsatzleiter', '', missionId)
-  const abschnittsleiter = readStorage<string>('abschnittsleiter', '', missionId)
-  const anforderndeStelle = readStorage<string>('anforderndeStelle', '', missionId)
+  const [stichwort] = useMissionPersistedState<string>('einsatzstichwort', '')
+  const [alarmzeit] = useMissionPersistedState<string>('alarmzeit', '')
+  const [einsatzleiter] = useMissionPersistedState<string>('einsatzleiter', '')
+  const [abschnittsleiter] = useMissionPersistedState<string>('abschnittsleiter', '')
+  const [anforderndeStelle] = useMissionPersistedState<string>('anforderndeStelle', '')
 
-  const missionTemplate = readStorage<string>('mission_template', '', missionId)
-  const missionFreitext = readStorage<string>('mission_freitext', '', missionId)
+  const [missionTemplate] = useMissionPersistedState<string>('mission_template', '')
+  const [missionFreitext] = useMissionPersistedState<string>('mission_freitext', '')
   const templateLabel = TEMPLATE_LABELS[missionTemplate] || missionTemplate
 
-  // Read all template fields into a flat map
-  const allTemplateFields: Record<string, string> = {}
+  // Read template-specific fields
   const templateFieldDefs = TEMPLATE_FIELDS[missionTemplate]
-  if (templateFieldDefs) {
-    for (const f of templateFieldDefs) {
-      const v = readStorage<string>(f.key, '', missionId)
-      if (v) allTemplateFields[f.key] = v
-    }
-  }
+  const [templateField0] = useMissionPersistedState<string>(templateFieldDefs?.[0]?.key ?? '__unused_0', '')
+  const [templateField1] = useMissionPersistedState<string>(templateFieldDefs?.[1]?.key ?? '__unused_1', '')
+  const [templateField2] = useMissionPersistedState<string>(templateFieldDefs?.[2]?.key ?? '__unused_2', '')
+  const [templateField3] = useMissionPersistedState<string>(templateFieldDefs?.[3]?.key ?? '__unused_3', '')
+  const [templateField4] = useMissionPersistedState<string>(templateFieldDefs?.[4]?.key ?? '__unused_4', '')
+  const [templateField5] = useMissionPersistedState<string>(templateFieldDefs?.[5]?.key ?? '__unused_5', '')
+  const templateFieldValues = [templateField0, templateField1, templateField2, templateField3, templateField4, templateField5]
 
   // Crew
-  const crewFk = readStorage<string>('crew_fk', '', missionId)
-  const crewFp = readStorage<string>('crew_fp', '', missionId)
-  const crewLrb = readStorage<string>('crew_lrb', '', missionId)
-  const crewBa = readStorage<string>('crew_ba', '', missionId)
-  const crewAdditional = readStorage<Array<{ role: string; name: string }>>('crew_additional', [], missionId)
+  const [crewFk] = useMissionPersistedState<string>('crew_fk', '')
+  const [crewFp] = useMissionPersistedState<string>('crew_fp', '')
+  const [crewLrb] = useMissionPersistedState<string>('crew_lrb', '')
+  const [crewBa] = useMissionPersistedState<string>('crew_ba', '')
+  const [crewAdditional] = useMissionPersistedState<Array<{ role: string; name: string }>>('crew_additional', [])
 
   const crewMembers: Array<{ role: string; name: string }> = []
   if (crewFk.trim()) crewMembers.push({ role: 'Führungskraft', name: crewFk })
@@ -229,8 +225,8 @@ export default function MissionsbriefingSection() {
             {stichwort && <DataRow label="Stichwort" value={stichwort} />}
             {alarmzeit && <DataRow label="Alarmzeit" value={alarmzeit} />}
             {missionTemplate && <DataRow label="Auftragsart" value={templateLabel} />}
-            {templateFieldDefs && templateFieldDefs.map((f) => {
-              const v = allTemplateFields[f.key]
+            {templateFieldDefs && templateFieldDefs.map((f, i) => {
+              const v = templateFieldValues[i]
               return v ? <DataRow key={f.key} label={f.label} value={v} /> : null
             })}
             {missionFreitext && <p className="text-text italic">{missionFreitext}</p>}

@@ -23,6 +23,12 @@ importers:
       '@tanstack/react-query-persist-client':
         specifier: ^5.90.22
         version: 5.90.22(@tanstack/react-query@5.90.21(react@19.2.4))(react@19.2.4)
+      '@tanstack/react-store':
+        specifier: ^0.9.1
+        version: 0.9.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@tanstack/store':
+        specifier: ^0.9.1
+        version: 0.9.1
       jspdf:
         specifier: ^4.2.0
         version: 4.2.0
@@ -1052,6 +1058,15 @@ packages:
     resolution: {integrity: sha512-0Lu6y5t+tvlTJMTO7oh5NSpJfpg/5D41LlThfepTixPYkJ0sE2Jj0m0f6yYqujBwIXlId87e234+MxG3D3g7kg==}
     peerDependencies:
       react: ^18 || ^19
+
+  '@tanstack/react-store@0.9.1':
+    resolution: {integrity: sha512-YzJLnRvy5lIEFTLWBAZmcOjK3+2AepnBv/sr6NZmiqJvq7zTQggyK99Gw8fqYdMdHPQWXjz0epFKJXC+9V2xDA==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  '@tanstack/store@0.9.1':
+    resolution: {integrity: sha512-+qcNkOy0N1qSGsP7omVCW0SDrXtaDcycPqBDE726yryiA5eTDFpjBReaYjghVJwNf1pcPMyzIwTGlYjCSQR0Fg==}
 
   '@turf/bbox@7.3.4':
     resolution: {integrity: sha512-D5ErVWtfQbEPh11yzI69uxqrcJmbPU/9Y59f1uTapgwAwQHQztDWgsYpnL3ns8r1GmPWLP8sGJLVTIk2TZSiYA==}
@@ -2559,6 +2574,11 @@ packages:
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
+  use-sync-external-store@1.6.0:
+    resolution: {integrity: sha512-Pp6GSwGP/NrPIrxVFAIkOQeyw8lFenOHijQWkUTrDvrF4ALqylP2C/KCkeS9dpUM3KvYRQhna5vt7IL95+ZQ9w==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   utrie@1.0.2:
     resolution: {integrity: sha512-1MLa5ouZiOmQzUbjbu9VmjLzn1QLXBhwpUa7kdLUQK+KQ5KA9I1vk5U4YHe/X2Ch7PYnJfWuWT+VbuxbGwljhw==}
 
@@ -3825,6 +3845,15 @@ snapshots:
     dependencies:
       '@tanstack/query-core': 5.90.20
       react: 19.2.4
+
+  '@tanstack/react-store@0.9.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      '@tanstack/store': 0.9.1
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+      use-sync-external-store: 1.6.0(react@19.2.4)
+
+  '@tanstack/store@0.9.1': {}
 
   '@turf/bbox@7.3.4':
     dependencies:
@@ -5547,6 +5576,10 @@ snapshots:
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
+
+  use-sync-external-store@1.6.0(react@19.2.4):
+    dependencies:
+      react: 19.2.4
 
   utrie@1.0.2:
     dependencies:
