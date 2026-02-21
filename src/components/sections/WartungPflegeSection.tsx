@@ -155,8 +155,9 @@ export default function WartungPflegeSection() {
     <ChecklistSection
       title="Wartung & Pflege"
       icon={<PiWrench />}
+      sectionId="wartung-pflege"
       badge={badge}
-      defaultOpen={true}
+      defaultOpen
     >
       {/* Info text */}
       <p className="text-xs text-text-muted">

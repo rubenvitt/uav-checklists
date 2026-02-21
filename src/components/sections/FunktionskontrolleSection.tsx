@@ -57,6 +57,7 @@ export default function FunktionskontrolleSection() {
     <ChecklistSection
       title="Erster Aufstieg & Freigabe"
       icon={<PiRocket />}
+      sectionId="funktionskontrolle"
       badge={badge}
     >
       {/* Phase label */}

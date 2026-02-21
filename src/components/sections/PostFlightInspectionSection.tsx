@@ -80,8 +80,9 @@ export default function PostFlightInspectionSection() {
     <ChecklistSection
       title="Nachflugkontrolle"
       icon={<PiClipboardText />}
+      sectionId="post-flight-inspection"
       badge={badge}
-      defaultOpen={true}
+      defaultOpen
     >
       <div className="-mx-5 -mb-5">
         {/* Confirm-all / Reset */}

@@ -170,18 +170,20 @@ export const RC_ITEMS: CheckItem[] = [
 function CheckSection({
   title,
   icon,
+  sectionId,
   storageKey,
   items,
 }: {
   title: string
   icon: ReactNode
+  sectionId: string
   storageKey: string
   items: readonly CheckItem[]
 }) {
   const checklist = useQuickChecklist(storageKey, items)
 
   return (
-    <ChecklistSection title={title} icon={icon} badge={checklist.badge}>
+    <ChecklistSection title={title} icon={icon} sectionId={sectionId} badge={checklist.badge}>
       <QuickChecklistContent items={items} {...checklist} />
     </ChecklistSection>
   )
@@ -192,6 +194,7 @@ export function AufstiegsortSection() {
     <CheckSection
       title="Aufstiegsort"
       icon={<PiMapPin />}
+      sectionId="aufstiegsort"
       storageKey="techcheck:aufstiegsort"
       items={AUFSTIEGSORT_ITEMS}
     />
@@ -203,6 +206,7 @@ export function UavCheckSection() {
     <CheckSection
       title="UAV"
       icon={<PiDrone />}
+      sectionId="uav-check"
       storageKey="techcheck:uav"
       items={UAV_ITEMS}
     />
@@ -214,6 +218,7 @@ export function RemoteControllerSection() {
     <CheckSection
       title="Remote Controller (A und B)"
       icon={<PiGameController />}
+      sectionId="remote-controller"
       storageKey="techcheck:rc"
       items={RC_ITEMS}
     />

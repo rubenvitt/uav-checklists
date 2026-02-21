@@ -35,7 +35,7 @@ export default function WeatherSection({ assessment, sun, windByAltitude, hourly
     : undefined
 
   return (
-    <ChecklistSection title="Wetterbedingungen" icon={<WiDayCloudyHigh />} badge={badge} loading={isLoading} locked={locked} defaultOpen={true}>
+    <ChecklistSection title="Wetterbedingungen" icon={<WiDayCloudyHigh />} sectionId="weather" badge={badge} loading={isLoading} locked={locked} defaultOpen>
       {isLoading && <LoadingSpinner />}
 
       {error && !isLoading && (

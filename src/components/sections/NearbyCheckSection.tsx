@@ -79,7 +79,7 @@ export default function NearbyCheckSection({ categories, loading, error, locked,
         : { label: 'Frei', status: 'good' as MetricStatus }
 
   return (
-    <ChecklistSection title="Umgebungsprüfung" icon={<PiMapPin />} badge={badge} loading={loading} locked={locked}>
+    <ChecklistSection title="Umgebungsprüfung" icon={<PiMapPin />} sectionId="nearby-check" badge={badge} loading={loading} locked={locked}>
       {error && (
         <div className="rounded-lg bg-warning-bg px-4 py-3 text-sm text-warning">{error}</div>
       )}

@@ -50,7 +50,7 @@ export default function ExternalToolsSection({ latitude, longitude, locked }: Ex
     : null
 
   return (
-    <ChecklistSection title="Externe Prüfungen" icon={<PiLink />} locked={locked} defaultOpen={false}>
+    <ChecklistSection title="Externe Prüfungen" icon={<PiLink />} sectionId="external-tools" locked={locked}>
       <div className="space-y-2">
         <ExternalLink
           href={geoZonesUrl}

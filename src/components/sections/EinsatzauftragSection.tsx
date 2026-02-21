@@ -54,7 +54,7 @@ export default function EinsatzauftragSection() {
   const [freitext, setFreitext] = useMissionPersistedState('mission_freitext', '')
 
   return (
-    <ChecklistSection title="Einsatzauftrag" icon={<PiListChecks />} defaultOpen>
+    <ChecklistSection title="Einsatzauftrag" icon={<PiListChecks />} sectionId="einsatzauftrag" defaultOpen>
       <div>
         <p className="mb-2 text-xs text-text-muted">Art des Auftrags</p>
         <div className="flex flex-wrap gap-2">

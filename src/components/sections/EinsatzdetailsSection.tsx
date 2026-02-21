@@ -18,7 +18,7 @@ export default function EinsatzdetailsSection() {
   const [abschnittsleiter, setAbschnittsleiter] = useMissionPersistedState('abschnittsleiter', '')
 
   return (
-    <ChecklistSection title="Einsatzdetails" icon={<PiClipboardText />} defaultOpen>
+    <ChecklistSection title="Einsatzdetails" icon={<PiClipboardText />} sectionId="einsatzdetails" defaultOpen>
       <div className="-mx-5 -mb-5 -mt-1 divide-y divide-surface-alt">
         <FlightPurposeSelector value={flugAnlass} onChange={setFlugAnlass} />
         <AutocompleteInput
