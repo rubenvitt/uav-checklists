@@ -3,7 +3,7 @@ import type { ArcClass } from '../components/ArcDetermination'
 import type { DroneSpec } from '../types/drone'
 import type { NearbyCategory } from '../services/overpassApi'
 import type { AssessmentResult, MetricStatus } from '../types/assessment'
-import type { FlightLogEntry } from '../types/flightLog'
+import type { FlightLogEntry, EventNote } from '../types/flightLog'
 
 const ARC_LABELS: Record<ArcClass, string> = {
   a: 'ARC-a',
@@ -80,6 +80,7 @@ export interface ReportData {
   checklistGroups?: ChecklistGroupData[]
   flugfreigabe?: string | null
   flightLog?: FlightLogEntry[]
+  eventNotes?: EventNote[]
 }
 
 function formatDistance(meters: number): string {
@@ -527,6 +528,37 @@ export function generateReport(data: ReportData) {
     doc.setTextColor(30, 30, 30)
     doc.text(`${completedFlights} von ${totalFlights} Flügen abgeschlossen — Gesamtflugzeit: ${summaryStr}`, margin, y)
     y += 6
+  }
+
+  // === EREIGNISSE ===
+  if (data.eventNotes && data.eventNotes.length > 0) {
+    drawSectionTitle('Ereignisse')
+
+    for (let i = 0; i < data.eventNotes.length; i++) {
+      const note = data.eventNotes[i]
+      checkPageBreak(15)
+
+      // Timestamp
+      const noteDate = new Date(note.timestamp)
+      const noteTime = noteDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+      const noteDateStr = noteDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(100, 100, 100)
+      doc.text(`${noteTime} (${noteDateStr})`, margin, y)
+      y += 4.5
+
+      // Text
+      if (note.text) {
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(30, 30, 30)
+        const lines = doc.splitTextToSize(note.text, contentWidth - 4)
+        checkPageBreak(lines.length * 4.5)
+        doc.text(lines, margin + 2, y)
+        y += lines.length * 4.5
+      }
+      y += 2
+    }
   }
 
   // === FOOTER (Seitenzahlen) ===
