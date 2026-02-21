@@ -2,8 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router'
 import { PiShieldCheck } from 'react-icons/pi'
 import { useCallback, useRef, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { MissionProvider } from './context/MissionContext'
+import { MissionProvider, useMissionId } from './context/MissionContext'
 import { getMission, isMissionExpired, updateMissionPhase } from './utils/missionStorage'
+import { clearMissionEnvironment } from './hooks/useMissionEnvironment'
 import { useTheme } from './hooks/useTheme'
 import { migrateOldData } from './utils/migration'
 import type { MissionPhase } from './types/mission'
@@ -75,6 +76,7 @@ function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
   currentPhase: MissionPhase
   isCompleted: boolean
 }) {
+  const missionId = useMissionId()
   const queryClient = useQueryClient()
   const { setting: themeSetting, cycle: cycleTheme } = useTheme(null)
   const exportPdfRef = useRef<(() => void) | null>(null)
@@ -82,6 +84,14 @@ function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
   const setExportPdf = useCallback((fn: () => void) => {
     exportPdfRef.current = fn
   }, [])
+
+  const handleRefresh = useCallback(() => {
+    clearMissionEnvironment(missionId)
+    queryClient.removeQueries({ queryKey: ['weather'] })
+    queryClient.removeQueries({ queryKey: ['kindex'] })
+    queryClient.removeQueries({ queryKey: ['nearby'] })
+    queryClient.invalidateQueries({ queryKey: ['geocode'] })
+  }, [missionId, queryClient])
 
   return (
     <div className="min-h-screen bg-base text-text">
@@ -91,7 +101,7 @@ function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
           missionLabel={missionLabel}
           themeSetting={themeSetting}
           onCycleTheme={cycleTheme}
-          onRefresh={isCompleted ? undefined : () => queryClient.invalidateQueries()}
+          onRefresh={isCompleted ? undefined : handleRefresh}
           onExportPdf={currentPhase === 'vorflugkontrolle' ? () => exportPdfRef.current?.() : undefined}
         />
         {!isCompleted && <MissionStepper currentPhase={currentPhase} />}

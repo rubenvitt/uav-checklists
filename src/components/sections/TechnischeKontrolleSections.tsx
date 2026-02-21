@@ -83,7 +83,7 @@ function QuickChecklistContent({
             onClick={confirmAll}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-good/10 px-4 py-2.5 text-sm font-medium text-good transition-colors hover:bg-good/20"
           >
-            <PiChecks className="text-base" />
+            <PiChecks className="text-[1rem]" />
             Alle bestätigen
             {checkedCount > 0 && (
               <span className="text-good/60">({totalCount - checkedCount} offen)</span>

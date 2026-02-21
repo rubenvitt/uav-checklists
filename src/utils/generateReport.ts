@@ -61,6 +61,22 @@ export interface ChecklistGroupData {
   items: Array<{ label: string; checked: boolean }>
 }
 
+export interface PostFlightInspectionItem {
+  label: string
+  checked: boolean
+  note?: string
+}
+
+export interface PostFlightInspectionData {
+  items: PostFlightInspectionItem[]
+  remarks: string
+}
+
+export interface DisruptionsData {
+  noDisruptions: boolean
+  categories: Array<{ key: string; label: string; note: string }>
+}
+
 export interface ReportData {
   missionLabel?: string
   einsatzdetails?: EinsatzdetailsData
@@ -81,6 +97,8 @@ export interface ReportData {
   flugfreigabe?: string | null
   flightLog?: FlightLogEntry[]
   eventNotes?: EventNote[]
+  disruptions?: DisruptionsData
+  postFlightInspection?: PostFlightInspectionData
 }
 
 function formatDistance(meters: number): string {
@@ -558,6 +576,91 @@ export function generateReport(data: ReportData) {
         y += lines.length * 4.5
       }
       y += 2
+    }
+  }
+
+  // === STÖRUNGEN & VORFÄLLE ===
+  if (data.disruptions) {
+    drawSectionTitle('Störungen & Vorfälle')
+
+    if (data.disruptions.noDisruptions) {
+      checkPageBreak(7)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(34, 139, 34)
+      doc.text('Keine Störungen oder Vorfälle', margin, y)
+      y += 6
+    } else if (data.disruptions.categories.length > 0) {
+      for (const cat of data.disruptions.categories) {
+        checkPageBreak(15)
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(200, 150, 0)
+        doc.text(cat.label, margin, y)
+        y += 5
+
+        if (cat.note) {
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(30, 30, 30)
+          const lines = doc.splitTextToSize(cat.note, contentWidth - 4)
+          checkPageBreak(lines.length * 4.5)
+          doc.text(lines, margin + 2, y)
+          y += lines.length * 4.5
+        }
+        y += 2
+      }
+    }
+  }
+
+  // === NACHFLUGKONTROLLE ===
+  if (data.postFlightInspection) {
+    const pfi = data.postFlightInspection
+    drawSectionTitle('Nachflugkontrolle')
+
+    const pfiChecked = pfi.items.filter(i => i.checked).length
+    const pfiTotal = pfi.items.length
+    checkPageBreak(7)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 100, 100)
+    doc.text(`${pfiChecked} von ${pfiTotal} bestätigt`, margin, y)
+    y += 5
+
+    for (const item of pfi.items) {
+      checkPageBreak(item.note ? 10 : 5.5)
+      const symbol = item.checked ? '[X]' : '[ ]'
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(80, 80, 80)
+      doc.text(`${symbol}  ${item.label}`, margin + 2, y)
+      y += 4.5
+
+      if (item.note) {
+        checkPageBreak(5)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'italic')
+        doc.setTextColor(150, 150, 150)
+        const noteLines = doc.splitTextToSize(`→ ${item.note}`, contentWidth - 12)
+        doc.text(noteLines, margin + 8, y)
+        y += noteLines.length * 4
+      }
+    }
+
+    if (pfi.remarks) {
+      y += 3
+      checkPageBreak(15)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(100, 100, 100)
+      doc.text('Allgemeine Bemerkungen', margin, y)
+      y += 4.5
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(30, 30, 30)
+      const remarkLines = doc.splitTextToSize(pfi.remarks, contentWidth - 4)
+      checkPageBreak(remarkLines.length * 4.5)
+      doc.text(remarkLines, margin + 2, y)
+      y += remarkLines.length * 4.5
     }
   }
 

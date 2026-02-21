@@ -7,7 +7,7 @@ import type { FlightLogEntry, EventNote } from '../types/flightLog'
 import { getDroneById } from '../data/drones'
 import { getMission } from './missionStorage'
 import { computeAssessment } from './assessment'
-import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type AnmeldungItem } from './generateReport'
+import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type AnmeldungItem, type PostFlightInspectionData, type PostFlightInspectionItem, type DisruptionsData } from './generateReport'
 
 const PREFIX = 'uav-form:'
 const TTL = 56 * 60 * 60 * 1000
@@ -135,17 +135,26 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     }
   }
 
-  // Get nearby data from cache
-  let categories: NearbyCategory[] = []
-  if (lat !== null && lon !== null) {
+  // Get nearby data from mission storage (persisted when fetched)
+  const persistedNearby = readMissionField<NearbyCategory[] | null>(missionId, 'env:nearby', null)
+  let categories: NearbyCategory[] = persistedNearby ?? []
+
+  // Fallback: try React Query cache if not persisted
+  if (categories.length === 0 && lat !== null && lon !== null) {
     const roundedLat = Math.round(lat * 1000) / 1000
     const roundedLon = Math.round(lon * 1000) / 1000
     categories = queryClient.getQueryData<NearbyCategory[]>(['nearby', roundedLat, roundedLon]) ?? []
   }
 
-  // Get weather + kindex from cache for assessment
+  // Get weather + kindex from mission storage (persisted when fetched)
   let assessment = null
-  if (lat !== null && lon !== null) {
+  const persistedWeather = readMissionField<WeatherResponse | null>(missionId, 'env:weather', null)
+  const persistedKIndex = readMissionField<{ kIndex: number } | null>(missionId, 'env:kindex', null)
+
+  if (persistedWeather?.current && persistedKIndex?.kIndex != null) {
+    assessment = computeAssessment(persistedWeather.current, persistedKIndex.kIndex, drone, persistedWeather.windByAltitude ?? undefined, maxAltitude)
+  } else if (lat !== null && lon !== null) {
+    // Fallback: try React Query cache
     const roundedLat = Math.round(lat * 1000) / 1000
     const roundedLon = Math.round(lon * 1000) / 1000
     const weatherData = queryClient.getQueryData<WeatherResponse>(['weather', roundedLat, roundedLon, maxAltitude])
@@ -279,6 +288,59 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
   // Ereignisse
   const eventNotes = readMissionField<EventNote[]>(missionId, 'flightlog:events', [])
 
+  // Nachflugkontrolle
+  const postflightChecked = readMissionField<Record<string, boolean>>(missionId, 'postflight:checked', {})
+  const postflightNotes = readMissionField<Record<string, string>>(missionId, 'postflight:notes', {})
+  const postflightRemarks = readMissionField<string>(missionId, 'postflight:remarks', '')
+
+  const POST_FLIGHT_LABELS: Array<{ key: string; label: string }> = [
+    { key: 'motoren', label: 'Motoren laufen gleichmäßig aus' },
+    { key: 'uav_beschaedigung', label: 'UAV auf Beschädigungen prüfen' },
+    { key: 'ueberwarmung', label: 'Überwärmung prüfen' },
+    { key: 'akkus', label: 'Akkus auf Beschädigungen prüfen' },
+    { key: 'rotoren', label: 'Rotoren auf Beschädigungen prüfen' },
+    { key: 'payload', label: 'Payload auf Beschädigungen prüfen' },
+    { key: 'fernbedienung', label: 'Fernbedienungen auf Schäden prüfen' },
+    { key: 'kabel', label: 'Verbindungskabel sauber' },
+  ]
+
+  // Störungen & Vorfälle
+  const disruptionsNone = readMissionField<boolean>(missionId, 'disruptions:none', false)
+  const disruptionsCategories = readMissionField<string[]>(missionId, 'disruptions:categories', [])
+  const disruptionsNotes = readMissionField<Record<string, string>>(missionId, 'disruptions:notes', {})
+
+  const DISRUPTION_LABELS: Record<string, string> = {
+    wetter: 'Wetter',
+    technik: 'Technik',
+    funk: 'Funk / Jamming',
+    gps: 'GPS',
+    luftverkehr: 'Luftverkehr',
+    sonstiges: 'Sonstiges',
+  }
+
+  const disruptions: DisruptionsData | undefined = (disruptionsNone || disruptionsCategories.length > 0)
+    ? {
+        noDisruptions: disruptionsNone,
+        categories: disruptionsCategories.map(key => ({
+          key,
+          label: DISRUPTION_LABELS[key] || key,
+          note: disruptionsNotes[key]?.trim() || '',
+        })),
+      }
+    : undefined
+
+  const hasPostflight = Object.keys(postflightChecked).length > 0 || postflightRemarks.trim()
+  const postFlightInspection: PostFlightInspectionData | undefined = hasPostflight
+    ? {
+        items: POST_FLIGHT_LABELS.map((item): PostFlightInspectionItem => ({
+          label: item.label,
+          checked: !!postflightChecked[item.key],
+          note: postflightNotes[item.key]?.trim() || undefined,
+        })),
+        remarks: postflightRemarks,
+      }
+    : undefined
+
   const data: ReportData = {
     missionLabel: mission.label,
     einsatzdetails,
@@ -297,6 +359,8 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     assessment,
     flightLog: flightLog.length > 0 ? flightLog : undefined,
     eventNotes: eventNotes.length > 0 ? eventNotes : undefined,
+    disruptions,
+    postFlightInspection,
   }
 
   generateReport(data)

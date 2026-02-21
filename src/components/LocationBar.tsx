@@ -205,7 +205,7 @@ export default function LocationBar({
               onClick={() => setEditing(true)}
               className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-warning/30 bg-warning-bg/30 px-4 py-4 text-sm text-warning transition-colors hover:bg-warning-bg/50"
             >
-              <PiMapPin className="text-base" />
+              <PiMapPin className="text-[1rem]" />
               Einsatzort festlegen
             </button>
           </div>

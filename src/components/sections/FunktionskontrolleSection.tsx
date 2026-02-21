@@ -124,7 +124,7 @@ export default function FunktionskontrolleSection() {
                   : 'bg-surface-alt text-text-muted cursor-not-allowed'
               }`}
             >
-              <PiShieldCheck className="text-base" />
+              <PiShieldCheck className="text-[1rem]" />
               Flug freigeben
             </button>
           )}
