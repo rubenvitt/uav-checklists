@@ -106,41 +106,52 @@ function usePreflightHints(): Record<string, PreflightHint[]> {
   const manualChecks = readStorage<Record<string, boolean>>('nearby:manualChecks', {}, missionId)
   const drone = getDroneById(selectedDrone)
 
-  // Try to reconstruct weather assessment from TanStack Query cache
+  // Read weather assessment from persisted mission data (with React Query cache fallback)
   let weatherMetrics: MetricAssessment[] = []
 
-  // Read manual location for cache key
-  try {
-    const raw = localStorage.getItem(`uav-manual-location:${missionId}`)
-    if (raw) {
-      const loc = JSON.parse(raw)
-      if (typeof loc.latitude === 'number' && typeof loc.longitude === 'number') {
-        const lat = Math.round(loc.latitude * 1000) / 1000
-        const lon = Math.round(loc.longitude * 1000) / 1000
-        const weatherData = queryClient.getQueryData<WeatherResponse>(['weather', lat, lon, maxAltitude])
-        const kIndexData = queryClient.getQueryData<{ kIndex: number }>(['kindex'])
+  const persistedWeather = readStorage<WeatherResponse | null>('env:weather', null, missionId)
+  const persistedKIndex = readStorage<{ kIndex: number } | null>('env:kindex', null, missionId)
 
-        if (weatherData?.current && kIndexData?.kIndex != null) {
-          const assessment = computeAssessment(weatherData.current, kIndexData.kIndex, drone, weatherData.windByAltitude ?? undefined, maxAltitude)
-          weatherMetrics = assessment.metrics
+  if (persistedWeather?.current && persistedKIndex?.kIndex != null) {
+    const assessment = computeAssessment(persistedWeather.current, persistedKIndex.kIndex, drone, persistedWeather.windByAltitude ?? undefined, maxAltitude)
+    weatherMetrics = assessment.metrics
+  } else {
+    // Fallback: try React Query cache
+    try {
+      const raw = localStorage.getItem(`uav-manual-location:${missionId}`)
+      if (raw) {
+        const loc = JSON.parse(raw)
+        if (typeof loc.latitude === 'number' && typeof loc.longitude === 'number') {
+          const lat = Math.round(loc.latitude * 1000) / 1000
+          const lon = Math.round(loc.longitude * 1000) / 1000
+          const weatherData = queryClient.getQueryData<WeatherResponse>(['weather', lat, lon, maxAltitude])
+          const kIndexData = queryClient.getQueryData<{ kIndex: number }>(['kindex'])
+
+          if (weatherData?.current && kIndexData?.kIndex != null) {
+            const assessment = computeAssessment(weatherData.current, kIndexData.kIndex, drone, weatherData.windByAltitude ?? undefined, maxAltitude)
+            weatherMetrics = assessment.metrics
+          }
         }
       }
-    }
-  } catch { /* ignore cache misses */ }
+    } catch { /* ignore cache misses */ }
+  }
 
-  // Read nearby categories from cache
-  let nearbyCategories: NearbyCategory[] = []
-  try {
-    const raw = localStorage.getItem(`uav-manual-location:${missionId}`)
-    if (raw) {
-      const loc = JSON.parse(raw)
-      if (typeof loc.latitude === 'number' && typeof loc.longitude === 'number') {
-        const lat = Math.round(loc.latitude * 1000) / 1000
-        const lon = Math.round(loc.longitude * 1000) / 1000
-        nearbyCategories = queryClient.getQueryData<NearbyCategory[]>(['nearby', lat, lon]) ?? []
+  // Read nearby categories from persisted mission data (with React Query cache fallback)
+  let nearbyCategories: NearbyCategory[] = readStorage<NearbyCategory[] | null>('env:nearby', null, missionId) ?? []
+
+  if (nearbyCategories.length === 0) {
+    try {
+      const raw = localStorage.getItem(`uav-manual-location:${missionId}`)
+      if (raw) {
+        const loc = JSON.parse(raw)
+        if (typeof loc.latitude === 'number' && typeof loc.longitude === 'number') {
+          const lat = Math.round(loc.latitude * 1000) / 1000
+          const lon = Math.round(loc.longitude * 1000) / 1000
+          nearbyCategories = queryClient.getQueryData<NearbyCategory[]>(['nearby', lat, lon]) ?? []
+        }
       }
-    }
-  } catch { /* ignore */ }
+    } catch { /* ignore */ }
+  }
 
   // Build hints per category
   const hints: Record<string, PreflightHint[]> = {}

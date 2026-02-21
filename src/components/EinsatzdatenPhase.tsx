@@ -1,6 +1,7 @@
 import { useMissionId } from '../context/MissionContext'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { useReverseGeocode } from '../hooks/useReverseGeocode'
+import { useMissionWeather, useMissionKIndex, useMissionNearby } from '../hooks/useMissionEnvironment'
 import LocationBar from './LocationBar'
 import EinsatzdetailsSection from './sections/EinsatzdetailsSection'
 import EinsatzauftragSection from './sections/EinsatzauftragSection'
@@ -13,6 +14,11 @@ export default function EinsatzdatenPhase() {
   const geo = useGeolocation(missionId)
   const geocode = useReverseGeocode(geo.latitude, geo.longitude)
   const hasLocation = geo.latitude !== null && geo.longitude !== null
+
+  // Pre-fetch environment data as soon as location is known
+  useMissionWeather(geo.latitude, geo.longitude)
+  useMissionKIndex()
+  useMissionNearby(geo.latitude, geo.longitude)
 
   return (
     <div className="space-y-4">

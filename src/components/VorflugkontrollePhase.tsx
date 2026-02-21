@@ -3,10 +3,8 @@ import type { DroneId } from '../types/drone'
 import { getDroneById } from '../data/drones'
 import { useMissionId } from '../context/MissionContext'
 import { useGeolocation } from '../hooks/useGeolocation'
-import { useWeather } from '../hooks/useWeather'
-import { useKIndex } from '../hooks/useKIndex'
+import { useMissionWeather, useMissionKIndex, useMissionNearby } from '../hooks/useMissionEnvironment'
 import { useReverseGeocode } from '../hooks/useReverseGeocode'
-import { useNearbyCheck } from '../hooks/useNearbyCheck'
 import { useMissionPersistedState, clearMissionFormStorageByPrefix } from '../hooks/useMissionPersistedState'
 import { readStorage } from '../hooks/usePersistedState'
 import { computeAssessment } from '../utils/assessment'
@@ -32,8 +30,8 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
   const [selectedDrone, setSelectedDrone] = useMissionPersistedState<DroneId>('selectedDrone', 'matrice-350-rtk')
   const [maxAltitude, setMaxAltitude] = useMissionPersistedState<number>('maxAltitude', 120)
   const geo = useGeolocation(missionId)
-  const nearby = useNearbyCheck(geo.latitude, geo.longitude)
-  const weather = useWeather(geo.latitude, geo.longitude, maxAltitude)
+  const nearby = useMissionNearby(geo.latitude, geo.longitude)
+  const weather = useMissionWeather(geo.latitude, geo.longitude, maxAltitude)
 
   // Lifted state for PDF report
   const [soraData, setSoraData] = useState<{ grc: number | null; arc: ArcClass | null; sail: number | null }>({ grc: null, arc: null, sail: null })
@@ -56,7 +54,7 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
     prevLocationRef.current = locationKey
   }, [locationKey, missionId])
 
-  const kIndex = useKIndex()
+  const kIndex = useMissionKIndex()
   const geocode = useReverseGeocode(geo.latitude, geo.longitude)
 
   const drone = getDroneById(selectedDrone)
@@ -244,7 +242,7 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
       }
       generateReport(data)
     })
-  }) // eslint-disable-line react-hooks/exhaustive-deps
+  })
 
   return (
     <>

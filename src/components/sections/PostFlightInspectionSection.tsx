@@ -150,7 +150,7 @@ export default function PostFlightInspectionSection() {
                         ? 'text-caution'
                         : isNoteExpanded
                           ? 'text-text'
-                          : 'text-text-muted/40 hover:text-text-muted'
+                          : 'text-text-muted/70 hover:text-text'
                     }`}
                     title="Bemerkung hinzufügen"
                   >

@@ -72,6 +72,11 @@ export interface PostFlightInspectionData {
   remarks: string
 }
 
+export interface DisruptionsData {
+  noDisruptions: boolean
+  categories: Array<{ key: string; label: string; note: string }>
+}
+
 export interface ReportData {
   missionLabel?: string
   einsatzdetails?: EinsatzdetailsData
@@ -92,6 +97,7 @@ export interface ReportData {
   flugfreigabe?: string | null
   flightLog?: FlightLogEntry[]
   eventNotes?: EventNote[]
+  disruptions?: DisruptionsData
   postFlightInspection?: PostFlightInspectionData
 }
 
@@ -570,6 +576,39 @@ export function generateReport(data: ReportData) {
         y += lines.length * 4.5
       }
       y += 2
+    }
+  }
+
+  // === STÖRUNGEN & VORFÄLLE ===
+  if (data.disruptions) {
+    drawSectionTitle('Störungen & Vorfälle')
+
+    if (data.disruptions.noDisruptions) {
+      checkPageBreak(7)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(34, 139, 34)
+      doc.text('Keine Störungen oder Vorfälle', margin, y)
+      y += 6
+    } else if (data.disruptions.categories.length > 0) {
+      for (const cat of data.disruptions.categories) {
+        checkPageBreak(15)
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(200, 150, 0)
+        doc.text(cat.label, margin, y)
+        y += 5
+
+        if (cat.note) {
+          doc.setFont('helvetica', 'normal')
+          doc.setTextColor(30, 30, 30)
+          const lines = doc.splitTextToSize(cat.note, contentWidth - 4)
+          checkPageBreak(lines.length * 4.5)
+          doc.text(lines, margin + 2, y)
+          y += lines.length * 4.5
+        }
+        y += 2
+      }
     }
   }
 
