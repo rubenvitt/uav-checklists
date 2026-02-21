@@ -6,6 +6,7 @@ import { useMissionId } from '../context/MissionContext'
 import { getMission } from '../utils/missionStorage'
 import { useMissions } from '../hooks/useMissions'
 import { generateMissionReport } from '../utils/generateMissionReport'
+import FlightDisruptionsSection from './sections/FlightDisruptionsSection'
 
 export default function NachbereitungPhase() {
   const missionId = useMissionId()
@@ -54,15 +55,7 @@ export default function NachbereitungPhase() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col items-center gap-4 rounded-xl bg-surface py-12 text-center">
-        <PiCheckCircle className="text-4xl text-text-muted" />
-        <div>
-          <p className="text-sm font-medium text-text">Nachbereitung</p>
-          <p className="mt-1 text-xs text-text-muted">
-            Schliesse den Einsatz ab, wenn alle Arbeiten erledigt sind.
-          </p>
-        </div>
-      </div>
+      <FlightDisruptionsSection />
 
       {confirmComplete && (
         <div className="flex items-start gap-3 rounded-xl bg-caution-bg p-4">
