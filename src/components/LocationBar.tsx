@@ -229,7 +229,10 @@ export default function LocationBar({
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-text transition-colors hover:bg-surface-alt"
                     >
                       <PiMapPin className="shrink-0 text-text-muted" />
-                      {s.name}
+                      <span className="flex-1 min-w-0 truncate">{s.name}</span>
+                      <span className="shrink-0 rounded-full bg-surface px-2 py-0.5 text-[0.6rem] text-text-muted">
+                        Adresssuche
+                      </span>
                     </button>
                   </li>
                 ))}
@@ -242,11 +245,11 @@ export default function LocationBar({
                   Ort, Adresse oder Koordinaten eingeben.
                 </p>
                 <p className="mt-1.5 text-[0.65rem] leading-relaxed text-text-muted/60">
-                  z.B. <span className="font-mono">52.520, 13.405</span>
+                  z.B. <span className="font-mono">32UMA 83524 43524</span>
                   {' · '}
                   <span className="font-mono">32U 461344 5481745</span>
                   {' · '}
-                  <span className="font-mono">52°31′12″N 13°24′18″E</span>
+                  <span className="font-mono">52.520, 13.405</span>
                 </p>
               </div>
             )}

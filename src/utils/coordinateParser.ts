@@ -1,7 +1,7 @@
 export interface ParsedCoordinate {
   latitude: number
   longitude: number
-  format: 'utm' | 'decimal' | 'dms'
+  format: 'mgrs' | 'utm' | 'decimal' | 'dms'
   /** Human-readable label for the detected format */
   formatLabel: string
   /** Formatted coordinate display string */
@@ -9,14 +9,143 @@ export interface ParsedCoordinate {
 }
 
 /**
- * Try to parse coordinate input in UTM, decimal degrees, or DMS format.
- * UTM is checked first (most specific), then DMS, then decimal (most general).
+ * Try to parse coordinate input in MGRS, UTM, DMS, or decimal format.
+ * MGRS is checked first (most specific), then UTM, DMS, decimal (most general).
  * Returns null if no format matches.
  */
 export function parseCoordinates(input: string): ParsedCoordinate | null {
   const trimmed = input.trim()
   if (trimmed.length < 3) return null
-  return parseUtm(trimmed) ?? parseDms(trimmed) ?? parseDecimal(trimmed) ?? null
+  return (
+    parseMgrs(trimmed) ?? parseUtm(trimmed) ?? parseDms(trimmed) ?? parseDecimal(trimmed) ?? null
+  )
+}
+
+// ── MGRS (Military Grid Reference System / UTM-Ref) ────────────────────────
+
+const COL_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ' // 24, no I/O
+const ROW_LETTERS = 'ABCDEFGHJKLMNPQRSTUV' // 20, no I/O
+
+/** Approximate minimum northing (meters) for each UTM latitude band. */
+const BAND_MIN_NORTHING: Record<string, number> = {
+  C: 1100000,
+  D: 2000000,
+  E: 2800000,
+  F: 3700000,
+  G: 4600000,
+  H: 5500000,
+  J: 6400000,
+  K: 7300000,
+  L: 8200000,
+  M: 9100000,
+  N: 0,
+  P: 800000,
+  Q: 1700000,
+  R: 2600000,
+  S: 3500000,
+  T: 4400000,
+  U: 5300000,
+  V: 6200000,
+  W: 7000000,
+  X: 7900000,
+}
+
+/**
+ * Matches MGRS (UTM-Ref) patterns:
+ *   32UMA8352443524       (concatenated)
+ *   32U MA 83524 43524    (spaced)
+ *   32UMA 83524 43524     (grid + spaced digits)
+ *   32 U MA 83524 43524   (all spaced)
+ *   MGRS 32UMA8352443524  (with prefix)
+ */
+function parseMgrs(input: string): ParsedCoordinate | null {
+  // Strip optional MGRS / UTM-Ref prefix
+  const cleaned = input.replace(/^(?:mgrs|utm[\s-]*ref)[:\s-]*/i, '').trim()
+
+  let zone: number,
+    band: string,
+    col: string,
+    row: string,
+    gridEasting: number,
+    gridNorthing: number,
+    precision: number
+
+  // Pattern 1: separate easting/northing digits (space-separated)
+  // 32U MA 83524 43524 | 32UMA 83524 43524
+  const spacedMatch = cleaned.match(
+    /^(\d{1,2})\s*([C-HJ-NP-X])\s*([A-HJ-NP-Z])\s*([A-HJ-NP-V])\s+(\d{1,5})\s+(\d{1,5})$/i,
+  )
+  if (spacedMatch) {
+    if (spacedMatch[5].length !== spacedMatch[6].length) return null
+    zone = parseInt(spacedMatch[1], 10)
+    band = spacedMatch[2].toUpperCase()
+    col = spacedMatch[3].toUpperCase()
+    row = spacedMatch[4].toUpperCase()
+    precision = spacedMatch[5].length
+    const scale = Math.pow(10, 5 - precision)
+    gridEasting = parseInt(spacedMatch[5], 10) * scale
+    gridNorthing = parseInt(spacedMatch[6], 10) * scale
+  } else {
+    // Pattern 2: concatenated digits (must be even count)
+    // 32UMA8352443524 | 32U MA 8352443524
+    const concatMatch = cleaned.match(
+      /^(\d{1,2})\s*([C-HJ-NP-X])\s*([A-HJ-NP-Z])\s*([A-HJ-NP-V])\s*(\d{2,10})$/i,
+    )
+    if (!concatMatch) return null
+    const digits = concatMatch[5]
+    if (digits.length % 2 !== 0) return null
+
+    zone = parseInt(concatMatch[1], 10)
+    band = concatMatch[2].toUpperCase()
+    col = concatMatch[3].toUpperCase()
+    row = concatMatch[4].toUpperCase()
+    precision = digits.length / 2
+    const scale = Math.pow(10, 5 - precision)
+    gridEasting = parseInt(digits.substring(0, precision), 10) * scale
+    gridNorthing = parseInt(digits.substring(precision), 10) * scale
+  }
+
+  // Validate zone & band
+  if (zone < 1 || zone > 60) return null
+  if (!UTM_BANDS.includes(band)) return null
+
+  // Column letter → UTM easting
+  const setCol = (zone - 1) % 3
+  const colOffset = COL_LETTERS.indexOf(col) - setCol * 8
+  if (colOffset < 0 || colOffset > 7) return null
+  const utmEasting = (colOffset + 1) * 100000 + gridEasting
+
+  // Row letter → UTM northing (disambiguated by latitude band)
+  const rowIndex = ROW_LETTERS.indexOf(row)
+  if (rowIndex < 0) return null
+  const baseNorthing =
+    zone % 2 === 0 ? ((rowIndex - 5 + 20) % 20) * 100000 : rowIndex * 100000
+
+  const minNorthing = BAND_MIN_NORTHING[band] ?? 0
+  const cycle = Math.floor(minNorthing / 2000000)
+  let utmNorthing = cycle * 2000000 + baseNorthing + gridNorthing
+  // Adjust to next 2000km cycle if we're below the band minimum
+  if (utmNorthing < minNorthing - 100000) {
+    utmNorthing += 2000000
+  }
+
+  const isNorthern = band >= 'N'
+  const { latitude, longitude } = utmToLatLon(zone, isNorthern, utmEasting, utmNorthing)
+
+  if (latitude < -90 || latitude > 90) return null
+  if (longitude < -180 || longitude > 180) return null
+
+  // Format display: "32U MA 83524 43524"
+  const eastStr = String(gridEasting / Math.pow(10, 5 - precision)).padStart(precision, '0')
+  const northStr = String(gridNorthing / Math.pow(10, 5 - precision)).padStart(precision, '0')
+
+  return {
+    latitude,
+    longitude,
+    format: 'mgrs',
+    formatLabel: 'UTM-Ref (MGRS)',
+    display: `${zone}${band} ${col}${row} ${eastStr} ${northStr}`,
+  }
 }
 
 // ── UTM ─────────────────────────────────────────────────────────────────────
@@ -30,7 +159,6 @@ const UTM_BANDS = 'CDEFGHJKLMNPQRSTUVWX'
  *   32U461344 5481745
  *   32U 461344/5481745
  *   UTM 32U 461344 5481745
- *   utm: 32U 461344 5481745
  */
 function parseUtm(input: string): ParsedCoordinate | null {
   const match = input.match(
