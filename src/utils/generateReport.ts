@@ -3,6 +3,7 @@ import type { ArcClass } from '../components/ArcDetermination'
 import type { DroneSpec } from '../types/drone'
 import type { NearbyCategory } from '../services/overpassApi'
 import type { AssessmentResult, MetricStatus } from '../types/assessment'
+import type { FlightLogEntry } from '../types/flightLog'
 
 const ARC_LABELS: Record<ArcClass, string> = {
   a: 'ARC-a',
@@ -78,6 +79,7 @@ export interface ReportData {
   assessment: AssessmentResult | null
   checklistGroups?: ChecklistGroupData[]
   flugfreigabe?: string | null
+  flightLog?: FlightLogEntry[]
 }
 
 function formatDistance(meters: number): string {
@@ -424,6 +426,107 @@ export function generateReport(data: ReportData) {
       doc.text('Flug NICHT freigegeben', margin, y)
       y += 6
     }
+  }
+
+  // === FLUGTAGEBUCH ===
+  if (data.flightLog && data.flightLog.length > 0) {
+    drawSectionTitle('Flugtagebuch')
+
+    // Reminder
+    checkPageBreak(10)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'italic')
+    doc.setTextColor(150, 150, 150)
+    doc.text('Hinweis: Jeden Start und jede Landung an FüKw oder Abschnittsleiter melden.', margin, y)
+    y += 6
+
+    for (let i = 0; i < data.flightLog.length; i++) {
+      const flight = data.flightLog[i]
+      checkPageBreak(30)
+
+      // Flight number
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(30, 30, 30)
+      doc.text(`Flug ${i + 1}`, margin, y)
+      y += 5
+
+      // Block Off
+      const offDate = new Date(flight.blockOff)
+      const offStr = offDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+        + ' (' + offDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ')'
+      drawKeyValue('Block Off (Start)', offStr)
+
+      // Block On
+      if (flight.blockOn) {
+        const onDate = new Date(flight.blockOn)
+        const onStr = onDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+          + ' (' + onDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ')'
+        drawKeyValue('Block On (Landung)', onStr)
+
+        // Duration
+        const diff = onDate.getTime() - offDate.getTime()
+        if (diff >= 0) {
+          const mins = Math.floor(diff / 60000)
+          const durStr = mins < 60 ? `${mins} min` : `${Math.floor(mins / 60)}h ${(mins % 60).toString().padStart(2, '0')}min`
+          drawKeyValue('Flugdauer', durStr)
+        }
+      } else {
+        drawKeyValue('Block On (Landung)', 'In der Luft')
+      }
+
+      drawKeyValue('Fernpilot', flight.fernpilot || '—')
+      drawKeyValue('Luftraumbeobachter', flight.lrb || '—')
+
+      // Landing status
+      if (flight.blockOn) {
+        const landungLabels: Record<string, string> = { ok: 'In Ordnung', auffaellig: 'Mit Auffälligkeiten', notfall: 'Notfall' }
+        const landungColors: Record<string, [number, number, number]> = { ok: [34, 139, 34], auffaellig: [200, 150, 0], notfall: [200, 50, 50] }
+        const status = flight.landungStatus ?? 'ok'
+        const statusStr = landungLabels[status] ?? 'In Ordnung'
+        const [r, g, b] = landungColors[status] ?? [34, 139, 34]
+        checkPageBreak(6)
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(100, 100, 100)
+        doc.text('Landung', margin, y)
+        doc.setTextColor(r, g, b)
+        doc.text(statusStr, margin + 60, y)
+        doc.setTextColor(30, 30, 30)
+        y += 5.5
+      }
+
+      if (flight.bemerkung) {
+        drawKeyValue('Bemerkung', flight.bemerkung)
+      }
+
+      y += 3
+    }
+
+    // Summary
+    checkPageBreak(10)
+    const totalFlights = data.flightLog.length
+    const completedFlights = data.flightLog.filter(f => f.blockOn !== null).length
+    const totalMinutes = data.flightLog.reduce((acc, f) => {
+      if (f.blockOn) {
+        const diff = new Date(f.blockOn).getTime() - new Date(f.blockOff).getTime()
+        return acc + (diff > 0 ? Math.floor(diff / 60000) : 0)
+      }
+      return acc
+    }, 0)
+    const summaryStr = totalMinutes < 60
+      ? `${totalMinutes} min`
+      : `${Math.floor(totalMinutes / 60)}h ${(totalMinutes % 60).toString().padStart(2, '0')}min`
+
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(100, 100, 100)
+    doc.text('Zusammenfassung', margin, y)
+    y += 5
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(30, 30, 30)
+    doc.text(`${completedFlights} von ${totalFlights} Flügen abgeschlossen — Gesamtflugzeit: ${summaryStr}`, margin, y)
+    y += 6
   }
 
   // === FOOTER (Seitenzahlen) ===
