@@ -7,6 +7,7 @@ import { getMission } from '../utils/missionStorage'
 import { useMissions } from '../hooks/useMissions'
 import { generateMissionReport } from '../utils/generateMissionReport'
 import FlightDisruptionsSection from './sections/FlightDisruptionsSection'
+import PostFlightInspectionSection from './sections/PostFlightInspectionSection'
 
 export default function NachbereitungPhase() {
   const missionId = useMissionId()
@@ -55,6 +56,7 @@ export default function NachbereitungPhase() {
 
   return (
     <div className="space-y-4">
+      <PostFlightInspectionSection />
       <FlightDisruptionsSection />
 
       {confirmComplete && (

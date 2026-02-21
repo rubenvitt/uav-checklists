@@ -7,7 +7,7 @@ import type { FlightLogEntry, EventNote } from '../types/flightLog'
 import { getDroneById } from '../data/drones'
 import { getMission } from './missionStorage'
 import { computeAssessment } from './assessment'
-import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type AnmeldungItem } from './generateReport'
+import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type AnmeldungItem, type PostFlightInspectionData, type PostFlightInspectionItem } from './generateReport'
 
 const PREFIX = 'uav-form:'
 const TTL = 56 * 60 * 60 * 1000
@@ -279,6 +279,34 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
   // Ereignisse
   const eventNotes = readMissionField<EventNote[]>(missionId, 'flightlog:events', [])
 
+  // Nachflugkontrolle
+  const postflightChecked = readMissionField<Record<string, boolean>>(missionId, 'postflight:checked', {})
+  const postflightNotes = readMissionField<Record<string, string>>(missionId, 'postflight:notes', {})
+  const postflightRemarks = readMissionField<string>(missionId, 'postflight:remarks', '')
+
+  const POST_FLIGHT_LABELS: Array<{ key: string; label: string }> = [
+    { key: 'motoren', label: 'Motoren laufen gleichmäßig aus' },
+    { key: 'uav_beschaedigung', label: 'UAV auf Beschädigungen prüfen' },
+    { key: 'ueberwarmung', label: 'Überwärmung prüfen' },
+    { key: 'akkus', label: 'Akkus auf Beschädigungen prüfen' },
+    { key: 'rotoren', label: 'Rotoren auf Beschädigungen prüfen' },
+    { key: 'payload', label: 'Payload auf Beschädigungen prüfen' },
+    { key: 'fernbedienung', label: 'Fernbedienungen auf Schäden prüfen' },
+    { key: 'kabel', label: 'Verbindungskabel sauber' },
+  ]
+
+  const hasPostflight = Object.keys(postflightChecked).length > 0 || postflightRemarks.trim()
+  const postFlightInspection: PostFlightInspectionData | undefined = hasPostflight
+    ? {
+        items: POST_FLIGHT_LABELS.map((item): PostFlightInspectionItem => ({
+          label: item.label,
+          checked: !!postflightChecked[item.key],
+          note: postflightNotes[item.key]?.trim() || undefined,
+        })),
+        remarks: postflightRemarks,
+      }
+    : undefined
+
   const data: ReportData = {
     missionLabel: mission.label,
     einsatzdetails,
@@ -297,6 +325,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     assessment,
     flightLog: flightLog.length > 0 ? flightLog : undefined,
     eventNotes: eventNotes.length > 0 ? eventNotes : undefined,
+    postFlightInspection,
   }
 
   generateReport(data)
