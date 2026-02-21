@@ -247,8 +247,9 @@ export default function EinsatzabschlussSection() {
     <ChecklistSection
       title="Einsatzabschluss"
       icon={<PiClipboardText />}
+      sectionId="einsatzabschluss"
       badge={badge}
-      defaultOpen={true}
+      defaultOpen
     >
       <div className="-mx-5 -mb-5">
         {/* Confirm-all / Reset */}

@@ -53,7 +53,7 @@ export default function RiskClassSection({ locked, onSoraChange }: RiskClassSect
   }, [finalGrc, arcClass, sail, onSoraChange])
 
   return (
-    <ChecklistSection title="SORA Risikoklassifizierung" icon={<PiScales />} badge={badge} locked={locked}>
+    <ChecklistSection title="SORA Risikoklassifizierung" icon={<PiScales />} sectionId="risk-class" badge={badge} locked={locked}>
       <div className="space-y-6">
         <div className="flex justify-end">
           <button

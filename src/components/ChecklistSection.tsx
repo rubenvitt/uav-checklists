@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { PiCaretDown, PiLock } from 'react-icons/pi'
 import type { MetricStatus } from '../types/assessment'
+import { useSectionExpansion } from '../hooks/useSectionExpansion'
 
 interface ChecklistSectionProps {
   title: string
@@ -9,6 +10,8 @@ interface ChecklistSectionProps {
   loading?: boolean
   locked?: boolean
   defaultOpen?: boolean
+  /** Unique identifier for persisting expansion state per mission. */
+  sectionId?: string
   children: React.ReactNode
 }
 
@@ -18,13 +21,13 @@ const badgeColors: Record<MetricStatus, string> = {
   warning: 'bg-warning-bg text-warning',
 }
 
-export default function ChecklistSection({ title, icon, badge, loading, locked, defaultOpen = false, children }: ChecklistSectionProps) {
-  const [open, setOpen] = useState(defaultOpen)
+export default function ChecklistSection({ title, icon, badge, loading, locked, defaultOpen = false, sectionId, children }: ChecklistSectionProps) {
+  const { isOpen, toggle } = useSectionExpansion(sectionId, { defaultOpen, badge, locked })
 
   return (
     <section className={`rounded-xl bg-surface overflow-hidden${locked ? ' opacity-50' : ''}`}>
       <button
-        onClick={() => !locked && setOpen(o => !o)}
+        onClick={toggle}
         className={`flex w-full items-center gap-3 px-5 py-4 text-left transition-colors ${locked ? 'cursor-not-allowed' : 'hover:bg-surface-alt'}`}
       >
         <span className="text-lg flex items-center">{icon}</span>
@@ -45,11 +48,17 @@ export default function ChecklistSection({ title, icon, badge, loading, locked, 
             {badge.label}
           </span>
         )}
-        <span className={`text-text-muted transition-transform duration-200 flex items-center ${open && !locked ? 'rotate-180' : ''}`}>
+        <span className={`text-text-muted transition-transform duration-200 flex items-center ${isOpen && !locked ? 'rotate-180' : ''}`}>
           <PiCaretDown />
         </span>
       </button>
-      {!locked && <div className={`space-y-4 px-5 pt-1 pb-5 ${open ? '' : 'hidden'}`}>{children}</div>}
+      {!locked && (
+        <div className={`grid transition-[grid-template-rows] duration-200 ease-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+          <div className="overflow-hidden">
+            <div className="space-y-4 px-5 pt-1 pb-5">{children}</div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

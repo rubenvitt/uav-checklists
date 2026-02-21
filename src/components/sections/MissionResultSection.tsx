@@ -72,8 +72,9 @@ export default function MissionResultSection() {
     <ChecklistSection
       title="Ergebnis"
       icon={<PiCheckCircle />}
+      sectionId="mission-result"
       badge={badge}
-      defaultOpen={true}
+      defaultOpen
     >
       <div className="space-y-2">
         {RESULT_OPTIONS.map(option => {

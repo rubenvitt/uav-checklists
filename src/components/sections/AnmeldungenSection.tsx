@@ -79,7 +79,7 @@ export default function AnmeldungenSection({ categories }: AnmeldungenSectionPro
   }
 
   return (
-    <ChecklistSection title="Fluganmeldungen" icon={<PiPhone />} badge={badge}>
+    <ChecklistSection title="Fluganmeldungen" icon={<PiPhone />} sectionId="anmeldungen" badge={badge}>
       <div className="-mx-5 -mt-1">
         <div className="divide-y divide-surface-alt">
           {/* Required notifications */}

@@ -139,6 +139,7 @@ export default function EinsatzkarteSection({ latitude, longitude, locked }: Ein
     <ChecklistSection
       title="Einsatzkarte"
       icon={<PiMapTrifold />}
+      sectionId="einsatzkarte"
       badge={badge}
       locked={locked}
     >

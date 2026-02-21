@@ -215,7 +215,7 @@ export default function MissionsbriefingSection() {
   }
 
   return (
-    <ChecklistSection title="Missionsbriefing" icon={<PiMegaphone />} badge={badge}>
+    <ChecklistSection title="Missionsbriefing" icon={<PiMegaphone />} sectionId="missionsbriefing" badge={badge}>
       <div className="-mx-5 -mb-5">
         <div className="divide-y divide-surface-alt">
 

@@ -265,8 +265,9 @@ export default function FlightDisruptionsSection() {
     <ChecklistSection
       title="Störungen & Vorfälle"
       icon={<PiLightningSlash />}
+      sectionId="flight-disruptions"
       badge={badge}
-      defaultOpen={true}
+      defaultOpen
     >
       {/* Context hints from flight phase */}
       {hasContextHints && !noDisruptions && (

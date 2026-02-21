@@ -57,7 +57,7 @@ export default function FlugbriefingSection() {
   }
 
   return (
-    <ChecklistSection title="Flugbriefing" icon={<PiUsersThree />} badge={badge}>
+    <ChecklistSection title="Flugbriefing" icon={<PiUsersThree />} sectionId="flugbriefing" badge={badge}>
       <p className="text-xs text-text-muted -mt-1 mb-1">
         Alle Punkte im Team besprechen und bestätigen.
       </p>

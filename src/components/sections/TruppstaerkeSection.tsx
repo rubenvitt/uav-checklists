@@ -60,7 +60,7 @@ export default function TruppstaerkeSection() {
   }
 
   return (
-    <ChecklistSection title="Truppstärke" icon={<PiUsersThree />} badge={badge}>
+    <ChecklistSection title="Truppstärke" icon={<PiUsersThree />} sectionId="truppstaerke" badge={badge}>
       <div className="-mx-5 -mt-1">
         <div className="divide-y divide-surface-alt">
           {BASE_ROLES.map(({ key, label, critical }) => {
