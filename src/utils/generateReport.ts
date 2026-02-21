@@ -83,6 +83,29 @@ export interface MissionResultData {
   abortNotes?: string
 }
 
+export interface EinsatzabschlussItem {
+  label: string
+  checked: boolean
+  note?: string
+}
+
+export interface EinsatzabschlussData {
+  abmeldungen: EinsatzabschlussItem[]
+  dokumentation: EinsatzabschlussItem[]
+  rueckbau: EinsatzabschlussItem[]
+  feedback: string
+}
+
+export interface WartungPflegeItem {
+  label: string
+  source?: string
+  isCustom: boolean
+}
+
+export interface WartungPflegeData {
+  items: WartungPflegeItem[]
+}
+
 export interface ReportData {
   missionLabel?: string
   einsatzdetails?: EinsatzdetailsData
@@ -105,6 +128,8 @@ export interface ReportData {
   eventNotes?: EventNote[]
   disruptions?: DisruptionsData
   postFlightInspection?: PostFlightInspectionData
+  einsatzabschluss?: EinsatzabschlussData
+  wartungPflege?: WartungPflegeData
   missionResult?: MissionResultData
 }
 
@@ -668,6 +693,125 @@ export function generateReport(data: ReportData) {
       checkPageBreak(remarkLines.length * 4.5)
       doc.text(remarkLines, margin + 2, y)
       y += remarkLines.length * 4.5
+    }
+  }
+
+  // === EINSATZABSCHLUSS ===
+  if (data.einsatzabschluss) {
+    const ea = data.einsatzabschluss
+
+    drawSectionTitle('Einsatzabschluss')
+
+    // Abmeldungen
+    if (ea.abmeldungen.length > 0) {
+      checkPageBreak(7)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(30, 30, 30)
+      doc.text('Abmeldungen', margin, y)
+      y += 5
+
+      for (const item of ea.abmeldungen) {
+        checkPageBreak(item.note ? 10 : 5.5)
+        const symbol = item.checked ? '[X]' : '[ ]'
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(80, 80, 80)
+        doc.text(`${symbol}  ${item.label}`, margin + 2, y)
+        y += 4.5
+
+        if (item.note) {
+          checkPageBreak(5)
+          doc.setFontSize(8)
+          doc.setFont('helvetica', 'italic')
+          doc.setTextColor(150, 150, 150)
+          const noteLines = doc.splitTextToSize(`→ ${item.note}`, contentWidth - 12)
+          doc.text(noteLines, margin + 8, y)
+          y += noteLines.length * 4
+        }
+      }
+      y += 2
+    }
+
+    // Dokumentation & Meldungen
+    if (ea.dokumentation.length > 0) {
+      checkPageBreak(7)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(30, 30, 30)
+      doc.text('Dokumentation & Meldungen', margin, y)
+      y += 5
+
+      for (const item of ea.dokumentation) {
+        checkPageBreak(5.5)
+        const symbol = item.checked ? '[X]' : '[ ]'
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(80, 80, 80)
+        doc.text(`${symbol}  ${item.label}`, margin + 2, y)
+        y += 4.5
+      }
+      y += 2
+    }
+
+    // Rückbau
+    if (ea.rueckbau.length > 0) {
+      checkPageBreak(7)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(30, 30, 30)
+      doc.text('Rückbau', margin, y)
+      y += 5
+
+      for (const item of ea.rueckbau) {
+        checkPageBreak(5.5)
+        const symbol = item.checked ? '[X]' : '[ ]'
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(80, 80, 80)
+        doc.text(`${symbol}  ${item.label}`, margin + 2, y)
+        y += 4.5
+      }
+      y += 2
+    }
+
+    // Feedback
+    if (ea.feedback) {
+      checkPageBreak(15)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(100, 100, 100)
+      doc.text('Team-Feedback', margin, y)
+      y += 4.5
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(30, 30, 30)
+      const fbLines = doc.splitTextToSize(ea.feedback, contentWidth - 4)
+      checkPageBreak(fbLines.length * 4.5)
+      doc.text(fbLines, margin + 2, y)
+      y += fbLines.length * 4.5
+    }
+  }
+
+  // === WARTUNG & PFLEGE ===
+  if (data.wartungPflege && data.wartungPflege.items.length > 0) {
+    drawSectionTitle('Wartung & Pflege')
+
+    for (const item of data.wartungPflege.items) {
+      checkPageBreak(item.source ? 10 : 6)
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(30, 30, 30)
+      doc.text(`•  ${item.label}`, margin + 2, y)
+      y += 4.5
+
+      if (item.source) {
+        checkPageBreak(4)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'italic')
+        doc.setTextColor(150, 150, 150)
+        doc.text(item.source, margin + 8, y)
+        y += 4
+      }
     }
   }
 

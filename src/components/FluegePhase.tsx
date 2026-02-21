@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren, PiNotePencil, PiClock } from 'react-icons/pi'
+import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren, PiNotePencil, PiClock, PiPencilSimple, PiCheckCircle } from 'react-icons/pi'
 import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
 import type { FlightLogEntry, LandingStatus, EventNote } from '../types/flightLog'
+import ProceduresButton from './procedures/ProceduresButton'
+import EmergencyFAB from './procedures/EmergencyFAB'
 
 const LANDING_STATUS_CONFIG: Record<LandingStatus, { label: string; color: string; bgColor: string; borderColor: string; icon: React.ReactNode }> = {
   ok: { label: 'In Ordnung', color: 'text-good', bgColor: 'bg-good', borderColor: 'border-good', icon: <PiCheck /> },
@@ -169,6 +171,7 @@ export default function FluegePhase() {
           <PiNotePencil className="text-lg" />
           Ereignis
         </button>
+        <ProceduresButton />
       </div>
 
       {/* Ereignisse */}
@@ -219,7 +222,65 @@ export default function FluegePhase() {
           </div>
         </div>
       )}
+
+      {/* Emergency FAB — immer sichtbar */}
+      <EmergencyFAB />
     </div>
+  )
+}
+
+/* ── Confirm-Delete-Button ────────────────────────────────── */
+
+function ConfirmDeleteButton({
+  onConfirm,
+  useMouseDown,
+}: {
+  onConfirm: () => void
+  useMouseDown?: boolean
+}) {
+  const [confirming, setConfirming] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function startConfirm() {
+    setConfirming(true)
+    timerRef.current = setTimeout(() => setConfirming(false), 3000)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
+  if (confirming) {
+    const handler = useMouseDown
+      ? { onMouseDown: (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); onConfirm() } }
+      : { onClick: (e: React.MouseEvent) => { e.stopPropagation(); onConfirm() } }
+
+    return (
+      <button
+        {...handler}
+        className="flex items-center gap-1 rounded-lg bg-warning px-2.5 py-1.5 text-xs font-medium text-white transition-colors active:scale-95"
+        title="Löschen bestätigen"
+      >
+        <PiTrash className="text-sm" />
+        Löschen?
+      </button>
+    )
+  }
+
+  const handler = useMouseDown
+    ? { onMouseDown: (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); startConfirm() } }
+    : { onClick: (e: React.MouseEvent) => { e.stopPropagation(); startConfirm() } }
+
+  return (
+    <button
+      {...handler}
+      className="flex items-center justify-center rounded-lg p-2 text-text-muted transition-colors hover:text-warning hover:bg-warning-bg active:scale-95"
+      title="Löschen"
+    >
+      <PiTrash className="text-sm" />
+    </button>
   )
 }
 
@@ -234,40 +295,96 @@ function EventNoteCard({
   onUpdate: (text: string) => void
   onRemove: () => void
 }) {
+  const [editing, setEditing] = useState(!note.text)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
-    if (!note.text && textareaRef.current) {
+    if (editing && textareaRef.current) {
       textareaRef.current.focus()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- focus only on mount
-  }, [])
+  }, [editing])
+
+  function handleBlur() {
+    if (note.text.trim()) {
+      setEditing(false)
+    }
+  }
+
+  function handleDone() {
+    if (note.text.trim()) {
+      setEditing(false)
+    }
+  }
+
+  const isEmpty = !note.text.trim()
+
+  if (editing) {
+    return (
+      <div className="overflow-hidden rounded-xl bg-surface ring-1 ring-text-muted/20">
+        <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+          <PiClock className="shrink-0 text-sm text-text-muted" />
+          <span className="text-xs font-medium text-text">
+            {formatTime(note.timestamp)}
+          </span>
+          <span className="ml-auto flex items-center gap-1">
+            <button
+              onMouseDown={(e) => {
+                e.preventDefault()
+                handleDone()
+              }}
+              className={`flex items-center justify-center rounded-lg p-2 transition-colors ${
+                isEmpty
+                  ? 'text-text-muted/30'
+                  : 'text-good hover:bg-good-bg active:scale-95'
+              }`}
+              title="Fertig"
+              disabled={isEmpty}
+            >
+              <PiCheckCircle className="text-[1.1rem]" />
+            </button>
+            <ConfirmDeleteButton onConfirm={onRemove} useMouseDown />
+          </span>
+        </div>
+        <div className="px-4 pb-3">
+          <textarea
+            ref={textareaRef}
+            value={note.text}
+            onChange={(e) => onUpdate(e.target.value)}
+            onBlur={handleBlur}
+            placeholder="Ereignis beschreiben..."
+            rows={3}
+            className="w-full resize-none rounded-lg bg-surface-alt px-3 py-2.5 text-sm text-text placeholder:text-text-muted/50 outline-none focus:ring-1 focus:ring-text-muted/40"
+          />
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="rounded-xl bg-surface">
-      <div className="flex items-center gap-2 px-4 pt-3 pb-1">
-        <PiClock className="text-xs text-text-muted" />
-        <span className="text-[10px] text-text-muted">
+    <button
+      onClick={() => setEditing(true)}
+      className="flex w-full items-center gap-3 rounded-xl bg-surface px-4 py-3 text-left transition-colors hover:bg-surface-alt active:scale-[0.99]"
+    >
+      <div className="flex shrink-0 flex-col items-center">
+        <PiClock className="text-sm text-text-muted" />
+        <span className="mt-0.5 text-[10px] font-medium tabular-nums text-text-muted">
           {formatTime(note.timestamp)}
         </span>
-        <button
-          onClick={onRemove}
-          className="ml-auto flex items-center text-text-muted transition-colors hover:text-warning"
-        >
-          <PiTrash className="text-xs" />
-        </button>
       </div>
-      <div className="px-4 pb-3">
-        <textarea
-          ref={textareaRef}
-          value={note.text}
-          onChange={(e) => onUpdate(e.target.value)}
-          placeholder="Ereignis beschreiben..."
-          rows={2}
-          className="w-full resize-none rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-1 focus:ring-text-muted"
-        />
+      <div className="min-w-0 flex-1">
+        {isEmpty ? (
+          <span className="text-sm italic text-text-muted/60">
+            Keine Beschreibung...
+          </span>
+        ) : (
+          <p className="truncate text-sm text-text">{note.text}</p>
+        )}
       </div>
-    </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <PiPencilSimple className="text-sm text-text-muted/50" />
+        <ConfirmDeleteButton onConfirm={onRemove} />
+      </div>
+    </button>
   )
 }
 
@@ -350,12 +467,7 @@ function ActiveFlightCard({
           <PiAirplaneLanding className="text-lg" />
           Landung
         </button>
-        <button
-          onClick={onRemove}
-          className="flex items-center justify-center rounded-xl bg-surface-alt px-3 py-3 text-text-muted transition-colors hover:text-warning"
-        >
-          <PiTrash />
-        </button>
+        <ConfirmDeleteButton onConfirm={onRemove} />
       </div>
     </div>
   )
@@ -481,13 +593,7 @@ function CompletedFlightCard({
 
           {/* Löschen */}
           <div className="px-4 py-2.5">
-            <button
-              onClick={onRemove}
-              className="flex items-center gap-1 text-xs text-text-muted transition-colors hover:text-warning"
-            >
-              <PiTrash className="text-[0.6rem]" />
-              Eintrag löschen
-            </button>
+            <ConfirmDeleteButton onConfirm={onRemove} />
           </div>
         </div>
       )}

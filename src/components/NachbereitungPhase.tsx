@@ -6,9 +6,11 @@ import { useMissionId } from '../context/MissionContext'
 import { getMission } from '../utils/missionStorage'
 import { useMissions } from '../hooks/useMissions'
 import { generateMissionReport } from '../utils/generateMissionReport'
+import EinsatzabschlussSection from './sections/EinsatzabschlussSection'
 import FlightDisruptionsSection from './sections/FlightDisruptionsSection'
 import MissionResultSection from './sections/MissionResultSection'
 import PostFlightInspectionSection from './sections/PostFlightInspectionSection'
+import WartungPflegeSection from './sections/WartungPflegeSection'
 
 export default function NachbereitungPhase() {
   const missionId = useMissionId()
@@ -59,6 +61,8 @@ export default function NachbereitungPhase() {
     <div className="space-y-4">
       <PostFlightInspectionSection />
       <FlightDisruptionsSection />
+      <EinsatzabschlussSection />
+      <WartungPflegeSection />
       <MissionResultSection />
 
       {confirmComplete && (

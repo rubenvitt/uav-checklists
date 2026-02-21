@@ -7,7 +7,8 @@ import type { FlightLogEntry, EventNote } from '../types/flightLog'
 import { getDroneById } from '../data/drones'
 import { getMission } from './missionStorage'
 import { computeAssessment } from './assessment'
-import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type AnmeldungItem, type PostFlightInspectionData, type PostFlightInspectionItem, type DisruptionsData, type MissionResultData } from './generateReport'
+import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type AnmeldungItem, type PostFlightInspectionData, type PostFlightInspectionItem, type DisruptionsData, type MissionResultData, type EinsatzabschlussData, type EinsatzabschlussItem, type WartungPflegeData, type WartungPflegeItem } from './generateReport'
+import { computeFollowupSuggestions, type FollowupContext } from './followupSuggestions'
 
 const PREFIX = 'uav-form:'
 const TTL = 56 * 60 * 60 * 1000
@@ -334,6 +335,127 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
   const resultAbortReason = readMissionField<string>(missionId, 'result:abortReason', '')
   const resultAbortNotes = readMissionField<string>(missionId, 'result:abortNotes', '')
 
+  // Einsatzabschluss
+  const wrapupChecked = readMissionField<Record<string, boolean>>(missionId, 'wrapup:checked', {})
+  const wrapupNotes = readMissionField<Record<string, string>>(missionId, 'wrapup:notes', {})
+  const wrapupFeedback = readMissionField<string>(missionId, 'wrapup:feedback', '')
+
+  // Build abmeldung items from anmeldungen
+  const ABMELDUNG_LABEL_MAP: Record<string, string> = {
+    leitstelle: 'Abmeldung Leitstelle',
+    polizei: 'Abmeldung Polizei',
+    bahn: 'Abmeldung Bahn (DB Netz)',
+    wsa: 'Abmeldung WSA',
+  }
+  const abmeldungItems: EinsatzabschlussItem[] = []
+  const registeredKeys = Object.entries(anmeldungenChecked).filter(([, v]) => v).map(([k]) => k)
+  for (const key of registeredKeys) {
+    if (key.startsWith('custom_')) {
+      const idx = parseInt(key.split('_')[1], 10)
+      const custom = anmeldungenAdditional[idx]
+      if (custom?.label) {
+        const itemKey = `abmeldung_${key}`
+        abmeldungItems.push({
+          label: `Abmeldung ${custom.label}`,
+          checked: !!wrapupChecked[itemKey],
+          note: wrapupNotes[itemKey]?.trim() || undefined,
+        })
+      }
+    } else if (ABMELDUNG_LABEL_MAP[key]) {
+      const itemKey = `abmeldung_${key}`
+      abmeldungItems.push({
+        label: ABMELDUNG_LABEL_MAP[key],
+        checked: !!wrapupChecked[itemKey],
+        note: wrapupNotes[itemKey]?.trim() || undefined,
+      })
+    }
+  }
+
+  // Dokumentation items
+  const hasDisruptionsForReport = !disruptionsNone && disruptionsCategories.length > 0
+  const hasAbnormalLanding = flightLog.some(e => e.landungStatus !== 'ok')
+  const dokumentationItemKeys = ['datensicherung', 'flugbuecher']
+  if (hasDisruptionsForReport || hasAbnormalLanding) {
+    dokumentationItemKeys.push('ereignismeldung_bfu')
+  }
+  const DOKU_LABELS: Record<string, string> = {
+    datensicherung: 'Datensicherung durchgeführt',
+    flugbuecher: 'Flugbücher aktualisiert',
+    ereignismeldung_bfu: 'Ereignis-/Unfallmeldung BFU',
+  }
+  const dokumentationItems: EinsatzabschlussItem[] = dokumentationItemKeys.map(key => ({
+    label: DOKU_LABELS[key],
+    checked: !!wrapupChecked[key],
+  }))
+
+  // Rückbau items
+  const RUECKBAU_KEYS = ['uav_eingepackt', 'akkus_verstaut', 'fernbedienungen_verstaut', 'zubehoer_eingepackt', 'einsatzstelle_aufgeraeumt']
+  const RUECKBAU_LABELS: Record<string, string> = {
+    uav_eingepackt: `UAV eingepackt (${drone.name})`,
+    akkus_verstaut: 'Akkus entfernt und sicher verstaut',
+    fernbedienungen_verstaut: 'Fernbedienungen verstaut',
+    zubehoer_eingepackt: 'Zubehör und Payload eingepackt',
+    einsatzstelle_aufgeraeumt: 'Einsatzstelle aufgeräumt',
+  }
+  const rueckbauItems: EinsatzabschlussItem[] = RUECKBAU_KEYS.map(key => ({
+    label: RUECKBAU_LABELS[key],
+    checked: !!wrapupChecked[key],
+  }))
+
+  const hasWrapupData = Object.keys(wrapupChecked).length > 0 || wrapupFeedback.trim()
+  const einsatzabschluss: EinsatzabschlussData | undefined = hasWrapupData
+    ? { abmeldungen: abmeldungItems, dokumentation: dokumentationItems, rueckbau: rueckbauItems, feedback: wrapupFeedback }
+    : undefined
+
+  // Wartung & Pflege
+  const followupDismissed = readMissionField<string[]>(missionId, 'followup:dismissed', [])
+  const followupCustom = readMissionField<Array<{ id: string; label: string; isCustom: true }>>(missionId, 'followup:custom', [])
+
+  let followupWeatherCurrent: FollowupContext['weatherCurrent'] = null
+  let followupHumidityStatus: FollowupContext['humidityStatus'] = null
+
+  if (persistedWeather?.current) {
+    followupWeatherCurrent = {
+      precipitation: persistedWeather.current.precipitation,
+      temperature: persistedWeather.current.temperature,
+      humidity: persistedWeather.current.humidity,
+    }
+    if (assessment) {
+      const humidityMetric = assessment.metrics.find(m => m.key === 'humidity')
+      if (humidityMetric) followupHumidityStatus = humidityMetric.status
+    }
+  }
+
+  const followupCtx: FollowupContext = {
+    postflightNotes,
+    weatherCurrent: followupWeatherCurrent,
+    humidityStatus: followupHumidityStatus,
+    droneIpRating: drone.ipRating,
+    droneName: drone.name,
+    flightEntries: flightLog,
+    disruptionCategories: disruptionsCategories,
+    disruptionsNone,
+  }
+
+  const allSuggestions = computeFollowupSuggestions(followupCtx)
+  const visibleSuggestions = allSuggestions.filter(s => !followupDismissed.includes(s.id))
+
+  const wartungItems: WartungPflegeItem[] = [
+    ...visibleSuggestions.map(s => ({
+      label: s.label,
+      source: `${s.source.sourcePhase}: ${s.source.label}`,
+      isCustom: false,
+    })),
+    ...followupCustom.map(c => ({
+      label: c.label,
+      isCustom: true,
+    })),
+  ]
+
+  const wartungPflege: WartungPflegeData | undefined = wartungItems.length > 0
+    ? { items: wartungItems }
+    : undefined
+
   const missionResult: MissionResultData | undefined = resultOutcome
     ? {
         outcome: resultOutcome,
@@ -374,6 +496,8 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     eventNotes: eventNotes.length > 0 ? eventNotes : undefined,
     disruptions,
     postFlightInspection,
+    einsatzabschluss,
+    wartungPflege,
     missionResult,
   }
 
