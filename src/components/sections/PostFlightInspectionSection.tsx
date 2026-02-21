@@ -99,7 +99,7 @@ export default function PostFlightInspectionSection() {
               onClick={confirmAll}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-good/10 px-4 py-2.5 text-sm font-medium text-good transition-colors hover:bg-good/20 active:scale-[0.99]"
             >
-              <PiChecks className="text-base" />
+              <PiChecks className="text-[1rem]" />
               Alle bestätigen
               {checkedCount > 0 && (
                 <span className="text-good/60">({totalCount - checkedCount} offen)</span>
@@ -150,11 +150,11 @@ export default function PostFlightInspectionSection() {
                         ? 'text-caution'
                         : isNoteExpanded
                           ? 'text-text'
-                          : 'text-text hover:text-caution'
+                          : 'text-text-muted hover:text-text'
                     }`}
                     title="Bemerkung hinzufügen"
                   >
-                    <PiChatText className="text-base" />
+                    <PiChatText className="text-[1rem]" />
                     {hasNote && (
                       <span className="absolute -mt-3 ml-2 h-1.5 w-1.5 rounded-full bg-caution" />
                     )}
