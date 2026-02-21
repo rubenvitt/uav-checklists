@@ -373,7 +373,7 @@ function ContextHints({
                 </p>
               )}
             </div>
-            <span className="shrink-0 text-[10px] text-text-muted">{formatTime(flight.time)}</span>
+            <span className="shrink-0 font-mono text-[10px] text-text-muted">{formatTime(flight.time)}</span>
           </div>
         )
       })}
@@ -385,7 +385,7 @@ function ContextHints({
           <p className="min-w-0 flex-1 text-xs text-text truncate">
             {note.text}
           </p>
-          <span className="shrink-0 text-[10px] text-text-muted">{formatTime(note.time)}</span>
+          <span className="shrink-0 font-mono text-[10px] text-text-muted">{formatTime(note.time)}</span>
         </div>
       ))}
 

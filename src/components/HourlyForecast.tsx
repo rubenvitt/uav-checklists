@@ -110,7 +110,7 @@ export default function HourlyForecast({ data, drone }: { data: HourlyForecastPo
             <tr>
               <th className="sticky left-0 z-10 bg-surface" />
               {data.map((p) => (
-                <th key={p.time} className="min-w-14 px-1 pb-1 text-center text-xs font-normal text-text-muted">
+                <th key={p.time} className="min-w-14 px-1 pb-1 text-center font-mono text-xs font-normal text-text-muted">
                   {p.time}
                 </th>
               ))}

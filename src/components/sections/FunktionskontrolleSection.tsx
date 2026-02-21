@@ -102,7 +102,7 @@ export default function FunktionskontrolleSection() {
                 <PiShieldCheck className="text-lg text-good" />
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-good">Flug freigegeben</p>
-                  <p className="text-xs text-good/70">
+                  <p className="font-mono text-xs text-good/70">
                     {new Date(flugFreigabe!).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr
                   </p>
                 </div>

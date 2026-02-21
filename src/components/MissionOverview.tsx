@@ -157,7 +157,7 @@ function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onExpo
                 {PHASE_LABELS[mission.phase]}
               </span>
             )}
-            <span className="flex items-center gap-1 text-xs text-text-muted">
+            <span className="flex items-center gap-1 font-mono text-xs text-text-muted">
               <PiClock />
               {getRemainingTime(mission)}
             </span>

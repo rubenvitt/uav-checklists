@@ -323,7 +323,7 @@ function EventNoteCard({
       <div className="overflow-hidden rounded-xl bg-surface ring-1 ring-text-muted/20">
         <div className="flex items-center gap-2 px-4 pt-3 pb-1">
           <PiClock className="shrink-0 text-sm text-text-muted" />
-          <span className="text-xs font-medium text-text">
+          <span className="font-mono text-xs font-medium text-text">
             {formatTime(note.timestamp)}
           </span>
           <span className="ml-auto flex items-center gap-1">
@@ -367,7 +367,7 @@ function EventNoteCard({
     >
       <div className="flex shrink-0 flex-col items-center">
         <PiClock className="text-sm text-text-muted" />
-        <span className="mt-0.5 text-[10px] font-medium tabular-nums text-text-muted">
+        <span className="mt-0.5 font-mono text-[10px] font-medium tabular-nums text-text-muted">
           {formatTime(note.timestamp)}
         </span>
       </div>
@@ -412,7 +412,7 @@ function ActiveFlightCard({
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-good" />
         </span>
         <span className="flex-1 text-sm font-semibold text-good">Flug aktiv</span>
-        <span className="text-xs text-good">
+        <span className="font-mono text-xs text-good">
           Start: {formatTime(entry.blockOff)}
         </span>
       </div>
@@ -502,9 +502,9 @@ function CompletedFlightCard({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-sm font-medium text-text">
-            <span>{formatTime(entry.blockOff)}</span>
+            <span className="font-mono">{formatTime(entry.blockOff)}</span>
             <span className="text-text-muted">→</span>
-            <span>{entry.blockOn ? formatTime(entry.blockOn) : '—'}</span>
+            <span className="font-mono">{entry.blockOn ? formatTime(entry.blockOn) : '—'}</span>
             {entry.blockOn && (
               <span className="ml-auto text-xs text-text-muted">
                 {computeDuration(entry.blockOff, entry.blockOn)}

@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Departure Mono';
+  src: url('/fonts/DepartureMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
+  --font-mono: 'Departure Mono', ui-monospace, monospace;
   --color-good: #16a34a;
   --color-good-bg: #dcfce7;
   --color-caution: #ca8a04;
