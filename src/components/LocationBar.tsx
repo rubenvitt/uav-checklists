@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { PiMagnifyingGlass, PiMapPin, PiMapPinArea, PiPencilSimple, PiCheckCircle } from 'react-icons/pi'
-import { forwardGeocode, type GeocodeSuggestion } from '../services/geocodeApi'
+import { PiMagnifyingGlass, PiMapPin, PiMapPinArea, PiPencilSimple, PiCheckCircle, PiCrosshairSimple } from 'react-icons/pi'
+import { forwardGeocode, reverseGeocode, type GeocodeSuggestion } from '../services/geocodeApi'
+import { parseCoordinates, type ParsedCoordinate } from '../utils/coordinateParser'
 
 interface LocationBarProps {
   city: string | null
@@ -30,8 +31,13 @@ export default function LocationBar({
   const [query, setQuery] = useState('')
   const [suggestions, setSuggestions] = useState<GeocodeSuggestion[]>([])
   const [searching, setSearching] = useState(false)
+  const [resolvingCoordinate, setResolvingCoordinate] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null)
+
+  // Coordinate detection runs synchronously on every keystroke (no debounce needed)
+  const coordinateMatch: ParsedCoordinate | null =
+    query.trim().length >= 5 ? parseCoordinates(query) : null
 
   useEffect(() => {
     if (editing || needsManualLocation) {
@@ -41,6 +47,12 @@ export default function LocationBar({
 
   useEffect(() => {
     if (!query.trim() || query.trim().length < 2) {
+      setSuggestions([])
+      return
+    }
+
+    // Skip geocoding API call when coordinates are clearly detected
+    if (coordinateMatch) {
       setSuggestions([])
       return
     }
@@ -62,7 +74,7 @@ export default function LocationBar({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
-  }, [query])
+  }, [query, coordinateMatch])
 
   function handleSelect(suggestion: GeocodeSuggestion) {
     onManualLocation({
@@ -73,6 +85,33 @@ export default function LocationBar({
     setEditing(false)
     setQuery('')
     setSuggestions([])
+  }
+
+  async function handleSelectCoordinate(parsed: ParsedCoordinate) {
+    setResolvingCoordinate(true)
+    try {
+      const { city: resolvedCity, country: resolvedCountry } = await reverseGeocode(
+        parsed.latitude,
+        parsed.longitude,
+      )
+      const name =
+        resolvedCity !== 'Unbekannt'
+          ? `${resolvedCity}, ${resolvedCountry}`
+          : parsed.display
+      onManualLocation({ latitude: parsed.latitude, longitude: parsed.longitude, name })
+    } catch {
+      // Fallback: use the formatted coordinate string as name
+      onManualLocation({
+        latitude: parsed.latitude,
+        longitude: parsed.longitude,
+        name: parsed.display,
+      })
+    } finally {
+      setResolvingCoordinate(false)
+      setEditing(false)
+      setQuery('')
+      setSuggestions([])
+    }
   }
 
   function handleCancel() {
@@ -129,7 +168,7 @@ export default function LocationBar({
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Einsatzort suchen..."
+                placeholder="Ort, Adresse oder Koordinaten…"
                 className="flex-1 bg-transparent text-sm text-text outline-none placeholder:text-text-muted/50"
               />
               {editing && (
@@ -141,6 +180,41 @@ export default function LocationBar({
                 </button>
               )}
             </div>
+
+            {/* Coordinate match — shown immediately, no debounce */}
+            {coordinateMatch && (
+              <div className="mt-2">
+                <button
+                  onClick={() => handleSelectCoordinate(coordinateMatch)}
+                  disabled={resolvingCoordinate}
+                  className="flex w-full items-start gap-3 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2.5 text-left transition-colors hover:bg-blue-500/10 disabled:opacity-60 dark:border-blue-400/20 dark:bg-blue-400/5 dark:hover:bg-blue-400/10"
+                >
+                  {resolvingCoordinate ? (
+                    <svg className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-blue-600 dark:text-blue-400" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <PiCrosshairSimple className="mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-text truncate">
+                        {coordinateMatch.display}
+                      </span>
+                      <span className="shrink-0 rounded-full bg-blue-500/10 px-2 py-0.5 text-[0.65rem] font-medium text-blue-600 dark:bg-blue-400/10 dark:text-blue-400">
+                        {coordinateMatch.formatLabel}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-text-muted">
+                      {resolvingCoordinate
+                        ? 'Standort wird aufgelöst…'
+                        : `${Math.abs(coordinateMatch.latitude).toFixed(4)}°${coordinateMatch.latitude >= 0 ? 'N' : 'S'}, ${Math.abs(coordinateMatch.longitude).toFixed(4)}°${coordinateMatch.longitude >= 0 ? 'E' : 'W'}`}
+                    </p>
+                  </div>
+                </button>
+              </div>
+            )}
 
             {searching && (
               <p className="mt-2 text-xs text-text-muted">Suche...</p>
@@ -162,10 +236,19 @@ export default function LocationBar({
               </ul>
             )}
 
-            {!hasLocation && !searching && suggestions.length === 0 && query.length === 0 && (
-              <p className="mt-3 text-xs text-text-muted">
-                Gib einen Ort, eine Adresse oder Koordinaten ein.
-              </p>
+            {!hasLocation && !searching && suggestions.length === 0 && !coordinateMatch && query.length === 0 && (
+              <div className="mt-3">
+                <p className="text-xs text-text-muted">
+                  Ort, Adresse oder Koordinaten eingeben.
+                </p>
+                <p className="mt-1.5 text-[0.65rem] leading-relaxed text-text-muted/60">
+                  z.B. <span className="font-mono">52.520, 13.405</span>
+                  {' · '}
+                  <span className="font-mono">32U 461344 5481745</span>
+                  {' · '}
+                  <span className="font-mono">52°31′12″N 13°24′18″E</span>
+                </p>
+              </div>
             )}
           </div>
         ) : loading ? (
