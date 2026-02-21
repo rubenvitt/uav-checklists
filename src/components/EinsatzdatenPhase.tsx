@@ -16,18 +16,17 @@ export default function EinsatzdatenPhase() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl bg-surface">
-        <LocationBar
-          city={geocode.city}
-          country={geocode.country}
-          loading={geocode.loading}
-          isManual={geo.isManual}
-          manualName={geo.manualName}
-          needsManualLocation={geo.needsManualLocation}
-          onManualLocation={geo.setManualLocation}
-          onClearManual={geo.clearManualLocation}
-        />
-      </div>
+      <LocationBar
+        city={geocode.city}
+        country={geocode.country}
+        loading={geocode.loading}
+        hasLocation={hasLocation}
+        isManual={geo.isManual}
+        manualName={geo.manualName}
+        needsManualLocation={geo.needsManualLocation}
+        onManualLocation={geo.setManualLocation}
+        onClearManual={geo.clearManualLocation}
+      />
       <EinsatzdetailsSection />
       <EinsatzauftragSection />
       <TruppstaerkeSection />
