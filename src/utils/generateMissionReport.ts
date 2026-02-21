@@ -7,7 +7,7 @@ import type { FlightLogEntry, EventNote } from '../types/flightLog'
 import { getDroneById } from '../data/drones'
 import { getMission } from './missionStorage'
 import { computeAssessment } from './assessment'
-import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type AnmeldungItem, type PostFlightInspectionData, type PostFlightInspectionItem, type DisruptionsData } from './generateReport'
+import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type AnmeldungItem, type PostFlightInspectionData, type PostFlightInspectionItem, type DisruptionsData, type MissionResultData } from './generateReport'
 
 const PREFIX = 'uav-form:'
 const TTL = 56 * 60 * 60 * 1000
@@ -329,6 +329,19 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
       }
     : undefined
 
+  // Ergebnis
+  const resultOutcome = readMissionField<'erfolgreich' | 'erfolglos' | 'abgebrochen' | null>(missionId, 'result:outcome', null)
+  const resultAbortReason = readMissionField<string>(missionId, 'result:abortReason', '')
+  const resultAbortNotes = readMissionField<string>(missionId, 'result:abortNotes', '')
+
+  const missionResult: MissionResultData | undefined = resultOutcome
+    ? {
+        outcome: resultOutcome,
+        abortReason: resultOutcome === 'abgebrochen' && resultAbortReason ? resultAbortReason : undefined,
+        abortNotes: resultOutcome === 'abgebrochen' && resultAbortNotes ? resultAbortNotes : undefined,
+      }
+    : undefined
+
   const hasPostflight = Object.keys(postflightChecked).length > 0 || postflightRemarks.trim()
   const postFlightInspection: PostFlightInspectionData | undefined = hasPostflight
     ? {
@@ -361,6 +374,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     eventNotes: eventNotes.length > 0 ? eventNotes : undefined,
     disruptions,
     postFlightInspection,
+    missionResult,
   }
 
   generateReport(data)

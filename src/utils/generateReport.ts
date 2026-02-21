@@ -77,6 +77,12 @@ export interface DisruptionsData {
   categories: Array<{ key: string; label: string; note: string }>
 }
 
+export interface MissionResultData {
+  outcome: 'erfolgreich' | 'erfolglos' | 'abgebrochen'
+  abortReason?: string
+  abortNotes?: string
+}
+
 export interface ReportData {
   missionLabel?: string
   einsatzdetails?: EinsatzdetailsData
@@ -99,6 +105,7 @@ export interface ReportData {
   eventNotes?: EventNote[]
   disruptions?: DisruptionsData
   postFlightInspection?: PostFlightInspectionData
+  missionResult?: MissionResultData
 }
 
 function formatDistance(meters: number): string {
@@ -661,6 +668,50 @@ export function generateReport(data: ReportData) {
       checkPageBreak(remarkLines.length * 4.5)
       doc.text(remarkLines, margin + 2, y)
       y += remarkLines.length * 4.5
+    }
+  }
+
+  // === ERGEBNIS ===
+  if (data.missionResult) {
+    const mr = data.missionResult
+    drawSectionTitle('Ergebnis')
+
+    const outcomeLabels: Record<string, string> = {
+      erfolgreich: 'Einsatz erfolgreich beendet',
+      erfolglos: 'Einsatz erfolglos beendet',
+      abgebrochen: 'Einsatz abgebrochen',
+    }
+    const outcomeColors: Record<string, [number, number, number]> = {
+      erfolgreich: [34, 139, 34],
+      erfolglos: [200, 150, 0],
+      abgebrochen: [200, 50, 50],
+    }
+
+    checkPageBreak(7)
+    const [r, g, b] = outcomeColors[mr.outcome] ?? [30, 30, 30]
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(r, g, b)
+    doc.text(outcomeLabels[mr.outcome] ?? mr.outcome, margin, y)
+    y += 6
+
+    if (mr.outcome === 'abgebrochen') {
+      if (mr.abortReason) {
+        drawKeyValue('Grund', mr.abortReason)
+      }
+      if (mr.abortNotes) {
+        checkPageBreak(15)
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(100, 100, 100)
+        doc.text('Details', margin, y)
+        y += 4
+        doc.setTextColor(30, 30, 30)
+        const lines = doc.splitTextToSize(mr.abortNotes, contentWidth - 4)
+        checkPageBreak(lines.length * 4.5)
+        doc.text(lines, margin + 2, y)
+        y += lines.length * 4.5
+      }
     }
   }
 

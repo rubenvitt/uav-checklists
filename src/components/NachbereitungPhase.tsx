@@ -7,6 +7,7 @@ import { getMission } from '../utils/missionStorage'
 import { useMissions } from '../hooks/useMissions'
 import { generateMissionReport } from '../utils/generateMissionReport'
 import FlightDisruptionsSection from './sections/FlightDisruptionsSection'
+import MissionResultSection from './sections/MissionResultSection'
 import PostFlightInspectionSection from './sections/PostFlightInspectionSection'
 
 export default function NachbereitungPhase() {
@@ -58,6 +59,7 @@ export default function NachbereitungPhase() {
     <div className="space-y-4">
       <PostFlightInspectionSection />
       <FlightDisruptionsSection />
+      <MissionResultSection />
 
       {confirmComplete && (
         <div className="flex items-start gap-3 rounded-xl bg-caution-bg p-4">
