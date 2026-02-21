@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, lazy, Suspense, type ChangeEvent } from 'react'
+import { useRef, useState, useCallback, useEffect, lazy, Suspense, type ChangeEvent } from 'react'
 import { PiMapTrifold, PiCamera, PiX, PiFloppyDisk } from 'react-icons/pi'
 import ChecklistSection from '../ChecklistSection'
 import { useMapData } from '../../hooks/useMapData'
@@ -64,9 +64,33 @@ export default function EinsatzkarteSection({ latitude, longitude, locked }: Ein
   const [snapshot, setSnapshot] = useMissionPersistedState<string>('einsatzkarte:snapshot', '')
   const [photo, setPhoto] = useMissionPersistedState<string>('einsatzkarte:photo', '')
   const [mode, setMode] = useMissionPersistedState<EinsatzkarteMode>('einsatzkarte:mode', 'map')
+  const [autoStandortDone, setAutoStandortDone] = useMissionPersistedState<boolean>('einsatzkarte:autoStandort', false)
   const [capturing, setCapturing] = useState(false)
   const mapRef = useRef<EinsatzMapHandle>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Auto-set Standort marker from configured location
+  useEffect(() => {
+    if (autoStandortDone) return
+    if (latitude === null || longitude === null) return
+    const hasStandort = mapData.features.some((f) => f.properties.shapeType === 'standort')
+    if (hasStandort) {
+      setAutoStandortDone(true)
+      return
+    }
+    setMapData((prev) => ({
+      ...prev,
+      features: [
+        ...prev.features,
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [longitude, latitude] },
+          properties: { shapeType: 'standort' as const, createdAt: Date.now() },
+        },
+      ],
+    }))
+    setAutoStandortDone(true)
+  }, [latitude, longitude, autoStandortDone, mapData.features, setMapData, setAutoStandortDone])
 
   const handleSaveMap = useCallback(async () => {
     setCapturing(true)
