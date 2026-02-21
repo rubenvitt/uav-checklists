@@ -1,10 +1,16 @@
 import { PiWarning, PiCheck, PiLightningSlash, PiCloudRain, PiWrench, PiRadio, PiNavigationArrow, PiAirplaneTilt, PiNotePencil, PiInfo, PiAirplaneLanding, PiClock } from 'react-icons/pi'
 import type { ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
 import { useMissionId } from '../../context/MissionContext'
 import { readStorage } from '../../hooks/usePersistedState'
 import type { FlightLogEntry, EventNote } from '../../types/flightLog'
-import type { MetricStatus } from '../../types/assessment'
+import type { MetricStatus, MetricAssessment } from '../../types/assessment'
+import type { DroneId } from '../../types/drone'
+import type { WeatherResponse } from '../../types/weather'
+import type { NearbyCategory } from '../../services/overpassApi'
+import { getDroneById } from '../../data/drones'
+import { computeAssessment } from '../../utils/assessment'
 import ChecklistSection from '../ChecklistSection'
 
 /* ── Disruption category definitions ─────────────────────── */
@@ -56,6 +62,142 @@ function useFlightContext(): FlightContext {
   return { issueFlights, eventNotes }
 }
 
+/* ── Pre-flight data for category hints ──────────────────── */
+
+interface PreflightHint {
+  label: string
+  value: string
+  status: MetricStatus
+}
+
+/** Maps disruption category → relevant weather metric keys */
+const CATEGORY_METRIC_KEYS: Record<string, string[]> = {
+  wetter: ['wind', 'gusts', 'temperature', 'precipitation', 'visibility', 'humidity', 'dewPoint'],
+  gps: ['kIndex'],
+}
+
+/** Maps disruption category → relevant manual check keys with labels */
+const CATEGORY_MANUAL_CHECKS: Record<string, Array<{ key: string; label: string }>> = {
+  funk: [
+    { key: 'wlan', label: 'WLAN-Netze' },
+    { key: 'radio', label: 'Funkanlagen' },
+  ],
+  gps: [
+    { key: 'gps_jammer', label: 'GPS-Störsender' },
+  ],
+  luftverkehr: [
+    { key: 'other_uav', label: 'Andere UAV' },
+  ],
+}
+
+/** Maps disruption category → relevant nearby category keys */
+const CATEGORY_NEARBY_KEYS: Record<string, string[]> = {
+  luftverkehr: ['aviation'],
+  funk: ['celltower'],
+}
+
+function usePreflightHints(): Record<string, PreflightHint[]> {
+  const missionId = useMissionId()
+  const queryClient = useQueryClient()
+
+  // Read persisted mission data
+  const selectedDrone = readStorage<DroneId>('selectedDrone', 'matrice-350-rtk', missionId)
+  const maxAltitude = readStorage<number>('maxAltitude', 120, missionId)
+  const manualChecks = readStorage<Record<string, boolean>>('nearby:manualChecks', {}, missionId)
+  const drone = getDroneById(selectedDrone)
+
+  // Try to reconstruct weather assessment from TanStack Query cache
+  let weatherMetrics: MetricAssessment[] = []
+
+  // Read manual location for cache key
+  try {
+    const raw = localStorage.getItem(`uav-manual-location:${missionId}`)
+    if (raw) {
+      const loc = JSON.parse(raw)
+      if (typeof loc.latitude === 'number' && typeof loc.longitude === 'number') {
+        const lat = Math.round(loc.latitude * 1000) / 1000
+        const lon = Math.round(loc.longitude * 1000) / 1000
+        const weatherData = queryClient.getQueryData<WeatherResponse>(['weather', lat, lon, maxAltitude])
+        const kIndexData = queryClient.getQueryData<{ kIndex: number }>(['kindex'])
+
+        if (weatherData?.current && kIndexData?.kIndex != null) {
+          const assessment = computeAssessment(weatherData.current, kIndexData.kIndex, drone, weatherData.windByAltitude ?? undefined, maxAltitude)
+          weatherMetrics = assessment.metrics
+        }
+      }
+    }
+  } catch { /* ignore cache misses */ }
+
+  // Read nearby categories from cache
+  let nearbyCategories: NearbyCategory[] = []
+  try {
+    const raw = localStorage.getItem(`uav-manual-location:${missionId}`)
+    if (raw) {
+      const loc = JSON.parse(raw)
+      if (typeof loc.latitude === 'number' && typeof loc.longitude === 'number') {
+        const lat = Math.round(loc.latitude * 1000) / 1000
+        const lon = Math.round(loc.longitude * 1000) / 1000
+        nearbyCategories = queryClient.getQueryData<NearbyCategory[]>(['nearby', lat, lon]) ?? []
+      }
+    }
+  } catch { /* ignore */ }
+
+  // Build hints per category
+  const hints: Record<string, PreflightHint[]> = {}
+
+  for (const cat of DISRUPTION_CATEGORIES) {
+    const categoryHints: PreflightHint[] = []
+
+    // Weather metric hints (only caution/warning)
+    const metricKeys = CATEGORY_METRIC_KEYS[cat.key]
+    if (metricKeys && weatherMetrics.length > 0) {
+      for (const metric of weatherMetrics) {
+        if (metricKeys.includes(metric.key) && metric.status !== 'good') {
+          categoryHints.push({
+            label: metric.label,
+            value: `${metric.value} ${metric.unit}`.trim(),
+            status: metric.status,
+          })
+        }
+      }
+    }
+
+    // Manual check hints (only if checked = true, meaning potential issue was noted)
+    const checks = CATEGORY_MANUAL_CHECKS[cat.key]
+    if (checks) {
+      for (const check of checks) {
+        if (manualChecks[check.key]) {
+          categoryHints.push({
+            label: check.label,
+            value: 'Vorflug bestätigt',
+            status: 'caution',
+          })
+        }
+      }
+    }
+
+    // Nearby category hints
+    const nearbyKeys = CATEGORY_NEARBY_KEYS[cat.key]
+    if (nearbyKeys) {
+      for (const nearby of nearbyCategories) {
+        if (nearbyKeys.includes(nearby.key) && nearby.items.length > 0) {
+          categoryHints.push({
+            label: nearby.label,
+            value: `${nearby.items.length} in der Nähe`,
+            status: 'caution',
+          })
+        }
+      }
+    }
+
+    if (categoryHints.length > 0) {
+      hints[cat.key] = categoryHints
+    }
+  }
+
+  return hints
+}
+
 function formatTime(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
@@ -65,7 +207,7 @@ function formatTime(iso: string): string {
 
 function computeBadge(noDisruptions: boolean, selected: string[]): { label: string; status: MetricStatus } | undefined {
   if (noDisruptions) return { label: 'Keine', status: 'good' }
-  if (selected.length > 0) return { label: `${selected.length} ${selected.length === 1 ? 'Störung' : 'Störungen'}`, status: 'caution' }
+  if (selected.length > 0) return { label: `${selected.length} ${selected.length === 1 ? 'Bereich' : 'Bereiche'}`, status: 'caution' }
   return undefined
 }
 
@@ -77,6 +219,7 @@ export default function FlightDisruptionsSection() {
   const [categoryNotes, setCategoryNotes] = useMissionPersistedState<Record<string, string>>('disruptions:notes', {})
 
   const context = useFlightContext()
+  const preflightHints = usePreflightHints()
   const hasContextHints = context.issueFlights.length > 0 || context.eventNotes.length > 0
 
   const badge = computeBadge(noDisruptions, selectedCategories)
@@ -167,6 +310,7 @@ export default function FlightDisruptionsSection() {
                   category={cat}
                   value={categoryNotes[cat.key] ?? ''}
                   onChange={text => updateNote(cat.key, text)}
+                  hints={preflightHints[cat.key]}
                 />
               ))}
             </div>
@@ -310,14 +454,28 @@ function SuggestedCategories({
 
 /* ── Category Detail Card ────────────────────────────────── */
 
+const STATUS_COLORS: Record<MetricStatus, string> = {
+  good: 'text-good',
+  caution: 'text-caution',
+  warning: 'text-warning',
+}
+
+const STATUS_BG: Record<MetricStatus, string> = {
+  good: 'bg-good-bg',
+  caution: 'bg-caution-bg',
+  warning: 'bg-warning-bg',
+}
+
 function CategoryDetailCard({
   category,
   value,
   onChange,
+  hints,
 }: {
   category: DisruptionCategory
   value: string
   onChange: (text: string) => void
+  hints?: PreflightHint[]
 }) {
   return (
     <div className="rounded-xl bg-surface overflow-hidden">
@@ -325,6 +483,21 @@ function CategoryDetailCard({
         <span className="text-sm text-caution">{category.icon}</span>
         <span className="text-xs font-semibold text-text">{category.label}</span>
       </div>
+
+      {/* Pre-flight context hints */}
+      {hints && hints.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 px-4 pb-2">
+          {hints.map(hint => (
+            <span
+              key={hint.label}
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium ${STATUS_BG[hint.status]} ${STATUS_COLORS[hint.status]}`}
+            >
+              {hint.label}: {hint.value}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className="px-4 pb-3">
         <textarea
           value={value}
