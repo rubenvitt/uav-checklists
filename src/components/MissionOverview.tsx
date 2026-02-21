@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { PiPlus, PiTrash, PiClock, PiMapTrifold, PiFilePdf, PiCheckCircle } from 'react-icons/pi'
 import { useMissions } from '../hooks/useMissions'
+import { useMissionDisplayLabel } from '../hooks/useMissionDisplayLabel'
 import { getRemainingTime } from '../utils/missionStorage'
 import { generateMissionReport } from '../utils/generateMissionReport'
 import type { Mission, MissionPhase } from '../types/mission'
@@ -125,6 +126,7 @@ function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onExpo
   onExportPdf: () => void
 }) {
   const isCompleted = !!mission.completedAt
+  const displayLabel = useMissionDisplayLabel(mission.id, mission.createdAt)
   const iconBtnClass = 'rounded-lg p-2 text-text-muted transition-colors'
 
   return (
@@ -142,7 +144,7 @@ function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onExpo
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className={`text-sm font-medium truncate ${isCompleted ? 'text-text-muted' : 'text-text'}`}>
-            {mission.label}
+            {displayLabel}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {isCompleted ? (

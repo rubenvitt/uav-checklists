@@ -6,6 +6,7 @@ import type { ArcClass } from '../components/ArcDetermination'
 import type { FlightLogEntry, EventNote } from '../types/flightLog'
 import { getDroneById } from '../data/drones'
 import { getMission } from './missionStorage'
+import { buildMissionLabel, readManualLocationName } from './missionLabel'
 import { computeAssessment } from './assessment'
 import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type AnmeldungItem, type PostFlightInspectionData, type PostFlightInspectionItem, type DisruptionsData, type MissionResultData, type EinsatzabschlussData, type EinsatzabschlussItem, type WartungPflegeData, type WartungPflegeItem } from './generateReport'
 import { computeFollowupSuggestions, type FollowupContext } from './followupSuggestions'
@@ -477,7 +478,14 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     : undefined
 
   const data: ReportData = {
-    missionLabel: mission.label,
+    missionLabel: buildMissionLabel({
+      anlass: flugAnlassRaw,
+      stichwort: readMissionField<string>(missionId, 'einsatzstichwort', ''),
+      template: missionTemplate,
+      location: readManualLocationName(missionId),
+      flightCount: flightLog.length,
+      createdAt: mission.createdAt,
+    }),
     einsatzdetails,
     truppstaerke,
     einsatzauftrag,
