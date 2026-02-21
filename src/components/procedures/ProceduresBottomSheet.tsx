@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
-import { PiX, PiBookOpenText, PiCaretDown, PiShieldCheckered, PiListChecks, PiInfo, PiWarningOctagon, PiFirstAidKit } from 'react-icons/pi'
+import { useState, useRef } from 'react'
+import { Drawer } from 'vaul'
+import { PiBookOpenText, PiCaretDown, PiShieldCheckered, PiListChecks, PiInfo, PiWarningOctagon, PiFirstAidKit } from 'react-icons/pi'
 import { PROCEDURES, GENERAL_RULES, type ProcedureCategory } from '../../data/procedures'
 import ProcedureCard from './ProcedureCard'
 
@@ -32,10 +33,9 @@ const CATEGORY_CONFIG: Record<ProcedureCategory, { label: string; icon: React.Re
 
 const CATEGORIES: ProcedureCategory[] = ['normal', 'contingency', 'emergency', 'erp']
 
-// Default: normal + contingency expanded, emergency + erp collapsed (Hauptzugang über FAB)
 const DEFAULT_COLLAPSED = new Set<ProcedureCategory>(['emergency', 'erp'])
 
-export default function ProceduresBottomSheet({ onClose }: { onClose: () => void }) {
+export default function ProceduresBottomSheet() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [highlightedId, setHighlightedId] = useState<string | null>(null)
   const [collapsedCategories, setCollapsedCategories] = useState<Set<ProcedureCategory>>(new Set(DEFAULT_COLLAPSED))
@@ -55,7 +55,6 @@ export default function ProceduresBottomSheet({ onClose }: { onClose: () => void
     const target = PROCEDURES.find((p) => p.id === id)
     if (!target) return
 
-    // Expand target category
     setCollapsedCategories((prev) => {
       const next = new Set(prev)
       next.delete(target.category)
@@ -65,7 +64,6 @@ export default function ProceduresBottomSheet({ onClose }: { onClose: () => void
     setExpandedId(id)
     setHighlightedId(id)
 
-    // Scroll to target after category expansion renders
     requestAnimationFrame(() => {
       setTimeout(() => {
         const el = contentRef.current?.querySelector(`[data-procedure-id="${id}"]`)
@@ -75,49 +73,25 @@ export default function ProceduresBottomSheet({ onClose }: { onClose: () => void
       }, 100)
     })
 
-    // Clear highlight after 2s
     if (highlightTimer.current) clearTimeout(highlightTimer.current)
     highlightTimer.current = setTimeout(() => setHighlightedId(null), 2000)
   }
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
-    document.body.style.overflow = 'hidden'
-    window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = ''
-      window.removeEventListener('keydown', onKey)
-      if (highlightTimer.current) clearTimeout(highlightTimer.current)
-    }
-  }, [onClose])
-
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 z-50 bg-black/40" onClick={onClose} />
-
-      {/* Sheet */}
-      <div className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-2xl bg-base shadow-2xl">
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="h-1 w-10 rounded-full bg-text-muted/30" />
-        </div>
+    <Drawer.Portal>
+      <Drawer.Overlay className="fixed inset-0 z-50 bg-black/40" />
+      <Drawer.Content
+        className="fixed inset-x-0 bottom-0 z-50 flex max-h-[85dvh] flex-col rounded-t-2xl bg-base shadow-2xl outline-none"
+      >
+        <Drawer.Handle className="mt-3 mb-1 bg-text-muted/30" />
 
         {/* Header */}
         <div className="flex items-center gap-3 px-5 pb-3">
           <PiBookOpenText className="text-xl text-text-muted" />
           <div className="flex-1">
-            <h2 className="text-sm font-semibold text-text">Flugprozeduren</h2>
-            <p className="text-[10px] text-text-muted">Standard- und Notfallverfahren</p>
+            <Drawer.Title className="text-sm font-semibold text-text">Flugprozeduren</Drawer.Title>
+            <Drawer.Description className="text-[10px] text-text-muted">Standard- und Notfallverfahren</Drawer.Description>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-2.5 text-text-muted transition-colors hover:bg-surface-alt hover:text-text"
-          >
-            <PiX className="text-lg" />
-          </button>
         </div>
 
         {/* Scrollable content */}
@@ -146,7 +120,6 @@ export default function ProceduresBottomSheet({ onClose }: { onClose: () => void
 
               return (
                 <div key={cat}>
-                  {/* Category header — ChecklistSection style */}
                   <button
                     onClick={() => toggleCategory(cat)}
                     className={`flex w-full items-center gap-3 rounded-xl bg-surface border ${cfg.borderColor} px-4 py-3.5 transition-colors hover:bg-surface-alt/50`}
@@ -161,7 +134,6 @@ export default function ProceduresBottomSheet({ onClose }: { onClose: () => void
                     <PiCaretDown className={`text-sm text-text-muted transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`} />
                   </button>
 
-                  {/* Procedures */}
                   {!isCollapsed && (
                     <div className="space-y-2 py-3">
                       {procs.map((proc) => (
@@ -180,7 +152,7 @@ export default function ProceduresBottomSheet({ onClose }: { onClose: () => void
             })}
           </div>
         </div>
-      </div>
-    </>
+      </Drawer.Content>
+    </Drawer.Portal>
   )
 }
