@@ -55,8 +55,21 @@ function useCrewSuggestions(): string[] {
   return [...new Set(names.filter((n) => n.trim()))]
 }
 
+/** Migrate legacy entries that used `landungOk: boolean` to `landungStatus` */
+function migrateEntries(raw: FlightLogEntry[]): FlightLogEntry[] {
+  return raw.map((e) => {
+    if (e.landungStatus) return e
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const legacy = e as any
+    const status: LandingStatus = legacy.landungOk === false ? 'auffaellig' : 'ok'
+    const { landungOk: _, ...rest } = legacy
+    return { ...rest, landungStatus: status }
+  })
+}
+
 export default function FluegePhase() {
-  const [entries, setEntries] = useMissionPersistedState<FlightLogEntry[]>('flightlog:entries', [])
+  const [rawEntries, setEntries] = useMissionPersistedState<FlightLogEntry[]>('flightlog:entries', [])
+  const entries = migrateEntries(rawEntries)
   const [defaultFp] = useMissionPersistedState<string>('crew_fp', '')
   const [defaultLrb] = useMissionPersistedState<string>('crew_lrb', '')
   const crewSuggestions = useCrewSuggestions()
