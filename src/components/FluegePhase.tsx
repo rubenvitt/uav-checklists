@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
-import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren } from 'react-icons/pi'
+import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren, PiNotePencil, PiClock } from 'react-icons/pi'
 import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
-import type { FlightLogEntry, LandingStatus } from '../types/flightLog'
+import type { FlightLogEntry, LandingStatus, EventNote } from '../types/flightLog'
 
 const LANDING_STATUS_CONFIG: Record<LandingStatus, { label: string; color: string; bgColor: string; borderColor: string; icon: React.ReactNode }> = {
   ok: { label: 'In Ordnung', color: 'text-good', bgColor: 'bg-good', borderColor: 'border-good', icon: <PiCheck /> },
@@ -74,6 +74,8 @@ export default function FluegePhase() {
   const [defaultLrb] = useMissionPersistedState<string>('crew_lrb', '')
   const crewSuggestions = useCrewSuggestions()
 
+  const [eventNotes, setEventNotes] = useMissionPersistedState<EventNote[]>('flightlog:events', [])
+
   const activeEntry = entries.find((e) => e.blockOn === null)
   const completedEntries = entries.filter((e) => e.blockOn !== null).slice().reverse()
 
@@ -108,6 +110,23 @@ export default function FluegePhase() {
     setEntries((prev) => prev.filter((e) => e.id !== id))
   }
 
+  function addEvent() {
+    const note: EventNote = {
+      id: generateId(),
+      timestamp: new Date().toISOString(),
+      text: '',
+    }
+    setEventNotes((prev) => [...prev, note])
+  }
+
+  function updateEvent(id: string, text: string) {
+    setEventNotes((prev) => prev.map((e) => (e.id === id ? { ...e, text } : e)))
+  }
+
+  function removeEvent(id: string) {
+    setEventNotes((prev) => prev.filter((e) => e.id !== id))
+  }
+
   return (
     <div className="space-y-4">
       {/* Hinweis: Start und Landung melden */}
@@ -132,15 +151,41 @@ export default function FluegePhase() {
         />
       )}
 
-      {/* Neuen Flug starten */}
-      {!activeEntry && (
+      {/* Neuen Flug starten + Ereignis notieren */}
+      <div className={`flex gap-2 ${activeEntry ? 'flex-row-reverse' : ''}`}>
+        {!activeEntry && (
+          <button
+            onClick={startFlight}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-text px-4 py-3.5 text-sm font-medium text-base transition-colors active:scale-[0.99]"
+          >
+            <PiAirplaneTakeoff className="text-lg" />
+            Flug starten
+          </button>
+        )}
         <button
-          onClick={startFlight}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-text px-4 py-3.5 text-sm font-medium text-base transition-colors active:scale-[0.99]"
+          onClick={addEvent}
+          className="flex items-center justify-center gap-2 rounded-xl border border-surface-alt bg-surface px-4 py-3 text-sm text-text-muted transition-colors hover:text-text active:scale-[0.99]"
         >
-          <PiAirplaneTakeoff className="text-lg" />
-          Flug starten
+          <PiNotePencil className="text-lg" />
+          Ereignis
         </button>
+      </div>
+
+      {/* Ereignisse */}
+      {eventNotes.length > 0 && (
+        <div className="space-y-2">
+          <p className="px-1 text-xs font-medium text-text-muted">
+            Ereignisse ({eventNotes.length})
+          </p>
+          {[...eventNotes].reverse().map((note) => (
+            <EventNoteCard
+              key={note.id}
+              note={note}
+              onUpdate={(text) => updateEvent(note.id, text)}
+              onRemove={() => removeEvent(note.id)}
+            />
+          ))}
+        </div>
       )}
 
       {/* Abgeschlossene Flüge */}
@@ -174,6 +219,54 @@ export default function FluegePhase() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/* ── Ereignis-Notiz ───────────────────────────────────────── */
+
+function EventNoteCard({
+  note,
+  onUpdate,
+  onRemove,
+}: {
+  note: EventNote
+  onUpdate: (text: string) => void
+  onRemove: () => void
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (!note.text && textareaRef.current) {
+      textareaRef.current.focus()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- focus only on mount
+  }, [])
+
+  return (
+    <div className="rounded-xl bg-surface">
+      <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+        <PiClock className="text-xs text-text-muted" />
+        <span className="text-[10px] text-text-muted">
+          {formatTime(note.timestamp)}
+        </span>
+        <button
+          onClick={onRemove}
+          className="ml-auto flex items-center text-text-muted transition-colors hover:text-warning"
+        >
+          <PiTrash className="text-xs" />
+        </button>
+      </div>
+      <div className="px-4 pb-3">
+        <textarea
+          ref={textareaRef}
+          value={note.text}
+          onChange={(e) => onUpdate(e.target.value)}
+          placeholder="Ereignis beschreiben..."
+          rows={2}
+          className="w-full resize-none rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-1 focus:ring-text-muted"
+        />
+      </div>
     </div>
   )
 }

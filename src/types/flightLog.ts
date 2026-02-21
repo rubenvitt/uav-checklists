@@ -9,3 +9,9 @@ export interface FlightLogEntry {
   landungStatus: LandingStatus // default 'ok'
   bemerkung: string // optional remarks
 }
+
+export interface EventNote {
+  id: string
+  timestamp: string // ISO timestamp
+  text: string
+}

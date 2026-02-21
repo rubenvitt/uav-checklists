@@ -3,7 +3,7 @@ import type { DroneId } from '../types/drone'
 import type { WeatherResponse } from '../types/weather'
 import type { NearbyCategory } from '../services/overpassApi'
 import type { ArcClass } from '../components/ArcDetermination'
-import type { FlightLogEntry } from '../types/flightLog'
+import type { FlightLogEntry, EventNote } from '../types/flightLog'
 import { getDroneById } from '../data/drones'
 import { getMission } from './missionStorage'
 import { computeAssessment } from './assessment'
@@ -276,6 +276,9 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
   // Flugtagebuch
   const flightLog = readMissionField<FlightLogEntry[]>(missionId, 'flightlog:entries', [])
 
+  // Ereignisse
+  const eventNotes = readMissionField<EventNote[]>(missionId, 'flightlog:events', [])
+
   const data: ReportData = {
     missionLabel: mission.label,
     einsatzdetails,
@@ -293,6 +296,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     sail,
     assessment,
     flightLog: flightLog.length > 0 ? flightLog : undefined,
+    eventNotes: eventNotes.length > 0 ? eventNotes : undefined,
   }
 
   generateReport(data)
