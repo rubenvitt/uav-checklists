@@ -67,3 +67,13 @@ body {
 .dark .leaflet-control-attribution a {
   color: var(--color-text-muted);
 }
+
+/* Sentry feedback form – input borders */
+#sentry-feedback {
+  --input-border: 1.5px solid #e2e8f0;
+  --input-border-radius: 8px;
+}
+
+.dark #sentry-feedback {
+  --input-border: 1.5px solid #475569;
+}
