@@ -1,3 +1,19 @@
+import * as Sentry from '@sentry/react'
+
+Sentry.init({
+  dsn: 'https://41757821305362d95e55f076d122fc5f@sentry.rubeen.dev/2',
+  sendDefaultPii: true,
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration(),
+  ],
+  tracesSampleRate: 1.0,
+  tracePropagationTargets: ['localhost'],
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+  enableLogs: true,
+})
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient } from '@tanstack/react-query'
