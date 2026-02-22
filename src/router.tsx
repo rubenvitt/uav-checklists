@@ -22,7 +22,17 @@ import NachbereitungPhase from './components/NachbereitungPhase'
 function openFeedback() {
   const isDark = document.documentElement.classList.contains('dark')
   const feedback = Sentry.getFeedback()
-  feedback?.createForm({ colorScheme: isDark ? 'dark' : 'light' }).then(form => { form.appendToDom(); form.open() })
+  feedback?.createForm({ colorScheme: isDark ? 'dark' : 'light' }).then(form => {
+    form.appendToDom()
+    form.open()
+    const shadow = document.querySelector('#sentry-feedback')?.shadowRoot
+    if (shadow && !shadow.querySelector('#feedback-backdrop')) {
+      const style = document.createElement('style')
+      style.id = 'feedback-backdrop'
+      style.textContent = '@media (max-width: 640px) { .dialog { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.15); } }'
+      shadow.appendChild(style)
+    }
+  })
 }
 
 function AppFooter() {

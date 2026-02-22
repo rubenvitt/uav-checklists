@@ -68,12 +68,20 @@ body {
   color: var(--color-text-muted);
 }
 
-/* Sentry feedback form – input borders */
+/* Sentry feedback form – match app styling */
 #sentry-feedback {
-  --input-border: 1.5px solid #e2e8f0;
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size: 14px;
+  --form-border-radius: 12px;
+  --form-content-border-radius: 8px;
+  --input-border: 1px solid #e2e8f0;
   --input-border-radius: 8px;
+  --input-focus-outline: 2px solid #64748b;
+  --box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
 }
 
 .dark #sentry-feedback {
-  --input-border: 1.5px solid #475569;
+  --input-border: 1px solid #475569;
+  --input-focus-outline: 2px solid #94a3b8;
+  --box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
