@@ -37,7 +37,7 @@ Sentry.init({
         background: '#1e293b',
         backgroundHover: '#334155',
         foreground: '#f1f5f9',
-        border: '#334155',
+        border: '#475569',
         accent: '#f1f5f9',
         accentForeground: '#0f172a',
         success: '#22c55e',

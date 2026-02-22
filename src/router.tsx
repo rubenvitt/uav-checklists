@@ -20,8 +20,9 @@ import FluegePhase from './components/FluegePhase'
 import NachbereitungPhase from './components/NachbereitungPhase'
 
 function openFeedback() {
+  const isDark = document.documentElement.classList.contains('dark')
   const feedback = Sentry.getFeedback()
-  feedback?.createForm().then(form => { form.appendToDom(); form.open() })
+  feedback?.createForm({ colorScheme: isDark ? 'dark' : 'light' }).then(form => { form.appendToDom(); form.open() })
 }
 
 function AppFooter() {
