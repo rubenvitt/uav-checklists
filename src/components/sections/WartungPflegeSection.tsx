@@ -214,6 +214,8 @@ export default function WartungPflegeSection({ open, onToggle, isComplete, onCon
           onKeyDown={handleKeyDown}
           placeholder="Eigene Aufgabe hinzufügen..."
           className="flex-1 rounded-lg bg-surface-alt px-3 py-2.5 text-sm text-text placeholder:text-text-muted/50 outline-none focus:ring-1 focus:ring-text-muted/40"
+          data-1p-ignore
+          autoComplete="off"
         />
         <button
           onClick={addCustomItem}

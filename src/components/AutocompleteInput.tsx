@@ -83,6 +83,8 @@ export default function AutocompleteInput({ label, value, onChange, suggestions,
           aria-activedescendant={activeIndex >= 0 ? `${label}-option-${activeIndex}` : undefined}
           aria-autocomplete="list"
           className="w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted"
+          data-1p-ignore
+          autoComplete="off"
         />
         {filtered.length > 0 && (
           <ul

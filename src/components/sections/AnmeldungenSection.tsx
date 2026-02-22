@@ -170,6 +170,8 @@ export default function AnmeldungenSection({ categories, open, onToggle, isCompl
                     onChange={(e) => updateNotification(i, 'label', e.target.value)}
                     placeholder="z.B. Ordnungsamt, Flugsicherung..."
                     className="w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted"
+                    data-1p-ignore
+                    autoComplete="off"
                   />
                 </div>
                 <div>
@@ -180,6 +182,8 @@ export default function AnmeldungenSection({ categories, open, onToggle, isCompl
                     onChange={(e) => updateNotification(i, 'detail', e.target.value)}
                     placeholder="Telefonnummer oder Notiz..."
                     className="w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted"
+                    data-1p-ignore
+                    autoComplete="off"
                   />
                 </div>
               </div>

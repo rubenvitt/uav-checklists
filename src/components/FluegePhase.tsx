@@ -658,6 +658,8 @@ function ActiveFlightCard({
             onChange={(e) => onUpdate({ bemerkung: e.target.value })}
             placeholder="Optional..."
             className="w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted"
+            data-1p-ignore
+            autoComplete="off"
           />
         </div>
       </div>
@@ -792,6 +794,8 @@ function CompletedFlightCard({
               onChange={(e) => onUpdate({ bemerkung: e.target.value })}
               placeholder="Optional..."
               className="w-full rounded bg-surface-alt px-2 py-1 text-xs text-text outline-none focus:ring-1 focus:ring-text-muted"
+              data-1p-ignore
+              autoComplete="off"
             />
           </div>
 
@@ -944,6 +948,8 @@ function NameAutocomplete({
           aria-expanded={filtered.length > 0}
           aria-activedescendant={activeIndex >= 0 ? `flight-${label}-${activeIndex}` : undefined}
           aria-autocomplete="list"
+          data-1p-ignore
+          autoComplete="off"
           className={
             isCompact
               ? 'w-full rounded bg-surface-alt px-2 py-1 text-xs text-text outline-none focus:ring-1 focus:ring-text-muted'
