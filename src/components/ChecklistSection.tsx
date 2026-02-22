@@ -5,7 +5,7 @@ import type { MetricStatus } from '../types/assessment'
 interface ChecklistSectionProps {
   title: string
   icon: ReactNode
-  badge?: { label: string; status: MetricStatus }
+  badge?: { label: ReactNode; status: MetricStatus }
   loading?: boolean
   locked?: boolean
   defaultOpen?: boolean
