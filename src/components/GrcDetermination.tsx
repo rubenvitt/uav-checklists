@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { PiCheck } from 'react-icons/pi'
-import { usePersistedState } from '../hooks/usePersistedState'
+import { useSegmentPersistedState } from '../hooks/useSegmentPersistedState'
 
 interface GrcDeterminationProps {
   onGrcChange: (grc: number | null) => void
@@ -46,11 +46,11 @@ function CheckItem({ checked, onChange, label, desc }: { checked: boolean; onCha
 }
 
 export default function GrcDetermination({ onGrcChange }: GrcDeterminationProps) {
-  const [controlledGround, setControlledGround] = usePersistedState<boolean | null>('grc:controlledGround', null)
-  const [flightType, setFlightType] = usePersistedState<'vlos' | 'bvlos' | null>('grc:flightType', null)
-  const [areaType, setAreaType] = usePersistedState<'sparse' | 'dense' | 'crowd' | null>('grc:areaType', null)
-  const [strategicMitigation, setStrategicMitigation] = usePersistedState('grc:strategicMitigation', false)
-  const [emergencyPlan, setEmergencyPlan] = usePersistedState('grc:emergencyPlan', false)
+  const [controlledGround, setControlledGround] = useSegmentPersistedState<boolean | null>('grc:controlledGround', null)
+  const [flightType, setFlightType] = useSegmentPersistedState<'vlos' | 'bvlos' | null>('grc:flightType', null)
+  const [areaType, setAreaType] = useSegmentPersistedState<'sparse' | 'dense' | 'crowd' | null>('grc:areaType', null)
+  const [strategicMitigation, setStrategicMitigation] = useSegmentPersistedState('grc:strategicMitigation', false)
+  const [emergencyPlan, setEmergencyPlan] = useSegmentPersistedState('grc:emergencyPlan', false)
 
   const intrinsicGrc =
     controlledGround === true

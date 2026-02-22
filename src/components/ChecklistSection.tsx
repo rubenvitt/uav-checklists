@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { PiCaretDown, PiLock } from 'react-icons/pi'
+import { PiCaretDown, PiCaretRight, PiCheckCircle, PiLock } from 'react-icons/pi'
 import type { MetricStatus } from '../types/assessment'
 
 interface ChecklistSectionProps {
@@ -9,6 +9,12 @@ interface ChecklistSectionProps {
   loading?: boolean
   locked?: boolean
   defaultOpen?: boolean
+  open?: boolean
+  onToggle?: () => void
+  isComplete?: boolean
+  onContinue?: () => void
+  continueLabel?: string
+  isPhaseComplete?: boolean
   children: React.ReactNode
 }
 
@@ -18,13 +24,21 @@ const badgeColors: Record<MetricStatus, string> = {
   warning: 'bg-warning-bg text-warning',
 }
 
-export default function ChecklistSection({ title, icon, badge, loading, locked, defaultOpen = false, children }: ChecklistSectionProps) {
-  const [open, setOpen] = useState(defaultOpen)
+export default function ChecklistSection({ title, icon, badge, loading, locked, defaultOpen = false, open: controlledOpen, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete, children }: ChecklistSectionProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen)
+  const isControlled = controlledOpen !== undefined
+  const isOpen = isControlled ? controlledOpen : uncontrolledOpen
+
+  const handleToggle = () => {
+    if (locked) return
+    if (isControlled && onToggle) onToggle()
+    else setUncontrolledOpen(o => !o)
+  }
 
   return (
     <section className={`rounded-xl bg-surface overflow-hidden${locked ? ' opacity-50' : ''}`}>
       <button
-        onClick={() => !locked && setOpen(o => !o)}
+        onClick={handleToggle}
         className={`flex w-full items-center gap-3 px-5 py-4 text-left transition-colors ${locked ? 'cursor-not-allowed' : 'hover:bg-surface-alt'}`}
       >
         <span className="text-lg flex items-center">{icon}</span>
@@ -45,11 +59,31 @@ export default function ChecklistSection({ title, icon, badge, loading, locked, 
             {badge.label}
           </span>
         )}
-        <span className={`text-text-muted transition-transform duration-200 flex items-center ${open && !locked ? 'rotate-180' : ''}`}>
+        <span className={`text-text-muted transition-transform duration-200 flex items-center ${isOpen && !locked ? 'rotate-180' : ''}`}>
           <PiCaretDown />
         </span>
       </button>
-      {!locked && <div className={`space-y-4 px-5 pt-1 pb-5 ${open ? '' : 'hidden'}`}>{children}</div>}
+      {!locked && (
+        <div className={isOpen ? '' : 'hidden'}>
+          <div className="space-y-4 px-5 pt-1 pb-5">
+            {children}
+          </div>
+          {isComplete && onContinue && (
+            <button
+              onClick={onContinue}
+              className={`flex w-full items-center justify-center gap-2 border-t border-surface-alt py-3 text-sm font-medium transition-colors active:scale-[0.99] ${
+                isPhaseComplete
+                  ? 'bg-text/10 text-text hover:bg-text/15'
+                  : 'bg-good-bg/30 text-good hover:bg-good-bg/50'
+              }`}
+            >
+              <PiCheckCircle className="text-base" />
+              {continueLabel ?? 'Weiter'}
+              <PiCaretRight className="text-base" />
+            </button>
+          )}
+        </div>
+      )}
     </section>
   )
 }

@@ -17,9 +17,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'UAV Flugwetter',
-        short_name: 'UAV Wetter',
-        description: 'Wetterbedingungen für Drohnenflüge',
+        name: 'UAV Einsatzverwaltung',
+        short_name: 'UAV Einsatz',
+        description: 'Einsatzverwaltung für Drohnenflüge',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
@@ -31,6 +31,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        navigateFallback: '/index.html',
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
@@ -47,6 +48,14 @@ export default defineConfig({
             options: {
               cacheName: 'kindex-api',
               expiration: { maxEntries: 5, maxAgeSeconds: 3600 },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/[abc]\.tile\.openstreetmap\.org\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'osm-tiles',
+              expiration: { maxEntries: 500, maxAgeSeconds: 7 * 24 * 60 * 60 },
             },
           },
         ],

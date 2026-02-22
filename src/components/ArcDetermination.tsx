@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { PiCheck } from 'react-icons/pi'
-import { usePersistedState } from '../hooks/usePersistedState'
+import { useSegmentPersistedState } from '../hooks/useSegmentPersistedState'
 
 export type ArcClass = 'a' | 'b' | 'c-star' | 'cd'
 
@@ -50,14 +50,14 @@ function CheckItem({ checked, onChange, label, desc }: { checked: boolean; onCha
 }
 
 export default function ArcDetermination({ onArcChange }: ArcDeterminationProps) {
-  const [reservedAirspace, setReservedAirspace] = usePersistedState<boolean | null>('arc:reservedAirspace', null)
-  const [riskFlight, setRiskFlight] = usePersistedState<boolean | null>('arc:riskFlight', null)
-  const [nearAirfield, setNearAirfield] = usePersistedState<'no' | 'yes_without' | 'yes_with' | null>('arc:nearAirfield', null)
-  const [under150m, setUnder150m] = usePersistedState<boolean | null>('arc:under150m', null)
-  const [uncontrolledAirspace, setUncontrolledAirspace] = usePersistedState<boolean | null>('arc:uncontrolledAirspace', null)
-  const [areaType, setAreaType] = usePersistedState<'rural' | 'urban' | null>('arc:areaType', null)
-  const [adsbMonitoring, setAdsbMonitoring] = usePersistedState('arc:adsbMonitoring', false)
-  const [coordination, setCoordination] = usePersistedState('arc:coordination', false)
+  const [reservedAirspace, setReservedAirspace] = useSegmentPersistedState<boolean | null>('arc:reservedAirspace', null)
+  const [riskFlight, setRiskFlight] = useSegmentPersistedState<boolean | null>('arc:riskFlight', null)
+  const [nearAirfield, setNearAirfield] = useSegmentPersistedState<'no' | 'yes_without' | 'yes_with' | null>('arc:nearAirfield', null)
+  const [under150m, setUnder150m] = useSegmentPersistedState<boolean | null>('arc:under150m', null)
+  const [uncontrolledAirspace, setUncontrolledAirspace] = useSegmentPersistedState<boolean | null>('arc:uncontrolledAirspace', null)
+  const [areaType, setAreaType] = useSegmentPersistedState<'rural' | 'urban' | null>('arc:areaType', null)
+  const [adsbMonitoring, setAdsbMonitoring] = useSegmentPersistedState('arc:adsbMonitoring', false)
+  const [coordination, setCoordination] = useSegmentPersistedState('arc:coordination', false)
 
   // ARC-Klasse berechnen
   let arcClass: ArcClass | null = null

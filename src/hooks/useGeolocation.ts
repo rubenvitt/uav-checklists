@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 
-const STORAGE_KEY = 'uav-manual-location'
+const BASE_STORAGE_KEY = 'uav-manual-location'
+
+function storageKey(missionId?: string, segmentId?: string | null): string {
+  if (missionId && segmentId) return `${BASE_STORAGE_KEY}:${missionId}:seg:${segmentId}`
+  if (missionId) return `${BASE_STORAGE_KEY}:${missionId}`
+  return BASE_STORAGE_KEY
+}
 
 interface ManualLocation {
   latitude: number
@@ -20,9 +26,23 @@ interface GeolocationState {
   clearManualLocation: () => void
 }
 
-function loadManualLocation(): ManualLocation | null {
+function loadManualLocation(missionId?: string, segmentId?: string | null, allowLegacyFallback: boolean = true): ManualLocation | null {
+  // Try segment-specific key first, then conditionally fallback to legacy key
+  if (missionId && segmentId) {
+    const segResult = tryLoadManualLocation(storageKey(missionId, segmentId))
+    if (segResult) return segResult
+    // Fallback: read legacy key ONLY for the first segment (pre-existing data)
+    if (allowLegacyFallback) {
+      return tryLoadManualLocation(storageKey(missionId))
+    }
+    return null
+  }
+  return tryLoadManualLocation(storageKey(missionId))
+}
+
+function tryLoadManualLocation(key: string): ManualLocation | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(key)
     if (!raw) return null
     const parsed = JSON.parse(raw)
     if (
@@ -38,8 +58,9 @@ function loadManualLocation(): ManualLocation | null {
   return null
 }
 
-export function useGeolocation(): GeolocationState {
-  const saved = loadManualLocation()
+export function useGeolocation(missionId?: string, segmentId?: string | null, isFirstSegment?: boolean): GeolocationState {
+  const allowLegacyFallback = isFirstSegment !== false
+  const saved = loadManualLocation(missionId, segmentId, allowLegacyFallback)
 
   const [state, setState] = useState<
     Omit<GeolocationState, 'setManualLocation' | 'clearManualLocation'>
@@ -65,9 +86,35 @@ export function useGeolocation(): GeolocationState {
         }
   )
 
-  // GPS fallback — only runs when no manual location is set
+  // Re-initialize state when segmentId changes (e.g. after relocation)
   useEffect(() => {
-    if (loadManualLocation()) return
+    const current = loadManualLocation(missionId, segmentId, allowLegacyFallback)
+    if (current) {
+      setState({
+        latitude: current.latitude,
+        longitude: current.longitude,
+        error: null,
+        loading: false,
+        isManual: true,
+        manualName: current.name,
+        needsManualLocation: false,
+      })
+    } else {
+      setState({
+        latitude: null,
+        longitude: null,
+        error: null,
+        loading: true,
+        isManual: false,
+        manualName: null,
+        needsManualLocation: false,
+      })
+    }
+  }, [missionId, segmentId, allowLegacyFallback])
+
+  // GPS fallback — only runs when loading and no manual location
+  useEffect(() => {
+    if (!state.loading || state.isManual) return
 
     if (!navigator.geolocation) {
       setState((prev) => ({
@@ -104,10 +151,10 @@ export function useGeolocation(): GeolocationState {
       },
       { enableHighAccuracy: true, timeout: 10000 }
     )
-  }, [])
+  }, [state.loading, state.isManual])
 
   const setManualLocation = useCallback((location: ManualLocation) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(location))
+    localStorage.setItem(storageKey(missionId, segmentId), JSON.stringify(location))
     setState({
       latitude: location.latitude,
       longitude: location.longitude,
@@ -117,10 +164,10 @@ export function useGeolocation(): GeolocationState {
       manualName: location.name,
       needsManualLocation: false,
     })
-  }, [])
+  }, [missionId, segmentId])
 
   const clearManualLocation = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(storageKey(missionId, segmentId))
     setState({
       latitude: null,
       longitude: null,
@@ -159,7 +206,7 @@ export function useGeolocation(): GeolocationState {
         { enableHighAccuracy: true, timeout: 10000 }
       )
     }
-  }, [])
+  }, [missionId, segmentId])
 
   return { ...state, setManualLocation, clearManualLocation }
 }

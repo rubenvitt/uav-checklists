@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect } from 'react'
 import { PiScales } from 'react-icons/pi'
 import type { MetricStatus } from '../../types/assessment'
-import { clearFormStorageByPrefix } from '../../hooks/usePersistedState'
+import { useMissionId } from '../../context/MissionContext'
+import { useSegmentId } from '../../context/SegmentContext'
+import { clearMissionFormStorageByPrefix } from '../../hooks/useMissionPersistedState'
 import ChecklistSection from '../ChecklistSection'
 import GrcDetermination from '../GrcDetermination'
 import ArcDetermination, { type ArcClass } from '../ArcDetermination'
@@ -24,9 +26,17 @@ function getSailBadge(sail: number): { label: string; status: MetricStatus } {
 interface RiskClassSectionProps {
   locked?: boolean
   onSoraChange?: (data: { grc: number | null; arc: ArcClass | null; sail: number | null }) => void
+  open?: boolean
+  onToggle?: () => void
+  isComplete?: boolean
+  onContinue?: () => void
+  continueLabel?: string
+  isPhaseComplete?: boolean
 }
 
-export default function RiskClassSection({ locked, onSoraChange }: RiskClassSectionProps) {
+export default function RiskClassSection({ locked, onSoraChange, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: RiskClassSectionProps) {
+  const missionId = useMissionId()
+  const segmentId = useSegmentId()
   const [finalGrc, setFinalGrc] = useState<number | null>(null)
   const [arcClass, setArcClass] = useState<ArcClass | null>(null)
   const [resetKey, setResetKey] = useState(0)
@@ -35,8 +45,9 @@ export default function RiskClassSection({ locked, onSoraChange }: RiskClassSect
   const handleArcChange = useCallback((arc: ArcClass | null) => setArcClass(arc), [])
 
   const handleReset = () => {
-    clearFormStorageByPrefix('grc:')
-    clearFormStorageByPrefix('arc:')
+    const prefix = segmentId ? `seg:${segmentId}:` : ''
+    clearMissionFormStorageByPrefix(`${prefix}grc:`, missionId)
+    clearMissionFormStorageByPrefix(`${prefix}arc:`, missionId)
     setResetKey((k) => k + 1)
     setFinalGrc(null)
     setArcClass(null)
@@ -51,7 +62,7 @@ export default function RiskClassSection({ locked, onSoraChange }: RiskClassSect
   }, [finalGrc, arcClass, sail, onSoraChange])
 
   return (
-    <ChecklistSection title="SORA Risikoklassifizierung" icon={<PiScales />} badge={badge} locked={locked}>
+    <ChecklistSection title="SORA Risikoklassifizierung" icon={<PiScales />} badge={badge} locked={locked} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <div className="space-y-6">
         <div className="flex justify-end">
           <button
