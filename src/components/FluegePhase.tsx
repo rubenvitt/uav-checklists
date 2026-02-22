@@ -176,28 +176,30 @@ export default function FluegePhase() {
       )}
 
       {/* Neuen Flug starten + Verlegen + Ereignis notieren */}
-      <div className={`flex gap-2 ${activeEntry ? 'flex-row-reverse' : ''}`}>
+      <div className="flex flex-col gap-2">
         {!activeEntry && (
           <button
             onClick={startFlight}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-text px-4 py-3.5 text-sm font-medium text-base transition-colors active:scale-[0.99]"
+            className="flex items-center justify-center gap-2 rounded-xl bg-text px-4 py-3.5 text-sm font-medium text-base transition-colors active:scale-[0.99]"
           >
             <PiAirplaneTakeoff className="text-lg" />
             Flug starten
           </button>
         )}
-        <RelocationButton
-          disabled={!!activeEntry}
-          onRelocate={() => setShowRelocationDialog(true)}
-        />
-        <button
-          onClick={addEvent}
-          className="flex items-center justify-center gap-2 rounded-xl border border-surface-alt bg-surface px-4 py-3 text-sm text-text-muted transition-colors hover:text-text active:scale-[0.99]"
-        >
-          <PiNotePencil className="text-lg" />
-          Ereignis
-        </button>
-        <ProceduresButton />
+        <div className={`flex gap-2 ${activeEntry ? 'flex-row-reverse' : ''}`}>
+          <RelocationButton
+            disabled={!!activeEntry}
+            onRelocate={() => setShowRelocationDialog(true)}
+          />
+          <button
+            onClick={addEvent}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-surface-alt bg-surface px-4 py-3 text-sm text-text-muted transition-colors hover:text-text active:scale-[0.99]"
+          >
+            <PiNotePencil className="text-lg" />
+            Ereignis
+          </button>
+          <ProceduresButton />
+        </div>
       </div>
 
       {/* Ereignisse */}
@@ -351,14 +353,14 @@ function RelocationButton({ onRelocate, disabled }: { onRelocate: () => void; di
     <button
       onClick={() => { if (!disabled) onRelocate() }}
       disabled={disabled}
-      className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-3 text-sm transition-colors active:scale-[0.99] ${
+      className={`flex flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm transition-colors active:scale-[0.99] ${
         disabled
           ? 'cursor-not-allowed border-surface-alt bg-surface-alt text-text-muted/40'
           : 'border-caution/30 bg-caution-bg text-caution hover:bg-caution/20'
       }`}
       title={disabled ? 'Flug zuerst beenden' : 'Standort verlegen'}
     >
-      <PiMapPinArea className="text-base" />
+      <PiMapPinArea className="text-lg" />
       Verlegen
     </button>
   )
@@ -656,6 +658,8 @@ function ActiveFlightCard({
             onChange={(e) => onUpdate({ bemerkung: e.target.value })}
             placeholder="Optional..."
             className="w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted"
+            data-1p-ignore
+            autoComplete="off"
           />
         </div>
       </div>
@@ -790,6 +794,8 @@ function CompletedFlightCard({
               onChange={(e) => onUpdate({ bemerkung: e.target.value })}
               placeholder="Optional..."
               className="w-full rounded bg-surface-alt px-2 py-1 text-xs text-text outline-none focus:ring-1 focus:ring-text-muted"
+              data-1p-ignore
+              autoComplete="off"
             />
           </div>
 
@@ -942,6 +948,8 @@ function NameAutocomplete({
           aria-expanded={filtered.length > 0}
           aria-activedescendant={activeIndex >= 0 ? `flight-${label}-${activeIndex}` : undefined}
           aria-autocomplete="list"
+          data-1p-ignore
+          autoComplete="off"
           className={
             isCompact
               ? 'w-full rounded bg-surface-alt px-2 py-1 text-xs text-text outline-none focus:ring-1 focus:ring-text-muted'

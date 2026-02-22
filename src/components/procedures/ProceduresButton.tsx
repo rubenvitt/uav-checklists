@@ -7,7 +7,7 @@ export default function ProceduresButton() {
     <Drawer.Root>
       <Drawer.Trigger asChild>
         <button
-          className="flex items-center justify-center gap-2 rounded-xl border border-surface-alt bg-surface px-4 py-3 text-sm text-text-muted transition-colors hover:text-text active:scale-[0.99]"
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-surface-alt bg-surface px-4 py-3 text-sm text-text-muted transition-colors hover:text-text active:scale-[0.99]"
         >
           <PiBookOpenText className="text-lg" />
           Prozeduren

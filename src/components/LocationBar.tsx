@@ -170,6 +170,8 @@ export default function LocationBar({
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Ort, Adresse oder Koordinaten…"
                 className="flex-1 bg-transparent text-sm text-text outline-none placeholder:text-text-muted/50"
+                data-1p-ignore
+                autoComplete="off"
               />
               {editing && (
                 <button

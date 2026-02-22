@@ -84,6 +84,8 @@ export default function TruppstaerkeSection({ open, onToggle, isComplete, onCont
                   className={`w-full rounded-lg px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted ${
                     showWarning ? 'bg-caution-bg/30' : 'bg-surface-alt'
                   }`}
+                  data-1p-ignore
+                  autoComplete="off"
                 />
               </div>
             )
@@ -99,6 +101,8 @@ export default function TruppstaerkeSection({ open, onToggle, isComplete, onCont
                   onChange={(e) => updateMemberName(i, e.target.value)}
                   placeholder="Name eingeben..."
                   className="w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted"
+                  data-1p-ignore
+                  autoComplete="off"
                 />
               </div>
               <button

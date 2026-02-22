@@ -1,9 +1,9 @@
 import { PiWarning, PiCheck, PiLightningSlash, PiCloudRain, PiWrench, PiRadio, PiNavigationArrow, PiAirplaneTilt, PiNotePencil, PiInfo, PiAirplaneLanding, PiClock } from 'react-icons/pi'
 import type { ReactNode } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
 import { useMissionId } from '../../context/MissionContext'
 import { readStorage } from '../../hooks/usePersistedState'
+import { getSegments } from '../../utils/missionStorage'
 import type { FlightLogEntry, EventNote } from '../../types/flightLog'
 import type { MetricStatus, MetricAssessment } from '../../types/assessment'
 import type { DroneId } from '../../types/drone'
@@ -96,61 +96,71 @@ const CATEGORY_NEARBY_KEYS: Record<string, string[]> = {
   funk: ['celltower'],
 }
 
+/** Read a segment-scoped field with legacy fallback for the first segment */
+function readSegmentField<T>(missionId: string, segmentId: string | null, key: string, fallback: T, legacyFallback: boolean): T {
+  if (segmentId) {
+    const segValue = readStorage<T>(`seg:${segmentId}:${key}`, undefined as unknown as T, missionId)
+    if (segValue !== undefined) return segValue
+    if (!legacyFallback) return fallback
+  }
+  return readStorage<T>(key, fallback, missionId)
+}
+
 function usePreflightHints(): Record<string, PreflightHint[]> {
   const missionId = useMissionId()
-  const queryClient = useQueryClient()
 
   // Read persisted mission data
   const selectedDrone = readStorage<DroneId>('selectedDrone', 'matrice-350-rtk', missionId)
   const maxAltitude = readStorage<number>('maxAltitude', 120, missionId)
-  const manualChecks = readStorage<Record<string, boolean>>('nearby:manualChecks', {}, missionId)
   const drone = getDroneById(selectedDrone)
-
-  // Read weather assessment from persisted mission data (with React Query cache fallback)
-  let weatherMetrics: MetricAssessment[] = []
-
-  const persistedWeather = readStorage<WeatherResponse | null>('env:weather', null, missionId)
   const persistedKIndex = readStorage<{ kIndex: number } | null>('env:kindex', null, missionId)
 
-  if (persistedWeather?.current && persistedKIndex?.kIndex != null) {
-    const assessment = computeAssessment(persistedWeather.current, persistedKIndex.kIndex, drone, persistedWeather.windByAltitude ?? undefined, maxAltitude)
-    weatherMetrics = assessment.metrics
-  } else {
-    // Fallback: try React Query cache
-    try {
-      const raw = localStorage.getItem(`uav-manual-location:${missionId}`)
-      if (raw) {
-        const loc = JSON.parse(raw)
-        if (typeof loc.latitude === 'number' && typeof loc.longitude === 'number') {
-          const lat = Math.round(loc.latitude * 1000) / 1000
-          const lon = Math.round(loc.longitude * 1000) / 1000
-          const weatherData = queryClient.getQueryData<WeatherResponse>(['weather', lat, lon, maxAltitude])
-          const kIndexData = queryClient.getQueryData<{ kIndex: number }>(['kindex'])
+  // Collect weather metrics, nearby categories, and manual checks across ALL segments
+  const segments = getSegments(missionId)
+  const allWeatherMetrics: MetricAssessment[] = []
+  let allNearbyCategories: NearbyCategory[] = []
+  const allManualChecks: Record<string, boolean> = {}
 
-          if (weatherData?.current && kIndexData?.kIndex != null) {
-            const assessment = computeAssessment(weatherData.current, kIndexData.kIndex, drone, weatherData.windByAltitude ?? undefined, maxAltitude)
-            weatherMetrics = assessment.metrics
+  const segmentIds = segments.length > 0 ? segments.map(s => s.id) : [null]
+
+  for (let i = 0; i < segmentIds.length; i++) {
+    const segId = segmentIds[i]
+    const isFirst = i === 0
+
+    // Weather
+    const weather = readSegmentField<WeatherResponse | null>(missionId, segId, 'env:weather', null, isFirst)
+    if (weather?.current && persistedKIndex?.kIndex != null) {
+      const assessment = computeAssessment(weather.current, persistedKIndex.kIndex, drone, weather.windByAltitude ?? undefined, maxAltitude)
+      for (const metric of assessment.metrics) {
+        if (metric.status !== 'good') {
+          // Only add if not already present with same or worse status
+          const existing = allWeatherMetrics.find(m => m.key === metric.key)
+          if (!existing || (metric.status === 'warning' && existing.status === 'caution')) {
+            if (existing) allWeatherMetrics.splice(allWeatherMetrics.indexOf(existing), 1)
+            allWeatherMetrics.push(metric)
           }
         }
       }
-    } catch { /* ignore cache misses */ }
-  }
+    }
 
-  // Read nearby categories from persisted mission data (with React Query cache fallback)
-  let nearbyCategories: NearbyCategory[] = readStorage<NearbyCategory[] | null>('env:nearby', null, missionId) ?? []
-
-  if (nearbyCategories.length === 0) {
-    try {
-      const raw = localStorage.getItem(`uav-manual-location:${missionId}`)
-      if (raw) {
-        const loc = JSON.parse(raw)
-        if (typeof loc.latitude === 'number' && typeof loc.longitude === 'number') {
-          const lat = Math.round(loc.latitude * 1000) / 1000
-          const lon = Math.round(loc.longitude * 1000) / 1000
-          nearbyCategories = queryClient.getQueryData<NearbyCategory[]>(['nearby', lat, lon]) ?? []
+    // Nearby
+    const nearby = readSegmentField<NearbyCategory[] | null>(missionId, segId, 'env:nearby', null, isFirst)
+    if (nearby) {
+      for (const cat of nearby) {
+        const existing = allNearbyCategories.find(c => c.key === cat.key)
+        if (!existing) {
+          allNearbyCategories.push(cat)
+        } else if (cat.items.length > existing.items.length) {
+          allNearbyCategories = allNearbyCategories.map(c => c.key === cat.key ? cat : c)
         }
       }
-    } catch { /* ignore */ }
+    }
+
+    // Manual checks
+    const checks = readSegmentField<Record<string, boolean>>(missionId, segId, 'nearby:manualChecks', {}, isFirst)
+    for (const [k, v] of Object.entries(checks)) {
+      if (v) allManualChecks[k] = true
+    }
   }
 
   // Build hints per category
@@ -161,9 +171,9 @@ function usePreflightHints(): Record<string, PreflightHint[]> {
 
     // Weather metric hints (only caution/warning)
     const metricKeys = CATEGORY_METRIC_KEYS[cat.key]
-    if (metricKeys && weatherMetrics.length > 0) {
-      for (const metric of weatherMetrics) {
-        if (metricKeys.includes(metric.key) && metric.status !== 'good') {
+    if (metricKeys && allWeatherMetrics.length > 0) {
+      for (const metric of allWeatherMetrics) {
+        if (metricKeys.includes(metric.key)) {
           categoryHints.push({
             label: metric.label,
             value: `${metric.value} ${metric.unit}`.trim(),
@@ -177,7 +187,7 @@ function usePreflightHints(): Record<string, PreflightHint[]> {
     const checks = CATEGORY_MANUAL_CHECKS[cat.key]
     if (checks) {
       for (const check of checks) {
-        if (manualChecks[check.key]) {
+        if (allManualChecks[check.key]) {
           categoryHints.push({
             label: check.label,
             value: 'Vorflug bestätigt',
@@ -190,7 +200,7 @@ function usePreflightHints(): Record<string, PreflightHint[]> {
     // Nearby category hints
     const nearbyKeys = CATEGORY_NEARBY_KEYS[cat.key]
     if (nearbyKeys) {
-      for (const nearby of nearbyCategories) {
+      for (const nearby of allNearbyCategories) {
         if (nearbyKeys.includes(nearby.key) && nearby.items.length > 0) {
           categoryHints.push({
             label: nearby.label,

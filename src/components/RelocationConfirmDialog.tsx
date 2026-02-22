@@ -55,6 +55,8 @@ export default function RelocationConfirmDialog({ open, segmentNumber, onConfirm
             value={label}
             onChange={e => setLabel(e.target.value)}
             className="w-full rounded-lg border border-surface-alt bg-base px-3 py-2 text-sm text-text outline-none focus:border-caution"
+            data-1p-ignore
+            autoComplete="off"
           />
         </label>
 
