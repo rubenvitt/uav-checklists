@@ -43,7 +43,7 @@ export default function TruppstaerkeSection({ open, onToggle, isComplete, onCont
   const hasCriticalGap = !fk.trim() || !fp.trim() || !lrb.trim()
 
   const badge = {
-    label: `${fkCount}/${othersCount}//${total}`,
+    label: <>{fkCount}/{othersCount}//<span className="underline">{total}</span></>,
     status: hasCriticalGap ? 'caution' as const : 'good' as const,
   }
 
