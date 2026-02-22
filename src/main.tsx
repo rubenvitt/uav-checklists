@@ -21,6 +21,8 @@ Sentry.init({
       isRequiredLabel: '(Pflichtfeld)',
       addScreenshotButtonLabel: 'Screenshot hinzufügen',
       removeScreenshotButtonLabel: 'Screenshot entfernen',
+      emailPlaceholder: 'deine.email@beispiel.de',
+      namePlaceholder: 'Dein Name',
       themeLight: {
         background: '#ffffff',
         backgroundHover: '#f1f5f9',
