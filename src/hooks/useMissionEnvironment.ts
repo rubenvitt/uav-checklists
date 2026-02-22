@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMissionPersistedState } from './useMissionPersistedState'
+import { useSegmentPersistedState } from './useSegmentPersistedState'
 import { fetchWeather } from '../services/weatherApi'
 import { fetchKIndex } from '../services/kIndexApi'
 import { fetchNearbyPOIs, type NearbyCategory } from '../services/overpassApi'
@@ -22,12 +23,24 @@ interface UseMissionWeatherResult {
 
 export function useMissionWeather(lat: number | null, lon: number | null, maxAltitude: number = 120): UseMissionWeatherResult {
   const queryClient = useQueryClient()
-  const [persisted, setPersisted] = useMissionPersistedState<WeatherResponse | null>('env:weather', null)
-  const [persistedAlt, setPersistedAlt] = useMissionPersistedState<number>('env:weather:alt', 120)
+  const [persisted, setPersisted] = useSegmentPersistedState<WeatherResponse | null>('env:weather', null)
+  const [persistedAlt, setPersistedAlt] = useSegmentPersistedState<number>('env:weather:alt', 120)
+  const [persistedCoords, setPersistedCoords] = useSegmentPersistedState<string | null>('env:weather:coords', null)
 
   const roundedLat = lat !== null ? Math.round(lat * 1000) / 1000 : null
   const roundedLon = lon !== null ? Math.round(lon * 1000) / 1000 : null
   const hasLocation = lat !== null && lon !== null
+  const currentCoords = hasLocation ? `${roundedLat},${roundedLon}` : null
+
+  // Auto-invalidate when coordinates change significantly
+  useEffect(() => {
+    if (persisted !== null && currentCoords !== null && persistedCoords !== null && currentCoords !== persistedCoords) {
+      setPersisted(null)
+      setPersistedCoords(null)
+      setPersistedAlt(120)
+      queryClient.removeQueries({ queryKey: ['weather'] })
+    }
+  }, [currentCoords, persistedCoords, persisted, setPersisted, setPersistedCoords, setPersistedAlt, queryClient])
 
   // Need to fetch if: no persisted data, or altitude changed since last fetch
   const needsFetch = persisted === null || persistedAlt !== maxAltitude
@@ -46,8 +59,9 @@ export function useMissionWeather(lat: number | null, lon: number | null, maxAlt
     if (query.data && needsFetch) {
       setPersisted(query.data)
       setPersistedAlt(maxAltitude)
+      setPersistedCoords(currentCoords)
     }
-  }, [query.data, needsFetch, maxAltitude, setPersisted, setPersistedAlt])
+  }, [query.data, needsFetch, maxAltitude, currentCoords, setPersisted, setPersistedAlt, setPersistedCoords])
 
   const data = needsFetch ? (query.data ?? persisted) : persisted
 
@@ -127,11 +141,23 @@ interface UseMissionNearbyResult {
 
 export function useMissionNearby(lat: number | null, lon: number | null): UseMissionNearbyResult {
   const queryClient = useQueryClient()
-  const [persisted, setPersisted] = useMissionPersistedState<NearbyCategory[] | null>('env:nearby', null)
+  const [persisted, setPersisted] = useSegmentPersistedState<NearbyCategory[] | null>('env:nearby', null)
+  const [persistedCoords, setPersistedCoords] = useSegmentPersistedState<string | null>('env:nearby:coords', null)
 
   const roundedLat = lat !== null ? Math.round(lat * 1000) / 1000 : null
   const roundedLon = lon !== null ? Math.round(lon * 1000) / 1000 : null
   const hasLocation = lat !== null && lon !== null
+  const currentCoords = hasLocation ? `${roundedLat},${roundedLon}` : null
+
+  // Auto-invalidate when coordinates change significantly
+  useEffect(() => {
+    if (persisted !== null && currentCoords !== null && persistedCoords !== null && currentCoords !== persistedCoords) {
+      setPersisted(null)
+      setPersistedCoords(null)
+      queryClient.removeQueries({ queryKey: ['nearby'] })
+    }
+  }, [currentCoords, persistedCoords, persisted, setPersisted, setPersistedCoords, queryClient])
+
   const shouldFetch = hasLocation && persisted === null
 
   const query = useQuery({
@@ -145,8 +171,9 @@ export function useMissionNearby(lat: number | null, lon: number | null): UseMis
   useEffect(() => {
     if (query.data && persisted === null) {
       setPersisted(query.data)
+      setPersistedCoords(currentCoords)
     }
-  }, [query.data, persisted, setPersisted])
+  }, [query.data, persisted, currentCoords, setPersisted, setPersistedCoords])
 
   const data = persisted ?? query.data ?? null
 
@@ -167,9 +194,12 @@ export function useMissionNearby(lat: number | null, lon: number | null): UseMis
 
 /* ── Clear all environment data for a mission ─────────────── */
 
-export function clearMissionEnvironment(missionId: string) {
-  setMissionField(missionId, 'env:weather', null)
-  setMissionField(missionId, 'env:weather:alt', null)
+export function clearMissionEnvironment(missionId: string, segmentId?: string | null) {
+  const prefix = segmentId ? `seg:${segmentId}:` : ''
+  setMissionField(missionId, `${prefix}env:weather`, null)
+  setMissionField(missionId, `${prefix}env:weather:alt`, null)
+  setMissionField(missionId, `${prefix}env:weather:coords`, null)
   setMissionField(missionId, 'env:kindex', null)
-  setMissionField(missionId, 'env:nearby', null)
+  setMissionField(missionId, `${prefix}env:nearby`, null)
+  setMissionField(missionId, `${prefix}env:nearby:coords`, null)
 }

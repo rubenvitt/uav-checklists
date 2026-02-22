@@ -1,11 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router'
-import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren, PiNotePencil, PiClock, PiPencilSimple, PiCheckCircle, PiArrowRight, PiSkipForward } from 'react-icons/pi'
+import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren, PiNotePencil, PiClock, PiPencilSimple, PiCheckCircle, PiArrowRight, PiSkipForward, PiMapPinArea } from 'react-icons/pi'
 import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
 import { useMissionId } from '../context/MissionContext'
+import { useMissionSegment } from '../hooks/useMissionSegment'
 import type { FlightLogEntry, LandingStatus, EventNote } from '../types/flightLog'
 import ProceduresButton from './procedures/ProceduresButton'
 import EmergencyFAB from './procedures/EmergencyFAB'
+import SegmentBanner from './SegmentBanner'
+import RelocationConfirmDialog from './RelocationConfirmDialog'
 
 const LANDING_STATUS_CONFIG: Record<LandingStatus, { label: string; color: string; bgColor: string; borderColor: string; icon: React.ReactNode }> = {
   ok: { label: 'In Ordnung', color: 'text-good', bgColor: 'bg-good', borderColor: 'border-good', icon: <PiCheck /> },
@@ -74,12 +77,15 @@ function migrateEntries(raw: FlightLogEntry[]): FlightLogEntry[] {
 export default function FluegePhase() {
   const missionId = useMissionId()
   const navigate = useNavigate()
+  const { segments, activeSegment, activeSegmentId, isMultiSegment, startRelocation } = useMissionSegment()
   const [rawEntries, setEntries] = useMissionPersistedState<FlightLogEntry[]>('flightlog:entries', [])
   const entries = migrateEntries(rawEntries)
   const [defaultFp] = useMissionPersistedState<string>('crew_fp', '')
   const [defaultLrb] = useMissionPersistedState<string>('crew_lrb', '')
   const crewSuggestions = useCrewSuggestions()
   const [, setFluegeAbgeschlossen] = useMissionPersistedState<boolean>('fluegeAbgeschlossen', false)
+
+  const [showRelocationDialog, setShowRelocationDialog] = useState(false)
 
   const [eventNotes, setEventNotes] = useMissionPersistedState<EventNote[]>('flightlog:events', [])
 
@@ -96,6 +102,7 @@ export default function FluegePhase() {
       lrb: defaultLrb,
       landungStatus: 'ok',
       bemerkung: '',
+      segmentId: activeSegmentId ?? undefined,
     }
     setEntries((prev) => [...prev, entry])
   }
@@ -137,6 +144,15 @@ export default function FluegePhase() {
 
   return (
     <div className="space-y-4">
+      <SegmentBanner segments={segments} activeSegment={activeSegment} segmentFlightCounts={
+        entries.reduce<Record<string, number>>((acc, e) => {
+          if (e.segmentId && e.blockOn) {
+            acc[e.segmentId] = (acc[e.segmentId] ?? 0) + 1
+          }
+          return acc
+        }, {})
+      } />
+
       {/* Hinweis: Start und Landung melden */}
       <div className="flex items-start gap-3 rounded-xl bg-surface p-4">
         <PiInfo className="mt-0.5 shrink-0 text-lg text-text-muted" />
@@ -159,7 +175,7 @@ export default function FluegePhase() {
         />
       )}
 
-      {/* Neuen Flug starten + Ereignis notieren */}
+      {/* Neuen Flug starten + Verlegen + Ereignis notieren */}
       <div className={`flex gap-2 ${activeEntry ? 'flex-row-reverse' : ''}`}>
         {!activeEntry && (
           <button
@@ -170,6 +186,10 @@ export default function FluegePhase() {
             Flug starten
           </button>
         )}
+        <RelocationButton
+          disabled={!!activeEntry}
+          onRelocate={() => setShowRelocationDialog(true)}
+        />
         <button
           onClick={addEvent}
           className="flex items-center justify-center gap-2 rounded-xl border border-surface-alt bg-surface px-4 py-3 text-sm text-text-muted transition-colors hover:text-text active:scale-[0.99]"
@@ -203,16 +223,26 @@ export default function FluegePhase() {
           <p className="px-1 text-xs font-medium text-text-muted">
             Flugtagebuch ({completedEntries.length} {completedEntries.length === 1 ? 'Flug' : 'Flüge'})
           </p>
-          {completedEntries.map((entry, idx) => (
-            <CompletedFlightCard
-              key={entry.id}
-              entry={entry}
-              index={completedEntries.length - idx}
+          {isMultiSegment ? (
+            <GroupedFlightList
+              entries={completedEntries}
+              segments={segments}
               suggestions={crewSuggestions}
-              onUpdate={(updates) => updateEntry(entry.id, updates)}
-              onRemove={() => removeEntry(entry.id)}
+              onUpdate={updateEntry}
+              onRemove={removeEntry}
             />
-          ))}
+          ) : (
+            completedEntries.map((entry, idx) => (
+              <CompletedFlightCard
+                key={entry.id}
+                entry={entry}
+                index={completedEntries.length - idx}
+                suggestions={crewSuggestions}
+                onUpdate={(updates) => updateEntry(entry.id, updates)}
+                onRemove={() => removeEntry(entry.id)}
+              />
+            ))
+          )}
         </div>
       )}
 
@@ -237,6 +267,17 @@ export default function FluegePhase() {
 
       {/* Emergency FAB — immer sichtbar */}
       <EmergencyFAB />
+
+      <RelocationConfirmDialog
+        open={showRelocationDialog}
+        segmentNumber={segments.length + 1}
+        onConfirm={(label) => {
+          setShowRelocationDialog(false)
+          startRelocation(label)
+          navigate(`/mission/${missionId}/vorflugkontrolle`)
+        }}
+        onCancel={() => setShowRelocationDialog(false)}
+      />
     </div>
   )
 }
@@ -300,6 +341,93 @@ function NextPhaseButton({ hasFlights, onProceed }: { hasFlights: boolean; onPro
       <PiSkipForward className="text-base" />
       Ohne Flüge zur Nachbereitung
     </button>
+  )
+}
+
+/* ── Verlegen-Button ─────────────────────────────────────── */
+
+function RelocationButton({ onRelocate, disabled }: { onRelocate: () => void; disabled?: boolean }) {
+  return (
+    <button
+      onClick={() => { if (!disabled) onRelocate() }}
+      disabled={disabled}
+      className={`flex items-center justify-center gap-1.5 rounded-xl border px-3 py-3 text-sm transition-colors active:scale-[0.99] ${
+        disabled
+          ? 'cursor-not-allowed border-surface-alt bg-surface-alt text-text-muted/40'
+          : 'border-caution/30 bg-caution-bg text-caution hover:bg-caution/20'
+      }`}
+      title={disabled ? 'Flug zuerst beenden' : 'Standort verlegen'}
+    >
+      <PiMapPinArea className="text-base" />
+      Verlegen
+    </button>
+  )
+}
+
+/* ── Gruppierte Flugliste nach Standort ──────────────────── */
+
+function GroupedFlightList({
+  entries,
+  segments,
+  suggestions,
+  onUpdate,
+  onRemove,
+}: {
+  entries: FlightLogEntry[]
+  segments: import('../types/mission').MissionSegment[]
+  suggestions: string[]
+  onUpdate: (id: string, updates: Partial<FlightLogEntry>) => void
+  onRemove: (id: string) => void
+}) {
+  // Group by segmentId
+  const groups: Array<{ segmentId: string | undefined; label: string; entries: FlightLogEntry[] }> = []
+  const segmentMap = new Map(segments.map(s => [s.id, s]))
+
+  for (const entry of entries) {
+    const sid = entry.segmentId
+    const existing = groups.find(g => g.segmentId === sid)
+    if (existing) {
+      existing.entries.push(entry)
+    } else {
+      const seg = sid ? segmentMap.get(sid) : undefined
+      groups.push({
+        segmentId: sid,
+        label: seg ? `${seg.label}${seg.locationName ? ` — ${seg.locationName}` : ''}` : 'Ohne Standort',
+        entries: [entry],
+      })
+    }
+  }
+
+  let globalIndex = entries.length
+
+  return (
+    <>
+      {groups.map((group) => (
+        <div key={group.segmentId ?? 'none'}>
+          <div className="flex items-center gap-2 px-1 pb-1">
+            <PiMapPinArea className="shrink-0 text-xs text-text-muted/60" />
+            <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted/60">
+              {group.label}
+            </span>
+          </div>
+          <div className="space-y-3">
+            {group.entries.map((entry) => {
+              const idx = globalIndex--
+              return (
+                <CompletedFlightCard
+                  key={entry.id}
+                  entry={entry}
+                  index={idx}
+                  suggestions={suggestions}
+                  onUpdate={(updates) => onUpdate(entry.id, updates)}
+                  onRemove={() => onRemove(entry.id)}
+                />
+              )
+            })}
+          </div>
+        </div>
+      ))}
+    </>
   )
 }
 

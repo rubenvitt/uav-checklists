@@ -1,5 +1,5 @@
 import { PiCheck, PiRocket, PiShieldCheck } from 'react-icons/pi'
-import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
+import { useSegmentPersistedState } from '../../hooks/useSegmentPersistedState'
 import type { MetricStatus } from '../../types/assessment'
 import ChecklistSection from '../ChecklistSection'
 
@@ -22,8 +22,8 @@ export const FUNKTIONS_ITEMS: Array<{ key: string; label: string; hint?: string 
 // ---------------------------------------------------------------------------
 
 export default function FunktionskontrolleSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean } = {}) {
-  const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>('techcheck:funktionstest', {})
-  const [flugFreigabe, setFlugFreigabe] = useMissionPersistedState<string | null>('flugfreigabe', null)
+  const [checked, setChecked] = useSegmentPersistedState<Record<string, boolean>>('techcheck:funktionstest', {})
+  const [flugFreigabe, setFlugFreigabe] = useSegmentPersistedState<string | null>('flugfreigabe', null)
 
   const checkedCount = FUNKTIONS_ITEMS.filter((item) => checked[item.key]).length
   const totalCount = FUNKTIONS_ITEMS.length

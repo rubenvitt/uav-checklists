@@ -1,5 +1,5 @@
 import { PiCheck, PiChecks, PiArrowCounterClockwise, PiUsersThree } from 'react-icons/pi'
-import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
+import { useSegmentPersistedState } from '../../hooks/useSegmentPersistedState'
 import type { MetricStatus } from '../../types/assessment'
 import ChecklistSection from '../ChecklistSection'
 
@@ -31,7 +31,7 @@ export const FLUGBRIEFING_ITEMS = [
 // ---------------------------------------------------------------------------
 
 export default function FlugbriefingSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean } = {}) {
-  const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>('flugbriefing:checked', {})
+  const [checked, setChecked] = useSegmentPersistedState<Record<string, boolean>>('flugbriefing:checked', {})
 
   const checkedCount = FLUGBRIEFING_ITEMS.filter((item) => checked[item.key]).length
   const totalCount = FLUGBRIEFING_ITEMS.length

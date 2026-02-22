@@ -1,4 +1,4 @@
-import type { Mission, MissionPhase } from '../types/mission'
+import type { Mission, MissionPhase, MissionSegment } from '../types/mission'
 import { readStorage } from '../hooks/usePersistedState'
 
 const MISSIONS_KEY = 'uav-missions'
@@ -21,7 +21,13 @@ export function loadMissions(): Mission[] {
   try {
     const raw = localStorage.getItem(MISSIONS_KEY)
     if (!raw) return []
-    return JSON.parse(raw) as Mission[]
+    const missions = JSON.parse(raw) as Mission[]
+    // Ensure backward compatibility: add segments fields if missing
+    for (const m of missions) {
+      if (!m.segments) m.segments = []
+      if (m.activeSegmentId === undefined) m.activeSegmentId = null
+    }
+    return missions
   } catch {
     return []
   }
@@ -34,11 +40,19 @@ export function saveMissions(missions: Mission[]) {
 export function createMission(): Mission {
   const now = new Date()
   const label = `Einsatz ${now.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
+  const firstSegment: MissionSegment = {
+    id: generateId(),
+    createdAt: Date.now(),
+    label: 'Standort 1',
+    status: 'active',
+  }
   const mission: Mission = {
     id: generateId(),
     createdAt: Date.now(),
     label,
     phase: 'einsatzdaten',
+    segments: [firstSegment],
+    activeSegmentId: firstSegment.id,
   }
   const missions = loadMissions()
   missions.push(mission)
@@ -97,16 +111,83 @@ export function clearMissionStorage(missionId: string) {
   const keysToRemove: string[] = []
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i)
-    if (k && (k.startsWith(prefix) || k === locationKey)) {
+    if (k && (k.startsWith(prefix) || k.startsWith(locationKey))) {
       keysToRemove.push(k)
     }
   }
   keysToRemove.forEach((k) => localStorage.removeItem(k))
 }
 
+/* ── Segment management ─────────────────────────────────────── */
+
+export function getSegments(missionId: string): MissionSegment[] {
+  const mission = getMission(missionId)
+  return mission?.segments ?? []
+}
+
+export function getActiveSegment(missionId: string): MissionSegment | null {
+  const mission = getMission(missionId)
+  if (!mission?.activeSegmentId) return null
+  return mission.segments.find(s => s.id === mission.activeSegmentId) ?? null
+}
+
+export function ensureDefaultSegment(missionId: string): MissionSegment | null {
+  const missions = loadMissions()
+  const mission = missions.find(m => m.id === missionId)
+  if (!mission) return null
+  if (mission.segments.length > 0) {
+    return mission.segments.find(s => s.id === mission.activeSegmentId) ?? null
+  }
+  const segment: MissionSegment = {
+    id: generateId(),
+    createdAt: Date.now(),
+    label: 'Standort 1',
+    status: 'active',
+  }
+  mission.segments = [segment]
+  mission.activeSegmentId = segment.id
+  saveMissions(missions)
+  return segment
+}
+
+export function createSegment(missionId: string, label: string): MissionSegment | null {
+  const missions = loadMissions()
+  const mission = missions.find(m => m.id === missionId)
+  if (!mission) return null
+  // Complete the current active segment
+  for (const seg of mission.segments) {
+    if (seg.status === 'active') seg.status = 'completed'
+  }
+  const segment: MissionSegment = {
+    id: generateId(),
+    createdAt: Date.now(),
+    label,
+    status: 'active',
+  }
+  mission.segments.push(segment)
+  mission.activeSegmentId = segment.id
+  saveMissions(missions)
+  return segment
+}
+
+export function updateSegmentLocationName(missionId: string, segmentId: string, name: string) {
+  const missions = loadMissions()
+  const mission = missions.find(m => m.id === missionId)
+  if (!mission) return
+  const segment = mission.segments.find(s => s.id === segmentId)
+  if (segment) {
+    segment.locationName = name
+    saveMissions(missions)
+  }
+}
+
 export function canAccessPhase(missionId: string, phase: MissionPhase): boolean {
   if (phase === 'einsatzdaten' || phase === 'vorflugkontrolle') return true
-  const flugfreigabe = readStorage<string | null>('flugfreigabe', null, missionId)
+  // Read flugfreigabe segment-specifically
+  const mission = getMission(missionId)
+  const segmentId = mission?.activeSegmentId
+  const flugfreigabeKey = segmentId ? `seg:${segmentId}:flugfreigabe` : 'flugfreigabe'
+  const flugfreigabe = readStorage<string | null>(flugfreigabeKey, null, missionId)
   if (phase === 'fluege') return !!flugfreigabe
   if (phase === 'nachbereitung') {
     const fluegeAbgeschlossen = readStorage<boolean>('fluegeAbgeschlossen', false, missionId)

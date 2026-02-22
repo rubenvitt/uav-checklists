@@ -1,3 +1,5 @@
+import { loadMissions } from './missionStorage'
+
 const ANLASS_LABELS: Record<string, string> = {
   einsatz: 'Einsatz',
   uebung: 'Übung',
@@ -53,10 +55,23 @@ export function readManualLocationName(missionId: string): string {
     const raw = localStorage.getItem(`uav-manual-location:${missionId}`)
     if (raw) {
       const loc = JSON.parse(raw)
-      if (loc.name) {
-        return loc.name.split(',')[0].trim()
+      if (loc.name) return loc.name.split(',')[0].trim()
+    }
+  } catch { /* ignore */ }
+
+  // Fallback: try first segment key
+  try {
+    const missions = loadMissions()
+    const mission = missions.find(m => m.id === missionId)
+    const firstSegId = mission?.segments?.[0]?.id
+    if (firstSegId) {
+      const raw = localStorage.getItem(`uav-manual-location:${missionId}:seg:${firstSegId}`)
+      if (raw) {
+        const loc = JSON.parse(raw)
+        if (loc.name) return loc.name.split(',')[0].trim()
       }
     }
   } catch { /* ignore */ }
+
   return ''
 }

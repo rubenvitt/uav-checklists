@@ -1,5 +1,5 @@
 import { PiPhone, PiPlus, PiX, PiCheck, PiTrain, PiBoat, PiWarning } from 'react-icons/pi'
-import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
+import { useSegmentPersistedState } from '../../hooks/useSegmentPersistedState'
 import type { NearbyCategory } from '../../services/overpassApi'
 import ChecklistSection from '../ChecklistSection'
 
@@ -24,8 +24,8 @@ interface AdditionalNotification {
 }
 
 export default function AnmeldungenSection({ categories, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: AnmeldungenSectionProps) {
-  const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>('anmeldungen:checked', {})
-  const [additional, setAdditional] = useMissionPersistedState<AdditionalNotification[]>('anmeldungen:additional', [])
+  const [checked, setChecked] = useSegmentPersistedState<Record<string, boolean>>('anmeldungen:checked', {})
+  const [additional, setAdditional] = useSegmentPersistedState<AdditionalNotification[]>('anmeldungen:additional', [])
 
   const hasRailway = categories.some((c) => c.key === 'railway')
   const hasWaterway = categories.some((c) => c.key === 'waterway')

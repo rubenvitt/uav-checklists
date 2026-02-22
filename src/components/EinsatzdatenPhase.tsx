@@ -5,7 +5,9 @@ import { useReverseGeocode } from '../hooks/useReverseGeocode'
 import { useMissionWeather, useMissionKIndex, useMissionNearby } from '../hooks/useMissionEnvironment'
 import { useAutoExpand } from '../hooks/useAutoExpand'
 import { useEinsatzdatenCompleteness } from '../hooks/useSectionCompleteness'
+import { useMissionSegment } from '../hooks/useMissionSegment'
 import LocationBar from './LocationBar'
+import SegmentBanner from './SegmentBanner'
 import EinsatzdetailsSection from './sections/EinsatzdetailsSection'
 import EinsatzauftragSection from './sections/EinsatzauftragSection'
 import TruppstaerkeSection from './sections/TruppstaerkeSection'
@@ -14,7 +16,9 @@ import MissionsbriefingSection from './sections/MissionsbriefingSection'
 
 export default function EinsatzdatenPhase() {
   const missionId = useMissionId()
-  const geo = useGeolocation(missionId)
+  const { segments, activeSegment, activeSegmentId } = useMissionSegment()
+  const isFirstSegment = segments.length > 0 && activeSegment?.id === segments[0].id
+  const geo = useGeolocation(missionId, activeSegmentId, isFirstSegment)
   const geocode = useReverseGeocode(geo.latitude, geo.longitude)
   const hasLocation = geo.latitude !== null && geo.longitude !== null
 
@@ -34,6 +38,13 @@ export default function EinsatzdatenPhase() {
 
   return (
     <div className="space-y-4">
+      {segments.length > 1 && (
+        <SegmentBanner
+          segments={segments}
+          activeSegment={activeSegment}
+          variant="compact"
+        />
+      )}
       <LocationBar
         city={geocode.city}
         country={geocode.country}

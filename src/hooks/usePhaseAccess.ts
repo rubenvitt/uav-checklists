@@ -1,8 +1,9 @@
 import { useMissionPersistedState } from './useMissionPersistedState'
+import { useSegmentPersistedState } from './useSegmentPersistedState'
 import type { MissionPhase } from '../types/mission'
 
 export function usePhaseAccess() {
-  const [flugfreigabe] = useMissionPersistedState<string | null>('flugfreigabe', null)
+  const [flugfreigabe] = useSegmentPersistedState<string | null>('flugfreigabe', null)
   const [fluegeAbgeschlossen] = useMissionPersistedState<boolean>('fluegeAbgeschlossen', false)
 
   const canAccess: Record<MissionPhase, boolean> = {

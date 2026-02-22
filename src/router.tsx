@@ -3,10 +3,12 @@ import { PiShieldCheck } from 'react-icons/pi'
 import { useCallback, useRef, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { MissionProvider, useMissionId } from './context/MissionContext'
+import { SegmentProvider } from './context/SegmentContext'
 import { getMission, isMissionExpired, updateMissionPhase, canAccessPhase } from './utils/missionStorage'
+import { useMissionSegment } from './hooks/useMissionSegment'
 import { clearMissionEnvironment } from './hooks/useMissionEnvironment'
 import { useTheme } from './hooks/useTheme'
-import { migrateOldData } from './utils/migration'
+import { migrateOldData, migrateLocationToSegment } from './utils/migration'
 import type { MissionPhase } from './types/mission'
 import Header from './components/Header'
 import MissionOverview from './components/MissionOverview'
@@ -88,49 +90,60 @@ function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
   const queryClient = useQueryClient()
   const { setting: themeSetting, cycle: cycleTheme } = useTheme(null)
   const exportPdfRef = useRef<(() => void) | null>(null)
+  const { activeSegmentId, initializeSegment } = useMissionSegment()
+
+  // Ensure default segment when entering vorflugkontrolle or fluege
+  useEffect(() => {
+    if ((currentPhase === 'vorflugkontrolle' || currentPhase === 'fluege') && !isCompleted) {
+      initializeSegment()
+    }
+  }, [currentPhase, isCompleted, initializeSegment])
 
   const setExportPdf = useCallback((fn: () => void) => {
     exportPdfRef.current = fn
   }, [])
 
   const handleRefresh = useCallback(() => {
-    clearMissionEnvironment(missionId)
+    clearMissionEnvironment(missionId, activeSegmentId)
     queryClient.removeQueries({ queryKey: ['weather'] })
     queryClient.removeQueries({ queryKey: ['kindex'] })
     queryClient.removeQueries({ queryKey: ['nearby'] })
     queryClient.invalidateQueries({ queryKey: ['geocode'] })
-  }, [missionId, queryClient])
+  }, [missionId, activeSegmentId, queryClient])
 
   return (
-    <div className="min-h-screen bg-base text-text">
-      <div className="mx-auto max-w-2xl space-y-4 p-4">
-        <Header
-          mode="mission"
-          missionLabel={missionLabel}
-          themeSetting={themeSetting}
-          onCycleTheme={cycleTheme}
-          onRefresh={isCompleted ? undefined : handleRefresh}
-          onExportPdf={currentPhase === 'vorflugkontrolle' ? () => exportPdfRef.current?.() : undefined}
-        />
-        {!isCompleted && <MissionStepper currentPhase={currentPhase} />}
-        {currentPhase === 'einsatzdaten' && <EinsatzdatenPhase />}
-        {currentPhase === 'vorflugkontrolle' && (
-          <VorflugkontrollePhase setExportPdf={setExportPdf} />
-        )}
-        {currentPhase === 'fluege' && <FluegePhase />}
-        {currentPhase === 'nachbereitung' && <NachbereitungPhase />}
-        <footer className="flex items-center justify-center gap-1.5 py-6 text-[11px] text-text-muted/40">
-          <PiShieldCheck className="text-sm" />
-          Alle Daten bleiben lokal auf deinem Gerät.
-        </footer>
+    <SegmentProvider segmentId={activeSegmentId}>
+      <div className="min-h-screen bg-base text-text">
+        <div className="mx-auto max-w-2xl space-y-4 p-4">
+          <Header
+            mode="mission"
+            missionLabel={missionLabel}
+            themeSetting={themeSetting}
+            onCycleTheme={cycleTheme}
+            onRefresh={isCompleted ? undefined : handleRefresh}
+            onExportPdf={currentPhase === 'vorflugkontrolle' ? () => exportPdfRef.current?.() : undefined}
+          />
+          {!isCompleted && <MissionStepper currentPhase={currentPhase} />}
+          {currentPhase === 'einsatzdaten' && <EinsatzdatenPhase />}
+          {currentPhase === 'vorflugkontrolle' && (
+            <VorflugkontrollePhase setExportPdf={setExportPdf} />
+          )}
+          {currentPhase === 'fluege' && <FluegePhase />}
+          {currentPhase === 'nachbereitung' && <NachbereitungPhase />}
+          <footer className="flex items-center justify-center gap-1.5 py-6 text-[11px] text-text-muted/40">
+            <PiShieldCheck className="text-sm" />
+            Alle Daten bleiben lokal auf deinem Gerät.
+          </footer>
+        </div>
       </div>
-    </div>
+    </SegmentProvider>
   )
 }
 
 export default function AppRouter() {
   useEffect(() => {
     migrateOldData()
+    migrateLocationToSegment()
   }, [])
 
   return (

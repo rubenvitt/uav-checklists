@@ -2,7 +2,7 @@ import { useRef, useState, useCallback, useEffect, lazy, Suspense, type ChangeEv
 import { PiMapTrifold, PiCamera, PiX, PiFloppyDisk } from 'react-icons/pi'
 import ChecklistSection from '../ChecklistSection'
 import { useMapData } from '../../hooks/useMapData'
-import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
+import { useSegmentPersistedState } from '../../hooks/useSegmentPersistedState'
 import { SHAPE_LABELS, SHAPE_COLORS } from '../../types/mapData'
 import type { EinsatzMapHandle } from '../map/EinsatzMap'
 
@@ -67,10 +67,10 @@ interface EinsatzkarteSectionProps {
 
 export default function EinsatzkarteSection({ latitude, longitude, locked, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: EinsatzkarteSectionProps) {
   const [mapData, setMapData] = useMapData()
-  const [snapshot, setSnapshot] = useMissionPersistedState<string>('einsatzkarte:snapshot', '')
-  const [photo, setPhoto] = useMissionPersistedState<string>('einsatzkarte:photo', '')
-  const [mode, setMode] = useMissionPersistedState<EinsatzkarteMode>('einsatzkarte:mode', 'map')
-  const [autoStandortDone, setAutoStandortDone] = useMissionPersistedState<boolean>('einsatzkarte:autoStandort', false)
+  const [snapshot, setSnapshot] = useSegmentPersistedState<string>('einsatzkarte:snapshot', '')
+  const [photo, setPhoto] = useSegmentPersistedState<string>('einsatzkarte:photo', '')
+  const [mode, setMode] = useSegmentPersistedState<EinsatzkarteMode>('einsatzkarte:mode', 'map')
+  const [autoStandortDone, setAutoStandortDone] = useSegmentPersistedState<boolean>('einsatzkarte:autoStandort', false)
   const [capturing, setCapturing] = useState(false)
   const mapRef = useRef<EinsatzMapHandle>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)

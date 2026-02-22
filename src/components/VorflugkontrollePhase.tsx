@@ -1,8 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import type { DroneId } from '../types/drone'
 import { getDroneById } from '../data/drones'
 import { useMissionId } from '../context/MissionContext'
+import { useSegmentId } from '../context/SegmentContext'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { useMissionWeather, useMissionKIndex, useMissionNearby } from '../hooks/useMissionEnvironment'
 import { useReverseGeocode } from '../hooks/useReverseGeocode'
@@ -11,9 +13,13 @@ import { readStorage } from '../hooks/usePersistedState'
 import { computeAssessment } from '../utils/assessment'
 import { useAutoExpand } from '../hooks/useAutoExpand'
 import { useVorflugkontrolleCompleteness } from '../hooks/useSectionCompleteness'
+import { useMissionSegment } from '../hooks/useMissionSegment'
 import type { ArcClass } from './ArcDetermination'
 import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type ChecklistGroupData } from '../utils/generateReport'
 import { getMission } from '../utils/missionStorage'
+import LocationBar from './LocationBar'
+import RelocationConfirmDialog from './RelocationConfirmDialog'
+import SegmentBanner from './SegmentBanner'
 import RahmenangabenSection from './sections/RahmenangabenSection'
 import ExternalToolsSection from './sections/ExternalToolsSection'
 import NearbyCheckSection from './sections/NearbyCheckSection'
@@ -30,9 +36,24 @@ interface VorflugkontrollePhaseProps {
 
 export default function VorflugkontrollePhase({ setExportPdf }: VorflugkontrollePhaseProps) {
   const missionId = useMissionId()
+  const segmentId = useSegmentId()
+  const queryClient = useQueryClient()
+  const { segments, activeSegment, setLocationName, startRelocation } = useMissionSegment()
+  const [showRelocationDialog, setShowRelocationDialog] = useState(false)
   const [selectedDrone, setSelectedDrone] = useMissionPersistedState<DroneId>('selectedDrone', 'matrice-350-rtk')
   const [maxAltitude, setMaxAltitude] = useMissionPersistedState<number>('maxAltitude', 120)
-  const geo = useGeolocation(missionId)
+  const isFirstSegment = segments.length > 0 && activeSegment?.id === segments[0].id
+  const geo = useGeolocation(missionId, segmentId, isFirstSegment)
+
+  // Clear weather/nearby query cache when segment changes to avoid stale data
+  const prevSegmentRef = useRef(segmentId)
+  useEffect(() => {
+    if (prevSegmentRef.current && segmentId && prevSegmentRef.current !== segmentId) {
+      queryClient.removeQueries({ queryKey: ['weather'] })
+      queryClient.removeQueries({ queryKey: ['nearby'] })
+    }
+    prevSegmentRef.current = segmentId
+  }, [segmentId, queryClient])
   const nearby = useMissionNearby(geo.latitude, geo.longitude)
   const weather = useMissionWeather(geo.latitude, geo.longitude, maxAltitude)
 
@@ -50,15 +71,24 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
   const prevLocationRef = useRef(locationKey)
   useEffect(() => {
     if (prevLocationRef.current && locationKey && prevLocationRef.current !== locationKey) {
-      clearMissionFormStorageByPrefix('grc:', missionId)
-      clearMissionFormStorageByPrefix('arc:', missionId)
+      const prefix = segmentId ? `seg:${segmentId}:` : ''
+      clearMissionFormStorageByPrefix(`${prefix}grc:`, missionId)
+      clearMissionFormStorageByPrefix(`${prefix}arc:`, missionId)
       setSoraResetKey((k) => k + 1)
     }
     prevLocationRef.current = locationKey
-  }, [locationKey, missionId])
+  }, [locationKey, missionId, segmentId])
 
   const kIndex = useMissionKIndex()
   const geocode = useReverseGeocode(geo.latitude, geo.longitude)
+
+  // Update segment location name from geocode
+  useEffect(() => {
+    if (segmentId && geocode.city) {
+      const name = geocode.country ? `${geocode.city}, ${geocode.country}` : geocode.city
+      setLocationName(segmentId, name)
+    }
+  }, [segmentId, geocode.city, geocode.country, setLocationName])
 
   const drone = getDroneById(selectedDrone)
   const assessment =
@@ -175,9 +205,10 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
         ? { template: TEMPLATE_LABELS[missionTemplate] || missionTemplate, details: auftragDetails, freitext: missionFreitext }
         : undefined
 
-      // Fluganmeldungen
-      const anmeldungenChecked = readStorage<Record<string, boolean>>('anmeldungen:checked', {}, missionId)
-      const anmeldungenAdditional = readStorage<Array<{ label: string; detail: string }>>('anmeldungen:additional', [], missionId)
+      // Fluganmeldungen (segment-specific)
+      const segPrefix = segmentId ? `seg:${segmentId}:` : ''
+      const anmeldungenChecked = readStorage<Record<string, boolean>>(`${segPrefix}anmeldungen:checked`, {}, missionId)
+      const anmeldungenAdditional = readStorage<Array<{ label: string; detail: string }>>(`${segPrefix}anmeldungen:additional`, [], missionId)
       const anmeldungenItems: Array<{ label: string; detail: string; checked: boolean }> = [
         { label: 'Leitstelle', detail: '19222', checked: !!anmeldungenChecked['leitstelle'] },
         { label: 'Polizei', detail: '110', checked: !!anmeldungenChecked['polizei'] },
@@ -197,19 +228,19 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
         }
       }
 
-      // Map image from Einsatzdaten phase — mode decides source
-      const karteMode = readStorage<'map' | 'photo'>('einsatzkarte:mode', 'map', missionId)
+      // Map image from Einsatzdaten phase — mode decides source (segment-specific)
+      const karteMode = readStorage<'map' | 'photo'>(`${segPrefix}einsatzkarte:mode`, 'map', missionId)
       const mapImage = karteMode === 'photo'
-        ? readStorage<string>('einsatzkarte:photo', '', missionId)
-        : readStorage<string>('einsatzkarte:snapshot', '', missionId)
+        ? readStorage<string>(`${segPrefix}einsatzkarte:photo`, '', missionId)
+        : readStorage<string>(`${segPrefix}einsatzkarte:snapshot`, '', missionId)
 
-      // Technische Vorflugkontrolle Checklisten
-      const aufstiegsortChecked = readStorage<Record<string, boolean>>('techcheck:aufstiegsort', {}, missionId)
+      // Technische Vorflugkontrolle Checklisten (segment-specific where applicable)
+      const aufstiegsortChecked = readStorage<Record<string, boolean>>(`${segPrefix}techcheck:aufstiegsort`, {}, missionId)
       const uavChecked = readStorage<Record<string, boolean>>('techcheck:uav', {}, missionId)
       const rcChecked = readStorage<Record<string, boolean>>('techcheck:rc', {}, missionId)
-      const flugbriefingChecked = readStorage<Record<string, boolean>>('flugbriefing:checked', {}, missionId)
-      const funktionstestChecked = readStorage<Record<string, boolean>>('techcheck:funktionstest', {}, missionId)
-      const flugfreigabe = readStorage<string | null>('flugfreigabe', null, missionId)
+      const flugbriefingChecked = readStorage<Record<string, boolean>>(`${segPrefix}flugbriefing:checked`, {}, missionId)
+      const funktionstestChecked = readStorage<Record<string, boolean>>(`${segPrefix}techcheck:funktionstest`, {}, missionId)
+      const flugfreigabe = readStorage<string | null>(`${segPrefix}flugfreigabe`, null, missionId)
 
       const checklistGroups: ChecklistGroupData[] = [
         {
@@ -259,12 +290,34 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
 
   return (
     <>
+      <SegmentBanner
+        segments={segments}
+        activeSegment={activeSegment}
+        onRelocate={() => setShowRelocationDialog(true)}
+      />
+      <LocationBar
+        city={geocode.city}
+        country={geocode.country}
+        loading={geocode.loading}
+        hasLocation={hasLocation}
+        isManual={geo.isManual}
+        manualName={geo.manualName}
+        needsManualLocation={geo.needsManualLocation}
+        onManualLocation={geo.setManualLocation}
+        onClearManual={geo.clearManualLocation}
+      />
       <RahmenangabenSection
         selectedDrone={selectedDrone}
         onSelectDrone={setSelectedDrone}
         maxAltitude={maxAltitude}
         onChangeAltitude={setMaxAltitude}
       />
+      {/* Gruppen-Divider */}
+      <div className="flex items-center gap-3 px-1 pt-2">
+        <div className="h-px flex-1 bg-surface-alt" />
+        <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted/60">Standortabhängige Prüfungen</span>
+        <div className="h-px flex-1 bg-surface-alt" />
+      </div>
       <ExternalToolsSection latitude={geo.latitude} longitude={geo.longitude} locked={!hasLocation} open={openState.externaltools} onToggle={() => toggle('externaltools')} isComplete={isComplete.externaltools} onContinue={() => continueToNext('externaltools')} />
       <NearbyCheckSection categories={nearby.categories} loading={nearby.loading} error={nearby.error} locked={!hasLocation} onManualChecksChange={handleManualChecksChange} open={openState.nearbycheck} onToggle={() => toggle('nearbycheck')} isComplete={isComplete.nearbycheck} onContinue={() => continueToNext('nearbycheck')} />
       <AnmeldungenSection categories={nearby.categories} open={openState.anmeldungen} onToggle={() => toggle('anmeldungen')} isComplete={isComplete.anmeldungen} onContinue={() => continueToNext('anmeldungen')} />
@@ -285,9 +338,21 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
         onContinue={() => continueToNext('weather')}
       />
       <AufstiegsortSection open={openState.aufstiegsort} onToggle={() => toggle('aufstiegsort')} isComplete={isComplete.aufstiegsort} onContinue={() => continueToNext('aufstiegsort')} />
+      <FlugbriefingSection open={openState.flugbriefing} onToggle={() => toggle('flugbriefing')} isComplete={isComplete.flugbriefing} onContinue={() => continueToNext('flugbriefing')} />
+      {/* Gruppen-Divider */}
+      <div className="flex items-center gap-3 px-1 pt-2">
+        <div className="h-px flex-1 bg-surface-alt" />
+        <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted/60">Geräteprüfungen</span>
+        <div className="h-px flex-1 bg-surface-alt" />
+      </div>
       <UavCheckSection open={openState.uavcheck} onToggle={() => toggle('uavcheck')} isComplete={isComplete.uavcheck} onContinue={() => continueToNext('uavcheck')} />
       <RemoteControllerSection open={openState.remotecontroller} onToggle={() => toggle('remotecontroller')} isComplete={isComplete.remotecontroller} onContinue={() => continueToNext('remotecontroller')} />
-      <FlugbriefingSection open={openState.flugbriefing} onToggle={() => toggle('flugbriefing')} isComplete={isComplete.flugbriefing} onContinue={() => continueToNext('flugbriefing')} />
+      {/* Gruppen-Divider */}
+      <div className="flex items-center gap-3 px-1 pt-2">
+        <div className="h-px flex-1 bg-surface-alt" />
+        <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted/60">Funktionskontrolle & Freigabe</span>
+        <div className="h-px flex-1 bg-surface-alt" />
+      </div>
       <FunktionskontrolleSection
         open={openState.funktionskontrolle}
         onToggle={() => toggle('funktionskontrolle')}
@@ -295,6 +360,16 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
         onContinue={goToNextPhase}
         continueLabel="Weiter zu den Flügen"
         isPhaseComplete
+      />
+      <RelocationConfirmDialog
+        open={showRelocationDialog}
+        segmentNumber={segments.length + 1}
+        onConfirm={(label) => {
+          setShowRelocationDialog(false)
+          startRelocation(label)
+          navigate(`/mission/${missionId}/vorflugkontrolle`)
+        }}
+        onCancel={() => setShowRelocationDialog(false)}
       />
     </>
   )

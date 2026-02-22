@@ -2,6 +2,7 @@ import { loadMissions, saveMissions, generateId } from './missionStorage'
 import type { Mission } from '../types/mission'
 
 const MIGRATED_KEY = 'uav-migrated'
+const MIGRATED_V2_KEY = 'uav-migrated-v2'
 
 export function migrateOldData() {
   if (localStorage.getItem(MIGRATED_KEY)) return
@@ -30,6 +31,8 @@ export function migrateOldData() {
     createdAt: Date.now(),
     label: `Einsatz ${now.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} (migriert)`,
     phase: 'einsatzdaten',
+    segments: [],
+    activeSegmentId: null,
   }
 
   // Migrate form keys
@@ -55,4 +58,22 @@ export function migrateOldData() {
   saveMissions(missions)
 
   localStorage.setItem(MIGRATED_KEY, '1')
+}
+
+export function migrateLocationToSegment() {
+  if (localStorage.getItem(MIGRATED_V2_KEY)) return
+
+  const missions = loadMissions()
+  for (const mission of missions) {
+    const seg = mission.segments[0]
+    if (!seg) continue
+    const oldKey = `uav-manual-location:${mission.id}`
+    const newKey = `uav-manual-location:${mission.id}:seg:${seg.id}`
+    const oldValue = localStorage.getItem(oldKey)
+    if (oldValue && !localStorage.getItem(newKey)) {
+      localStorage.setItem(newKey, oldValue)
+    }
+  }
+
+  localStorage.setItem(MIGRATED_V2_KEY, '1')
 }

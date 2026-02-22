@@ -1,5 +1,6 @@
 import { useStore } from '@tanstack/react-store'
 import { useMissionId } from '../context/MissionContext'
+import { useSegmentId } from '../context/SegmentContext'
 import { getMissionAtom } from '../stores/missionFormStore'
 import type { SectionConfig } from './useAutoExpand'
 import { AUFSTIEGSORT_ITEMS, UAV_ITEMS, RC_ITEMS } from '../components/sections/TechnischeKontrolleSections'
@@ -67,16 +68,18 @@ export function useVorflugkontrolleCompleteness(
   hasLocation: boolean,
 ): SectionConfig[] {
   const missionId = useMissionId()
+  const segmentId = useSegmentId()
   const atom = getMissionAtom(missionId)
+  const segPrefix = segmentId ? `seg:${segmentId}:` : ''
 
   const state = useStore(atom, (s: Record<string, unknown>) => ({
-    anmeldungenChecked: s['anmeldungen:checked'] as Record<string, boolean> | undefined,
-    anmeldungenAdditional: s['anmeldungen:additional'] as Array<{ label: string; detail: string }> | undefined,
-    aufstiegsortChecked: s['techcheck:aufstiegsort'] as Record<string, boolean> | undefined,
+    anmeldungenChecked: (s[`${segPrefix}anmeldungen:checked`] ?? s['anmeldungen:checked']) as Record<string, boolean> | undefined,
+    anmeldungenAdditional: (s[`${segPrefix}anmeldungen:additional`] ?? s['anmeldungen:additional']) as Array<{ label: string; detail: string }> | undefined,
+    aufstiegsortChecked: (s[`${segPrefix}techcheck:aufstiegsort`] ?? s['techcheck:aufstiegsort']) as Record<string, boolean> | undefined,
     uavChecked: s['techcheck:uav'] as Record<string, boolean> | undefined,
     rcChecked: s['techcheck:rc'] as Record<string, boolean> | undefined,
-    flugbriefingChecked: s['flugbriefing:checked'] as Record<string, boolean> | undefined,
-    flugfreigabe: s['flugfreigabe'] as string | null | undefined,
+    flugbriefingChecked: (s[`${segPrefix}flugbriefing:checked`] ?? s['flugbriefing:checked']) as Record<string, boolean> | undefined,
+    flugfreigabe: (s[`${segPrefix}flugfreigabe`] ?? s['flugfreigabe']) as string | null | undefined,
   }))
 
   // Anmeldungen: at least leitstelle + polizei must be checked

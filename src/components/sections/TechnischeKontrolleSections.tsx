@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react'
 import { PiCheck, PiChecks, PiArrowCounterClockwise, PiMapPin, PiDrone, PiGameController } from 'react-icons/pi'
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
+import { useSegmentPersistedState } from '../../hooks/useSegmentPersistedState'
 import type { MetricStatus } from '../../types/assessment'
 import ChecklistSection from '../ChecklistSection'
 
@@ -14,8 +15,11 @@ interface CheckItem {
   hint?: string
 }
 
-function useQuickChecklist(storageKey: string, items: readonly CheckItem[]) {
-  const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>(storageKey, {})
+function useQuickChecklist(storageKey: string, items: readonly CheckItem[], segmentScoped: boolean = false) {
+  const [checkedMission, setCheckedMission] = useMissionPersistedState<Record<string, boolean>>(storageKey, {})
+  const [checkedSegment, setCheckedSegment] = useSegmentPersistedState<Record<string, boolean>>(storageKey, {})
+  const checked = segmentScoped ? checkedSegment : checkedMission
+  const setChecked = segmentScoped ? setCheckedSegment : setCheckedMission
 
   const checkedCount = items.filter((item) => checked[item.key]).length
   const totalCount = items.length
@@ -172,6 +176,7 @@ function CheckSection({
   icon,
   storageKey,
   items,
+  segmentScoped,
   open,
   onToggle,
   isComplete,
@@ -183,6 +188,7 @@ function CheckSection({
   icon: ReactNode
   storageKey: string
   items: readonly CheckItem[]
+  segmentScoped?: boolean
   open?: boolean
   onToggle?: () => void
   isComplete?: boolean
@@ -190,7 +196,7 @@ function CheckSection({
   continueLabel?: string
   isPhaseComplete?: boolean
 }) {
-  const checklist = useQuickChecklist(storageKey, items)
+  const checklist = useQuickChecklist(storageKey, items, segmentScoped)
 
   return (
     <ChecklistSection title={title} icon={icon} badge={checklist.badge} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
@@ -206,6 +212,7 @@ export function AufstiegsortSection({ open, onToggle, isComplete, onContinue, co
       icon={<PiMapPin />}
       storageKey="techcheck:aufstiegsort"
       items={AUFSTIEGSORT_ITEMS}
+      segmentScoped
       open={open}
       onToggle={onToggle}
       isComplete={isComplete}

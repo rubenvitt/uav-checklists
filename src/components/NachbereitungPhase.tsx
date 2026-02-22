@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { PiCheckCircle, PiFilePdf, PiWarning, PiInfo } from 'react-icons/pi'
 import { useMissionId } from '../context/MissionContext'
-import { getMission } from '../utils/missionStorage'
+import { getMission, getSegments } from '../utils/missionStorage'
 import { readStorage } from '../hooks/usePersistedState'
 import { useMissions } from '../hooks/useMissions'
 import { generateMissionReport } from '../utils/generateMissionReport'
@@ -15,6 +15,7 @@ import FlightDisruptionsSection from './sections/FlightDisruptionsSection'
 import MissionResultSection from './sections/MissionResultSection'
 import PostFlightInspectionSection from './sections/PostFlightInspectionSection'
 import WartungPflegeSection from './sections/WartungPflegeSection'
+import SegmentSummarySection from './sections/SegmentSummarySection'
 
 export default function NachbereitungPhase() {
   const missionId = useMissionId()
@@ -28,6 +29,8 @@ export default function NachbereitungPhase() {
   // Determine if flights were executed
   const entries = readStorage<FlightLogEntry[]>('flightlog:entries', [], missionId)
   const hasFlights = entries.some(e => e.blockOn !== null)
+  const segments = getSegments(missionId)
+  const isMultiSegment = segments.length > 1
 
   const handleComplete = () => {
     if (!confirmComplete) {
@@ -84,6 +87,7 @@ export default function NachbereitungPhase() {
         </div>
       )}
 
+      {isMultiSegment && <SegmentSummarySection segments={segments} flightEntries={entries} />}
       {hasFlights && <PostFlightInspectionSection open={openState.postflightinspection} onToggle={() => toggle('postflightinspection')} isComplete={isComplete.postflightinspection} onContinue={() => continueToNext('postflightinspection')} />}
       {hasFlights && <FlightDisruptionsSection open={openState.flightdisruptions} onToggle={() => toggle('flightdisruptions')} isComplete={isComplete.flightdisruptions} onContinue={() => continueToNext('flightdisruptions')} />}
       <EinsatzabschlussSection open={openState.einsatzabschluss} onToggle={() => toggle('einsatzabschluss')} isComplete={isComplete.einsatzabschluss} onContinue={() => continueToNext('einsatzabschluss')} />
