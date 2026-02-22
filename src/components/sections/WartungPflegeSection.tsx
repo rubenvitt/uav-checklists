@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useStore } from '@tanstack/react-store'
 import { PiWrench, PiX, PiPlus, PiArrowCounterClockwise } from 'react-icons/pi'
-import { useQueryClient } from '@tanstack/react-query'
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
 import { useMissionId } from '../../context/MissionContext'
 import { getMissionAtom } from '../../stores/missionFormStore'
 import { readStorage } from '../../hooks/usePersistedState'
+import { getSegments } from '../../utils/missionStorage'
 import { computeFollowupSuggestions, type FollowupContext, type FollowupSuggestion } from '../../utils/followupSuggestions'
 import { computeAssessment } from '../../utils/assessment'
 import { getDroneById } from '../../data/drones'
@@ -25,9 +25,18 @@ interface CustomItem {
 
 /* ── Hook: build followup context from mission data ──────── */
 
+/** Read a segment-scoped field with legacy fallback for the first segment */
+function readSegmentField<T>(missionId: string, segmentId: string | null, key: string, fallback: T, legacyFallback: boolean): T {
+  if (segmentId) {
+    const segValue = readStorage<T>(`seg:${segmentId}:${key}`, undefined as unknown as T, missionId)
+    if (segValue !== undefined) return segValue
+    if (!legacyFallback) return fallback
+  }
+  return readStorage<T>(key, fallback, missionId)
+}
+
 function useFollowupContext(): FollowupContext {
   const missionId = useMissionId()
-  const queryClient = useQueryClient()
   const atom = getMissionAtom(missionId)
 
   // Reactive subscriptions for keys that change during Nachbereitung
@@ -40,53 +49,46 @@ function useFollowupContext(): FollowupContext {
   const selectedDrone = readStorage<DroneId>('selectedDrone', 'matrice-350-rtk', missionId)
   const maxAltitude = readStorage<number>('maxAltitude', 120, missionId)
   const drone = getDroneById(selectedDrone)
+  const persistedKIndex = readStorage<{ kIndex: number } | null>('env:kindex', null, missionId)
 
-  // Read weather data for assessment
+  // Read weather data across ALL segments — use worst-case values
   let weatherCurrent: FollowupContext['weatherCurrent'] = null
   let humidityStatus: MetricStatus | null = null
 
-  const persistedWeather = readStorage<WeatherResponse | null>('env:weather', null, missionId)
-  const persistedKIndex = readStorage<{ kIndex: number } | null>('env:kindex', null, missionId)
+  const segments = getSegments(missionId)
+  const segmentIds = segments.length > 0 ? segments.map(s => s.id) : [null]
 
-  if (persistedWeather?.current) {
-    weatherCurrent = {
-      precipitation: persistedWeather.current.precipitation,
-      temperature: persistedWeather.current.temperature,
-      humidity: persistedWeather.current.humidity,
-    }
+  for (let i = 0; i < segmentIds.length; i++) {
+    const segId = segmentIds[i]
+    const isFirst = i === 0
+    const weather = readSegmentField<WeatherResponse | null>(missionId, segId, 'env:weather', null, isFirst)
 
-    if (persistedKIndex?.kIndex != null) {
-      const assessment = computeAssessment(persistedWeather.current, persistedKIndex.kIndex, drone, persistedWeather.windByAltitude ?? undefined, maxAltitude)
-      const humidityMetric = assessment.metrics.find((m: MetricAssessment) => m.key === 'humidity')
-      if (humidityMetric) humidityStatus = humidityMetric.status
-    }
-  } else {
-    // Fallback: try React Query cache
-    try {
-      const raw = localStorage.getItem(`uav-manual-location:${missionId}`)
-      if (raw) {
-        const loc = JSON.parse(raw)
-        if (typeof loc.latitude === 'number' && typeof loc.longitude === 'number') {
-          const lat = Math.round(loc.latitude * 1000) / 1000
-          const lon = Math.round(loc.longitude * 1000) / 1000
-          const weatherData = queryClient.getQueryData<WeatherResponse>(['weather', lat, lon, maxAltitude])
-          const kIndexData = queryClient.getQueryData<{ kIndex: number }>(['kindex'])
+    if (weather?.current) {
+      // Use worst-case: highest precipitation, lowest temperature, highest humidity
+      if (!weatherCurrent) {
+        weatherCurrent = {
+          precipitation: weather.current.precipitation,
+          temperature: weather.current.temperature,
+          humidity: weather.current.humidity,
+        }
+      } else {
+        weatherCurrent = {
+          precipitation: Math.max(weatherCurrent.precipitation, weather.current.precipitation),
+          temperature: Math.min(weatherCurrent.temperature, weather.current.temperature),
+          humidity: Math.max(weatherCurrent.humidity, weather.current.humidity),
+        }
+      }
 
-          if (weatherData?.current) {
-            weatherCurrent = {
-              precipitation: weatherData.current.precipitation,
-              temperature: weatherData.current.temperature,
-              humidity: weatherData.current.humidity,
-            }
-            if (kIndexData?.kIndex != null) {
-              const assessment = computeAssessment(weatherData.current, kIndexData.kIndex, drone, weatherData.windByAltitude ?? undefined, maxAltitude)
-              const humidityMetric = assessment.metrics.find((m: MetricAssessment) => m.key === 'humidity')
-              if (humidityMetric) humidityStatus = humidityMetric.status
-            }
+      if (persistedKIndex?.kIndex != null) {
+        const assessment = computeAssessment(weather.current, persistedKIndex.kIndex, drone, weather.windByAltitude ?? undefined, maxAltitude)
+        const humidityMetric = assessment.metrics.find((m: MetricAssessment) => m.key === 'humidity')
+        if (humidityMetric) {
+          if (!humidityStatus || humidityMetric.status === 'warning' || (humidityMetric.status === 'caution' && humidityStatus === 'good')) {
+            humidityStatus = humidityMetric.status
           }
         }
       }
-    } catch { /* ignore cache misses */ }
+    }
   }
 
   return {
