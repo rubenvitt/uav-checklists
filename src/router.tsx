@@ -3,7 +3,7 @@ import { PiShieldCheck } from 'react-icons/pi'
 import { useCallback, useRef, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { MissionProvider, useMissionId } from './context/MissionContext'
-import { getMission, isMissionExpired, updateMissionPhase } from './utils/missionStorage'
+import { getMission, isMissionExpired, updateMissionPhase, canAccessPhase } from './utils/missionStorage'
 import { clearMissionEnvironment } from './hooks/useMissionEnvironment'
 import { useTheme } from './hooks/useTheme'
 import { migrateOldData } from './utils/migration'
@@ -54,6 +54,14 @@ function MissionLayout() {
   }
 
   const currentPhase = phase as MissionPhase
+
+  // Phase access guard: redirect to last accessible phase if target is locked
+  if (!mission.completedAt && !canAccessPhase(missionId, currentPhase)) {
+    const redirectPhase = currentPhase === 'nachbereitung' && canAccessPhase(missionId, 'fluege')
+      ? 'fluege'
+      : 'vorflugkontrolle'
+    return <Navigate to={`/mission/${missionId}/${redirectPhase}`} replace />
+  }
 
   // Update stored phase (skip for completed missions)
   if (!mission.completedAt && mission.phase !== currentPhase) {

@@ -138,7 +138,7 @@ export function useVorflugkontrolleCompleteness(
 
 // --- Phase 4: Nachbereitung ---
 
-export function useNachbereitungCompleteness(): SectionConfig[] {
+export function useNachbereitungCompleteness(hasFlights: boolean = true): SectionConfig[] {
   const missionId = useMissionId()
   const atom = getMissionAtom(missionId)
 
@@ -159,6 +159,23 @@ export function useNachbereitungCompleteness(): SectionConfig[] {
     wrapupChecked: s['wrapup:checked'] as Record<string, boolean> | undefined,
     resultOutcome: s['result:outcome'] as string | null | undefined,
   }))
+
+  // Ohne Flüge: nur Einsatzabschluss + Ergebnis
+  if (!hasFlights) {
+    return [
+      {
+        id: 'einsatzabschluss',
+        isComplete: state.wrapupChecked
+          ? WRAPUP_CORE_KEYS.every(k => !!state.wrapupChecked![k])
+          : false,
+        firstVisitOpen: true,
+      },
+      {
+        id: 'missionresult',
+        isComplete: !!state.resultOutcome,
+      },
+    ]
+  }
 
   return [
     {

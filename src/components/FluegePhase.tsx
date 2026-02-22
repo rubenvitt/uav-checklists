@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
-import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren, PiNotePencil, PiClock, PiPencilSimple, PiCheckCircle } from 'react-icons/pi'
+import { useNavigate } from 'react-router'
+import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren, PiNotePencil, PiClock, PiPencilSimple, PiCheckCircle, PiArrowRight, PiSkipForward } from 'react-icons/pi'
 import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
+import { useMissionId } from '../context/MissionContext'
 import type { FlightLogEntry, LandingStatus, EventNote } from '../types/flightLog'
 import ProceduresButton from './procedures/ProceduresButton'
 import EmergencyFAB from './procedures/EmergencyFAB'
@@ -70,11 +72,14 @@ function migrateEntries(raw: FlightLogEntry[]): FlightLogEntry[] {
 }
 
 export default function FluegePhase() {
+  const missionId = useMissionId()
+  const navigate = useNavigate()
   const [rawEntries, setEntries] = useMissionPersistedState<FlightLogEntry[]>('flightlog:entries', [])
   const entries = migrateEntries(rawEntries)
   const [defaultFp] = useMissionPersistedState<string>('crew_fp', '')
   const [defaultLrb] = useMissionPersistedState<string>('crew_lrb', '')
   const crewSuggestions = useCrewSuggestions()
+  const [, setFluegeAbgeschlossen] = useMissionPersistedState<boolean>('fluegeAbgeschlossen', false)
 
   const [eventNotes, setEventNotes] = useMissionPersistedState<EventNote[]>('flightlog:events', [])
 
@@ -82,6 +87,7 @@ export default function FluegePhase() {
   const completedEntries = entries.filter((e) => e.blockOn !== null).slice().reverse()
 
   function startFlight() {
+    setFluegeAbgeschlossen(false)
     const entry: FlightLogEntry = {
       id: generateId(),
       blockOff: new Date().toISOString(),
@@ -223,9 +229,77 @@ export default function FluegePhase() {
         </div>
       )}
 
+      {/* Weiter zur Nachbereitung */}
+      {!activeEntry && <NextPhaseButton hasFlights={completedEntries.length > 0} onProceed={() => {
+        setFluegeAbgeschlossen(true)
+        navigate(`/mission/${missionId}/nachbereitung`)
+      }} />}
+
       {/* Emergency FAB — immer sichtbar */}
       <EmergencyFAB />
     </div>
+  )
+}
+
+/* ── Weiter zur Nachbereitung ─────────────────────────────── */
+
+function NextPhaseButton({ hasFlights, onProceed }: { hasFlights: boolean; onProceed: () => void }) {
+  const [confirming, setConfirming] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [])
+
+  // Mit Flügen: Primary Button, kein Confirm nötig
+  if (hasFlights) {
+    return (
+      <button
+        onClick={onProceed}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-text px-4 py-3.5 text-sm font-medium text-base transition-colors active:scale-[0.99]"
+      >
+        Weiter zur Nachbereitung
+        <PiArrowRight className="text-lg" />
+      </button>
+    )
+  }
+
+  // Ohne Flüge: Secondary Button mit Rückfrage
+  if (confirming) {
+    return (
+      <div className="space-y-2 rounded-xl border border-caution/30 bg-caution-bg p-4">
+        <p className="text-sm font-medium text-caution">Ohne Flüge fortfahren?</p>
+        <p className="text-xs text-text-muted">Es wurden keine Flüge durchgeführt. Trotzdem zur Nachbereitung wechseln?</p>
+        <div className="flex gap-2">
+          <button
+            onClick={onProceed}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-caution px-3 py-2 text-sm font-medium text-white transition-colors active:scale-[0.99]"
+          >
+            <PiSkipForward className="text-base" />
+            Ja, fortfahren
+          </button>
+          <button
+            onClick={() => { setConfirming(false); if (timerRef.current) clearTimeout(timerRef.current) }}
+            className="flex-1 rounded-lg bg-surface px-3 py-2 text-sm text-text-muted transition-colors hover:text-text active:scale-[0.99]"
+          >
+            Abbrechen
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <button
+      onClick={() => {
+        setConfirming(true)
+        timerRef.current = setTimeout(() => setConfirming(false), 10000)
+      }}
+      className="flex w-full items-center justify-center gap-2 rounded-xl border border-surface-alt bg-surface px-4 py-3 text-sm text-text-muted transition-colors hover:text-text active:scale-[0.99]"
+    >
+      <PiSkipForward className="text-base" />
+      Ohne Flüge zur Nachbereitung
+    </button>
   )
 }
 

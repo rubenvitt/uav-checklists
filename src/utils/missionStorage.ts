@@ -1,4 +1,5 @@
-import type { Mission } from '../types/mission'
+import type { Mission, MissionPhase } from '../types/mission'
+import { readStorage } from '../hooks/usePersistedState'
 
 const MISSIONS_KEY = 'uav-missions'
 const MISSION_TTL = 56 * 60 * 60 * 1000 // 56h
@@ -101,6 +102,17 @@ export function clearMissionStorage(missionId: string) {
     }
   }
   keysToRemove.forEach((k) => localStorage.removeItem(k))
+}
+
+export function canAccessPhase(missionId: string, phase: MissionPhase): boolean {
+  if (phase === 'einsatzdaten' || phase === 'vorflugkontrolle') return true
+  const flugfreigabe = readStorage<string | null>('flugfreigabe', null, missionId)
+  if (phase === 'fluege') return !!flugfreigabe
+  if (phase === 'nachbereitung') {
+    const fluegeAbgeschlossen = readStorage<boolean>('fluegeAbgeschlossen', false, missionId)
+    return !!flugfreigabe && fluegeAbgeschlossen
+  }
+  return false
 }
 
 export function getRemainingTime(mission: Mission): string {

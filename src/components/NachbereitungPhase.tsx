@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { PiCheckCircle, PiFilePdf, PiWarning } from 'react-icons/pi'
+import { PiCheckCircle, PiFilePdf, PiWarning, PiInfo } from 'react-icons/pi'
 import { useMissionId } from '../context/MissionContext'
 import { getMission } from '../utils/missionStorage'
+import { readStorage } from '../hooks/usePersistedState'
 import { useMissions } from '../hooks/useMissions'
 import { generateMissionReport } from '../utils/generateMissionReport'
 import { useAutoExpand } from '../hooks/useAutoExpand'
 import { useNachbereitungCompleteness } from '../hooks/useSectionCompleteness'
+import type { FlightLogEntry } from '../types/flightLog'
 import EinsatzabschlussSection from './sections/EinsatzabschlussSection'
 import FlightDisruptionsSection from './sections/FlightDisruptionsSection'
 import MissionResultSection from './sections/MissionResultSection'
@@ -22,6 +24,10 @@ export default function NachbereitungPhase() {
   const mission = getMission(missionId)
   const isCompleted = !!mission?.completedAt
   const [confirmComplete, setConfirmComplete] = useState(false)
+
+  // Determine if flights were executed
+  const entries = readStorage<FlightLogEntry[]>('flightlog:entries', [], missionId)
+  const hasFlights = entries.some(e => e.blockOn !== null)
 
   const handleComplete = () => {
     if (!confirmComplete) {
@@ -60,15 +66,28 @@ export default function NachbereitungPhase() {
   }
 
   // Auto-expand logic
-  const sections = useNachbereitungCompleteness()
+  const sections = useNachbereitungCompleteness(hasFlights)
   const { openState, toggle, continueToNext, isComplete } = useAutoExpand(sections, 'nachbereitung')
 
   return (
     <div className="space-y-4">
-      <PostFlightInspectionSection open={openState.postflightinspection} onToggle={() => toggle('postflightinspection')} isComplete={isComplete.postflightinspection} onContinue={() => continueToNext('postflightinspection')} />
-      <FlightDisruptionsSection open={openState.flightdisruptions} onToggle={() => toggle('flightdisruptions')} isComplete={isComplete.flightdisruptions} onContinue={() => continueToNext('flightdisruptions')} />
+      {/* Hinweis: Einsatz ohne Flüge */}
+      {!hasFlights && (
+        <div className="flex items-start gap-3 rounded-xl bg-surface p-4">
+          <PiInfo className="mt-0.5 shrink-0 text-lg text-text-muted" />
+          <div>
+            <p className="text-sm font-medium text-text">Einsatz ohne Flüge</p>
+            <p className="mt-0.5 text-xs text-text-muted">
+              Die Nachbereitung wurde auf die relevanten Schritte reduziert.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {hasFlights && <PostFlightInspectionSection open={openState.postflightinspection} onToggle={() => toggle('postflightinspection')} isComplete={isComplete.postflightinspection} onContinue={() => continueToNext('postflightinspection')} />}
+      {hasFlights && <FlightDisruptionsSection open={openState.flightdisruptions} onToggle={() => toggle('flightdisruptions')} isComplete={isComplete.flightdisruptions} onContinue={() => continueToNext('flightdisruptions')} />}
       <EinsatzabschlussSection open={openState.einsatzabschluss} onToggle={() => toggle('einsatzabschluss')} isComplete={isComplete.einsatzabschluss} onContinue={() => continueToNext('einsatzabschluss')} />
-      <WartungPflegeSection open={openState.wartungpflege} onToggle={() => toggle('wartungpflege')} isComplete={isComplete.wartungpflege} onContinue={() => continueToNext('wartungpflege')} />
+      {hasFlights && <WartungPflegeSection open={openState.wartungpflege} onToggle={() => toggle('wartungpflege')} isComplete={isComplete.wartungpflege} onContinue={() => continueToNext('wartungpflege')} />}
       <MissionResultSection open={openState.missionresult} onToggle={() => toggle('missionresult')} isComplete={isComplete.missionresult} onContinue={() => continueToNext('missionresult')} />
 
       {confirmComplete && (
