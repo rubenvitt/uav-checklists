@@ -25,7 +25,7 @@ const POST_FLIGHT_ITEMS: InspectionItem[] = [
 
 /* ── Component ────────────────────────────────────────────── */
 
-export default function PostFlightInspectionSection() {
+export default function PostFlightInspectionSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean }) {
   const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>('postflight:checked', {})
   const [notes, setNotes] = useMissionPersistedState<Record<string, string>>('postflight:notes', {})
   const [remarks, setRemarks] = useMissionPersistedState<string>('postflight:remarks', '')
@@ -81,7 +81,12 @@ export default function PostFlightInspectionSection() {
       title="Nachflugkontrolle"
       icon={<PiClipboardText />}
       badge={badge}
-      defaultOpen={true}
+      open={open}
+      onToggle={onToggle}
+      isComplete={isComplete}
+      onContinue={onContinue}
+      continueLabel={continueLabel}
+      isPhaseComplete={isPhaseComplete}
     >
       <div className="-mx-5 -mb-5">
         {/* Confirm-all / Reset */}

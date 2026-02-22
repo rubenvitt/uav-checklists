@@ -24,7 +24,7 @@ interface AdditionalMember {
   name: string
 }
 
-export default function TruppstaerkeSection() {
+export default function TruppstaerkeSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean }) {
   const [fk, setFk] = useMissionPersistedState('crew_fk', '')
   const [fp, setFp] = useMissionPersistedState('crew_fp', '')
   const [lrb, setLrb] = useMissionPersistedState('crew_lrb', '')
@@ -60,7 +60,7 @@ export default function TruppstaerkeSection() {
   }
 
   return (
-    <ChecklistSection title="Truppstärke" icon={<PiUsersThree />} badge={badge}>
+    <ChecklistSection title="Truppstärke" icon={<PiUsersThree />} badge={badge} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <div className="-mx-5 -mt-1">
         <div className="divide-y divide-surface-alt">
           {BASE_ROLES.map(({ key, label, critical }) => {

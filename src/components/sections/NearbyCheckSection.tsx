@@ -35,6 +35,12 @@ interface NearbyCheckSectionProps {
   error: string | null
   locked?: boolean
   onManualChecksChange?: (checked: Record<string, boolean>) => void
+  open?: boolean
+  onToggle?: () => void
+  isComplete?: boolean
+  onContinue?: () => void
+  continueLabel?: string
+  isPhaseComplete?: boolean
 }
 
 const MANUAL_CHECKS = [
@@ -60,7 +66,7 @@ function formatDistance(meters: number): string {
   return `${meters} m`
 }
 
-export default function NearbyCheckSection({ categories, loading, error, locked, onManualChecksChange }: NearbyCheckSectionProps) {
+export default function NearbyCheckSection({ categories, loading, error, locked, onManualChecksChange, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: NearbyCheckSectionProps) {
   const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>('nearby:manualChecks', {})
 
   useEffect(() => {
@@ -79,7 +85,7 @@ export default function NearbyCheckSection({ categories, loading, error, locked,
         : { label: 'Frei', status: 'good' as MetricStatus }
 
   return (
-    <ChecklistSection title="Umgebungsprüfung" icon={<PiMapPin />} badge={badge} loading={loading} locked={locked}>
+    <ChecklistSection title="Umgebungsprüfung" icon={<PiMapPin />} badge={badge} loading={loading} locked={locked} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       {error && (
         <div className="rounded-lg bg-warning-bg px-4 py-3 text-sm text-warning">{error}</div>
       )}

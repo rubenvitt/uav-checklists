@@ -224,7 +224,7 @@ function computeBadge(noDisruptions: boolean, selected: string[]): { label: stri
 
 /* ── Main component ──────────────────────────────────────── */
 
-export default function FlightDisruptionsSection() {
+export default function FlightDisruptionsSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean }) {
   const [noDisruptions, setNoDisruptions] = useMissionPersistedState<boolean>('disruptions:none', false)
   const [selectedCategories, setSelectedCategories] = useMissionPersistedState<string[]>('disruptions:categories', [])
   const [categoryNotes, setCategoryNotes] = useMissionPersistedState<Record<string, string>>('disruptions:notes', {})
@@ -266,7 +266,12 @@ export default function FlightDisruptionsSection() {
       title="Störungen & Vorfälle"
       icon={<PiLightningSlash />}
       badge={badge}
-      defaultOpen={true}
+      open={open}
+      onToggle={onToggle}
+      isComplete={isComplete}
+      onContinue={onContinue}
+      continueLabel={continueLabel}
+      isPhaseComplete={isPhaseComplete}
     >
       {/* Context hints from flight phase */}
       {hasContextHints && !noDisruptions && (

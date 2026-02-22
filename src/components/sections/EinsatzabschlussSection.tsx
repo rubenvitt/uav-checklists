@@ -188,7 +188,7 @@ const GROUPS = [
 
 /* ── Component ────────────────────────────────────────────── */
 
-export default function EinsatzabschlussSection() {
+export default function EinsatzabschlussSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean }) {
   const { items, noAnmeldungen } = useWrapupItems()
   const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>('wrapup:checked', {})
   const [notes, setNotes] = useMissionPersistedState<Record<string, string>>('wrapup:notes', {})
@@ -248,7 +248,12 @@ export default function EinsatzabschlussSection() {
       title="Einsatzabschluss"
       icon={<PiClipboardText />}
       badge={badge}
-      defaultOpen={true}
+      open={open}
+      onToggle={onToggle}
+      isComplete={isComplete}
+      onContinue={onContinue}
+      continueLabel={continueLabel}
+      isPhaseComplete={isPhaseComplete}
     >
       <div className="-mx-5 -mb-5">
         {/* Confirm-all / Reset */}

@@ -5,6 +5,12 @@ import ChecklistSection from '../ChecklistSection'
 
 interface AnmeldungenSectionProps {
   categories: NearbyCategory[]
+  open?: boolean
+  onToggle?: () => void
+  isComplete?: boolean
+  onContinue?: () => void
+  continueLabel?: string
+  isPhaseComplete?: boolean
 }
 
 const REQUIRED_NOTIFICATIONS = [
@@ -17,7 +23,7 @@ interface AdditionalNotification {
   detail: string
 }
 
-export default function AnmeldungenSection({ categories }: AnmeldungenSectionProps) {
+export default function AnmeldungenSection({ categories, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: AnmeldungenSectionProps) {
   const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>('anmeldungen:checked', {})
   const [additional, setAdditional] = useMissionPersistedState<AdditionalNotification[]>('anmeldungen:additional', [])
 
@@ -79,7 +85,7 @@ export default function AnmeldungenSection({ categories }: AnmeldungenSectionPro
   }
 
   return (
-    <ChecklistSection title="Fluganmeldungen" icon={<PiPhone />} badge={badge}>
+    <ChecklistSection title="Fluganmeldungen" icon={<PiPhone />} badge={badge} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <div className="-mx-5 -mt-1">
         <div className="divide-y divide-surface-alt">
           {/* Required notifications */}

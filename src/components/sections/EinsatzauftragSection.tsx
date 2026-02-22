@@ -27,7 +27,7 @@ function InputField({ label, value, onChange, placeholder }: { label: string; va
   )
 }
 
-export default function EinsatzauftragSection() {
+export default function EinsatzauftragSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean }) {
   const [template, setTemplate] = useMissionPersistedState<MissionTemplate | ''>('mission_template', '')
 
   // Personensuche
@@ -54,7 +54,7 @@ export default function EinsatzauftragSection() {
   const [freitext, setFreitext] = useMissionPersistedState('mission_freitext', '')
 
   return (
-    <ChecklistSection title="Einsatzauftrag" icon={<PiListChecks />} defaultOpen>
+    <ChecklistSection title="Einsatzauftrag" icon={<PiListChecks />} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <div>
         <p className="mb-2 text-xs text-text-muted">Art des Auftrags</p>
         <div className="flex flex-wrap gap-2">

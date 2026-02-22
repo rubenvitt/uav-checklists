@@ -103,7 +103,7 @@ function useFollowupContext(): FollowupContext {
 
 /* ── Component ────────────────────────────────────────────── */
 
-export default function WartungPflegeSection() {
+export default function WartungPflegeSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean }) {
   const ctx = useFollowupContext()
   const suggestions = computeFollowupSuggestions(ctx)
 
@@ -156,7 +156,12 @@ export default function WartungPflegeSection() {
       title="Wartung & Pflege"
       icon={<PiWrench />}
       badge={badge}
-      defaultOpen={true}
+      open={open}
+      onToggle={onToggle}
+      isComplete={isComplete}
+      onContinue={onContinue}
+      continueLabel={continueLabel}
+      isPhaseComplete={isPhaseComplete}
     >
       {/* Info text */}
       <p className="text-xs text-text-muted">

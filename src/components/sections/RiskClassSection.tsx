@@ -25,9 +25,15 @@ function getSailBadge(sail: number): { label: string; status: MetricStatus } {
 interface RiskClassSectionProps {
   locked?: boolean
   onSoraChange?: (data: { grc: number | null; arc: ArcClass | null; sail: number | null }) => void
+  open?: boolean
+  onToggle?: () => void
+  isComplete?: boolean
+  onContinue?: () => void
+  continueLabel?: string
+  isPhaseComplete?: boolean
 }
 
-export default function RiskClassSection({ locked, onSoraChange }: RiskClassSectionProps) {
+export default function RiskClassSection({ locked, onSoraChange, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: RiskClassSectionProps) {
   const missionId = useMissionId()
   const [finalGrc, setFinalGrc] = useState<number | null>(null)
   const [arcClass, setArcClass] = useState<ArcClass | null>(null)
@@ -53,7 +59,7 @@ export default function RiskClassSection({ locked, onSoraChange }: RiskClassSect
   }, [finalGrc, arcClass, sail, onSoraChange])
 
   return (
-    <ChecklistSection title="SORA Risikoklassifizierung" icon={<PiScales />} badge={badge} locked={locked}>
+    <ChecklistSection title="SORA Risikoklassifizierung" icon={<PiScales />} badge={badge} locked={locked} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <div className="space-y-6">
         <div className="flex justify-end">
           <button

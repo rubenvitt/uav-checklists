@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router'
 import type { DroneId } from '../types/drone'
 import { getDroneById } from '../data/drones'
 import { useMissionId } from '../context/MissionContext'
@@ -8,6 +9,8 @@ import { useReverseGeocode } from '../hooks/useReverseGeocode'
 import { useMissionPersistedState, clearMissionFormStorageByPrefix } from '../hooks/useMissionPersistedState'
 import { readStorage } from '../hooks/usePersistedState'
 import { computeAssessment } from '../utils/assessment'
+import { useAutoExpand } from '../hooks/useAutoExpand'
+import { useVorflugkontrolleCompleteness } from '../hooks/useSectionCompleteness'
 import type { ArcClass } from './ArcDetermination'
 import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type ChecklistGroupData } from '../utils/generateReport'
 import { getMission } from '../utils/missionStorage'
@@ -64,6 +67,16 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
       : null
 
   const hasLocation = geo.latitude !== null && geo.longitude !== null
+
+  // Auto-expand logic
+  const weatherWarning = assessment?.overall === 'warning'
+  const nearbyWarning = nearby.categories?.some((c: { key: string }) =>
+    ['aviation', 'military', 'prison'].includes(c.key)
+  )
+  const sections = useVorflugkontrolleCompleteness(!!weatherWarning, !!nearbyWarning, hasLocation)
+  const { openState, toggle, continueToNext, isComplete } = useAutoExpand(sections, 'vorflugkontrolle')
+  const navigate = useNavigate()
+  const goToNextPhase = () => navigate(`/mission/${missionId}/fluege`)
 
   // Register PDF export handler
   useEffect(() => {
@@ -252,10 +265,10 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
         maxAltitude={maxAltitude}
         onChangeAltitude={setMaxAltitude}
       />
-      <ExternalToolsSection latitude={geo.latitude} longitude={geo.longitude} locked={!hasLocation} />
-      <NearbyCheckSection categories={nearby.categories} loading={nearby.loading} error={nearby.error} locked={!hasLocation} onManualChecksChange={handleManualChecksChange} />
-      <AnmeldungenSection categories={nearby.categories} />
-      <RiskClassSection key={soraResetKey} locked={!hasLocation} onSoraChange={handleSoraChange} />
+      <ExternalToolsSection latitude={geo.latitude} longitude={geo.longitude} locked={!hasLocation} open={openState.externaltools} onToggle={() => toggle('externaltools')} isComplete={isComplete.externaltools} onContinue={() => continueToNext('externaltools')} />
+      <NearbyCheckSection categories={nearby.categories} loading={nearby.loading} error={nearby.error} locked={!hasLocation} onManualChecksChange={handleManualChecksChange} open={openState.nearbycheck} onToggle={() => toggle('nearbycheck')} isComplete={isComplete.nearbycheck} onContinue={() => continueToNext('nearbycheck')} />
+      <AnmeldungenSection categories={nearby.categories} open={openState.anmeldungen} onToggle={() => toggle('anmeldungen')} isComplete={isComplete.anmeldungen} onContinue={() => continueToNext('anmeldungen')} />
+      <RiskClassSection key={soraResetKey} locked={!hasLocation} onSoraChange={handleSoraChange} open={openState.riskclass} onToggle={() => toggle('riskclass')} isComplete={isComplete.riskclass} onContinue={() => continueToNext('riskclass')} />
       <WeatherSection
         assessment={assessment}
         sun={weather.sun}
@@ -266,12 +279,23 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
         isLoading={geo.loading || weather.loading || kIndex.loading}
         error={weather.error || kIndex.error}
         locked={!hasLocation}
+        open={openState.weather}
+        onToggle={() => toggle('weather')}
+        isComplete={isComplete.weather}
+        onContinue={() => continueToNext('weather')}
       />
-      <AufstiegsortSection />
-      <UavCheckSection />
-      <RemoteControllerSection />
-      <FlugbriefingSection />
-      <FunktionskontrolleSection />
+      <AufstiegsortSection open={openState.aufstiegsort} onToggle={() => toggle('aufstiegsort')} isComplete={isComplete.aufstiegsort} onContinue={() => continueToNext('aufstiegsort')} />
+      <UavCheckSection open={openState.uavcheck} onToggle={() => toggle('uavcheck')} isComplete={isComplete.uavcheck} onContinue={() => continueToNext('uavcheck')} />
+      <RemoteControllerSection open={openState.remotecontroller} onToggle={() => toggle('remotecontroller')} isComplete={isComplete.remotecontroller} onContinue={() => continueToNext('remotecontroller')} />
+      <FlugbriefingSection open={openState.flugbriefing} onToggle={() => toggle('flugbriefing')} isComplete={isComplete.flugbriefing} onContinue={() => continueToNext('flugbriefing')} />
+      <FunktionskontrolleSection
+        open={openState.funktionskontrolle}
+        onToggle={() => toggle('funktionskontrolle')}
+        isComplete={isComplete.funktionskontrolle}
+        onContinue={goToNextPhase}
+        continueLabel="Weiter zu den Flügen"
+        isPhaseComplete
+      />
     </>
   )
 }

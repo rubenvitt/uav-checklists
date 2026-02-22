@@ -21,6 +21,12 @@ interface WeatherSectionProps {
   isLoading: boolean
   error: string | null
   locked?: boolean
+  open?: boolean
+  onToggle?: () => void
+  isComplete?: boolean
+  onContinue?: () => void
+  continueLabel?: string
+  isPhaseComplete?: boolean
 }
 
 const badgeLabel: Record<MetricStatus, string> = {
@@ -29,13 +35,13 @@ const badgeLabel: Record<MetricStatus, string> = {
   warning: 'Warnung',
 }
 
-export default function WeatherSection({ assessment, sun, windByAltitude, hourlyForecast, maxAltitude, drone, isLoading, error, locked }: WeatherSectionProps) {
+export default function WeatherSection({ assessment, sun, windByAltitude, hourlyForecast, maxAltitude, drone, isLoading, error, locked, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: WeatherSectionProps) {
   const badge = assessment
     ? { label: badgeLabel[assessment.overall], status: assessment.overall }
     : undefined
 
   return (
-    <ChecklistSection title="Wetterbedingungen" icon={<WiDayCloudyHigh />} badge={badge} loading={isLoading} locked={locked} defaultOpen={true}>
+    <ChecklistSection title="Wetterbedingungen" icon={<WiDayCloudyHigh />} badge={badge} loading={isLoading} locked={locked} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       {isLoading && <LoadingSpinner />}
 
       {error && !isLoading && (

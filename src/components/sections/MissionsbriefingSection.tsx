@@ -142,7 +142,7 @@ function WarningHint({ children }: { children: React.ReactNode }) {
 // Main component
 // ---------------------------------------------------------------------------
 
-export default function MissionsbriefingSection() {
+export default function MissionsbriefingSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean }) {
   const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>('briefing:checked', {})
 
   const checkedCount = BRIEFING_ITEMS.filter((item) => checked[item.key]).length
@@ -215,7 +215,7 @@ export default function MissionsbriefingSection() {
   }
 
   return (
-    <ChecklistSection title="Missionsbriefing" icon={<PiMegaphone />} badge={badge}>
+    <ChecklistSection title="Missionsbriefing" icon={<PiMegaphone />} badge={badge} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <div className="-mx-5 -mb-5">
         <div className="divide-y divide-surface-alt">
 

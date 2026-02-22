@@ -8,7 +8,7 @@ const STICHWORT_OPTIONS = ['Personensuche', 'B3Y', 'B4Y', 'W2Y', 'W3Y', 'n/a', '
 const ALARMIERUNG_OPTIONS = ['Leitstelle']
 const ANFORDERNDE_STELLE_OPTIONS = ['Polizei', 'Feuerwehr', 'Eigene BOS']
 
-export default function EinsatzdetailsSection() {
+export default function EinsatzdetailsSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean }) {
   const [flugAnlass, setFlugAnlass] = useMissionPersistedState<FlightPurpose>('flugAnlass', 'einsatz')
   const [stichwort, setStichwort] = useMissionPersistedState('einsatzstichwort', '')
   const [alarmzeit, setAlarmzeit] = useMissionPersistedState('alarmzeit', '')
@@ -18,7 +18,7 @@ export default function EinsatzdetailsSection() {
   const [abschnittsleiter, setAbschnittsleiter] = useMissionPersistedState('abschnittsleiter', '')
 
   return (
-    <ChecklistSection title="Einsatzdetails" icon={<PiClipboardText />} defaultOpen>
+    <ChecklistSection title="Einsatzdetails" icon={<PiClipboardText />} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <div className="-mx-5 -mb-5 -mt-1 divide-y divide-surface-alt">
         <FlightPurposeSelector value={flugAnlass} onChange={setFlugAnlass} />
         <AutocompleteInput

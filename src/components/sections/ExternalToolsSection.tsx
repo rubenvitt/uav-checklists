@@ -5,6 +5,12 @@ interface ExternalToolsSectionProps {
   latitude: number | null
   longitude: number | null
   locked?: boolean
+  open?: boolean
+  onToggle?: () => void
+  isComplete?: boolean
+  onContinue?: () => void
+  continueLabel?: string
+  isPhaseComplete?: boolean
 }
 
 interface ExternalLinkProps {
@@ -43,14 +49,14 @@ function ExternalLink({ href, label, description, disabled, disabledHint }: Exte
   )
 }
 
-export default function ExternalToolsSection({ latitude, longitude, locked }: ExternalToolsSectionProps) {
+export default function ExternalToolsSection({ latitude, longitude, locked, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: ExternalToolsSectionProps) {
   const hasCoords = latitude !== null && longitude !== null
   const geoZonesUrl = hasCoords
     ? `https://maptool-dipul.dfs.de/geozones/@${longitude},${latitude}?language=de&zoom=12.2`
     : null
 
   return (
-    <ChecklistSection title="Externe Prüfungen" icon={<PiLink />} locked={locked} defaultOpen={false}>
+    <ChecklistSection title="Externe Prüfungen" icon={<PiLink />} locked={locked} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <div className="space-y-2">
         <ExternalLink
           href={geoZonesUrl}

@@ -49,7 +49,7 @@ function computeBadge(result: MissionResult): { label: string; status: MetricSta
   return undefined
 }
 
-export default function MissionResultSection() {
+export default function MissionResultSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean }) {
   const [result, setResult] = useMissionPersistedState<MissionResult>('result:outcome', null)
   const [abortReason, setAbortReason] = useMissionPersistedState<string>('result:abortReason', '')
   const [abortNotes, setAbortNotes] = useMissionPersistedState<string>('result:abortNotes', '')
@@ -73,7 +73,12 @@ export default function MissionResultSection() {
       title="Ergebnis"
       icon={<PiCheckCircle />}
       badge={badge}
-      defaultOpen={true}
+      open={open}
+      onToggle={onToggle}
+      isComplete={isComplete}
+      onContinue={onContinue}
+      continueLabel={continueLabel}
+      isPhaseComplete={isPhaseComplete}
     >
       <div className="space-y-2">
         {RESULT_OPTIONS.map(option => {

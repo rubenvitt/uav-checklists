@@ -6,6 +6,8 @@ import { useMissionId } from '../context/MissionContext'
 import { getMission } from '../utils/missionStorage'
 import { useMissions } from '../hooks/useMissions'
 import { generateMissionReport } from '../utils/generateMissionReport'
+import { useAutoExpand } from '../hooks/useAutoExpand'
+import { useNachbereitungCompleteness } from '../hooks/useSectionCompleteness'
 import EinsatzabschlussSection from './sections/EinsatzabschlussSection'
 import FlightDisruptionsSection from './sections/FlightDisruptionsSection'
 import MissionResultSection from './sections/MissionResultSection'
@@ -57,13 +59,17 @@ export default function NachbereitungPhase() {
     )
   }
 
+  // Auto-expand logic
+  const sections = useNachbereitungCompleteness()
+  const { openState, toggle, continueToNext, isComplete } = useAutoExpand(sections, 'nachbereitung')
+
   return (
     <div className="space-y-4">
-      <PostFlightInspectionSection />
-      <FlightDisruptionsSection />
-      <EinsatzabschlussSection />
-      <WartungPflegeSection />
-      <MissionResultSection />
+      <PostFlightInspectionSection open={openState.postflightinspection} onToggle={() => toggle('postflightinspection')} isComplete={isComplete.postflightinspection} onContinue={() => continueToNext('postflightinspection')} />
+      <FlightDisruptionsSection open={openState.flightdisruptions} onToggle={() => toggle('flightdisruptions')} isComplete={isComplete.flightdisruptions} onContinue={() => continueToNext('flightdisruptions')} />
+      <EinsatzabschlussSection open={openState.einsatzabschluss} onToggle={() => toggle('einsatzabschluss')} isComplete={isComplete.einsatzabschluss} onContinue={() => continueToNext('einsatzabschluss')} />
+      <WartungPflegeSection open={openState.wartungpflege} onToggle={() => toggle('wartungpflege')} isComplete={isComplete.wartungpflege} onContinue={() => continueToNext('wartungpflege')} />
+      <MissionResultSection open={openState.missionresult} onToggle={() => toggle('missionresult')} isComplete={isComplete.missionresult} onContinue={() => continueToNext('missionresult')} />
 
       {confirmComplete && (
         <div className="flex items-start gap-3 rounded-xl bg-caution-bg p-4">

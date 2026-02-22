@@ -30,7 +30,7 @@ export const FLUGBRIEFING_ITEMS = [
 // Component
 // ---------------------------------------------------------------------------
 
-export default function FlugbriefingSection() {
+export default function FlugbriefingSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean } = {}) {
   const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>('flugbriefing:checked', {})
 
   const checkedCount = FLUGBRIEFING_ITEMS.filter((item) => checked[item.key]).length
@@ -57,7 +57,7 @@ export default function FlugbriefingSection() {
   }
 
   return (
-    <ChecklistSection title="Flugbriefing" icon={<PiUsersThree />} badge={badge}>
+    <ChecklistSection title="Flugbriefing" icon={<PiUsersThree />} badge={badge} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <p className="text-xs text-text-muted -mt-1 mb-1">
         Alle Punkte im Team besprechen und bestätigen.
       </p>

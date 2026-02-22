@@ -21,7 +21,7 @@ export const FUNKTIONS_ITEMS: Array<{ key: string; label: string; hint?: string 
 // Component
 // ---------------------------------------------------------------------------
 
-export default function FunktionskontrolleSection() {
+export default function FunktionskontrolleSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean } = {}) {
   const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>('techcheck:funktionstest', {})
   const [flugFreigabe, setFlugFreigabe] = useMissionPersistedState<string | null>('flugfreigabe', null)
 
@@ -58,6 +58,12 @@ export default function FunktionskontrolleSection() {
       title="Erster Aufstieg & Freigabe"
       icon={<PiRocket />}
       badge={badge}
+      open={open}
+      onToggle={onToggle}
+      isComplete={isComplete}
+      onContinue={onContinue}
+      continueLabel={continueLabel}
+      isPhaseComplete={isPhaseComplete}
     >
       {/* Phase label */}
       <p className="text-xs text-text-muted -mt-1 mb-2">

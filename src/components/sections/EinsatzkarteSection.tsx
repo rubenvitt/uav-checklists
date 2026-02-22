@@ -57,9 +57,15 @@ interface EinsatzkarteSectionProps {
   latitude: number | null
   longitude: number | null
   locked: boolean
+  open?: boolean
+  onToggle?: () => void
+  isComplete?: boolean
+  onContinue?: () => void
+  continueLabel?: string
+  isPhaseComplete?: boolean
 }
 
-export default function EinsatzkarteSection({ latitude, longitude, locked }: EinsatzkarteSectionProps) {
+export default function EinsatzkarteSection({ latitude, longitude, locked, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: EinsatzkarteSectionProps) {
   const [mapData, setMapData] = useMapData()
   const [snapshot, setSnapshot] = useMissionPersistedState<string>('einsatzkarte:snapshot', '')
   const [photo, setPhoto] = useMissionPersistedState<string>('einsatzkarte:photo', '')
@@ -141,6 +147,12 @@ export default function EinsatzkarteSection({ latitude, longitude, locked }: Ein
       icon={<PiMapTrifold />}
       badge={badge}
       locked={locked}
+      open={open}
+      onToggle={onToggle}
+      isComplete={isComplete}
+      onContinue={onContinue}
+      continueLabel={continueLabel}
+      isPhaseComplete={isPhaseComplete}
     >
       {/* Mode toggle */}
       <div className="flex gap-1 rounded-lg bg-surface-alt p-1">

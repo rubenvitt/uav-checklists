@@ -172,50 +172,80 @@ function CheckSection({
   icon,
   storageKey,
   items,
+  open,
+  onToggle,
+  isComplete,
+  onContinue,
+  continueLabel,
+  isPhaseComplete,
 }: {
   title: string
   icon: ReactNode
   storageKey: string
   items: readonly CheckItem[]
+  open?: boolean
+  onToggle?: () => void
+  isComplete?: boolean
+  onContinue?: () => void
+  continueLabel?: string
+  isPhaseComplete?: boolean
 }) {
   const checklist = useQuickChecklist(storageKey, items)
 
   return (
-    <ChecklistSection title={title} icon={icon} badge={checklist.badge}>
+    <ChecklistSection title={title} icon={icon} badge={checklist.badge} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <QuickChecklistContent items={items} {...checklist} />
     </ChecklistSection>
   )
 }
 
-export function AufstiegsortSection() {
+export function AufstiegsortSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean }) {
   return (
     <CheckSection
       title="Aufstiegsort"
       icon={<PiMapPin />}
       storageKey="techcheck:aufstiegsort"
       items={AUFSTIEGSORT_ITEMS}
+      open={open}
+      onToggle={onToggle}
+      isComplete={isComplete}
+      onContinue={onContinue}
+      continueLabel={continueLabel}
+      isPhaseComplete={isPhaseComplete}
     />
   )
 }
 
-export function UavCheckSection() {
+export function UavCheckSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean }) {
   return (
     <CheckSection
       title="UAV"
       icon={<PiDrone />}
       storageKey="techcheck:uav"
       items={UAV_ITEMS}
+      open={open}
+      onToggle={onToggle}
+      isComplete={isComplete}
+      onContinue={onContinue}
+      continueLabel={continueLabel}
+      isPhaseComplete={isPhaseComplete}
     />
   )
 }
 
-export function RemoteControllerSection() {
+export function RemoteControllerSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean }) {
   return (
     <CheckSection
       title="Remote Controller (A und B)"
       icon={<PiGameController />}
       storageKey="techcheck:rc"
       items={RC_ITEMS}
+      open={open}
+      onToggle={onToggle}
+      isComplete={isComplete}
+      onContinue={onContinue}
+      continueLabel={continueLabel}
+      isPhaseComplete={isPhaseComplete}
     />
   )
 }
