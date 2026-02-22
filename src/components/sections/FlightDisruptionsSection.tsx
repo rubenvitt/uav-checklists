@@ -10,6 +10,7 @@ import type { DroneId } from '../../types/drone'
 import type { WeatherResponse } from '../../types/weather'
 import type { NearbyCategory } from '../../services/overpassApi'
 import { getDroneById } from '../../data/drones'
+import { useMissionSegment } from '../../hooks/useMissionSegment'
 import { computeAssessment } from '../../utils/assessment'
 import ChecklistSection from '../ChecklistSection'
 
@@ -96,27 +97,52 @@ const CATEGORY_NEARBY_KEYS: Record<string, string[]> = {
   funk: ['celltower'],
 }
 
+const STATUS_SEVERITY: Record<MetricStatus, number> = { good: 0, caution: 1, warning: 2 }
+
 function usePreflightHints(): Record<string, PreflightHint[]> {
   const missionId = useMissionId()
   const queryClient = useQueryClient()
+  const { segments } = useMissionSegment()
 
   // Read persisted mission data
   const selectedDrone = readStorage<DroneId>('selectedDrone', 'matrice-350-rtk', missionId)
   const maxAltitude = readStorage<number>('maxAltitude', 120, missionId)
-  const manualChecks = readStorage<Record<string, boolean>>('nearby:manualChecks', {}, missionId)
   const drone = getDroneById(selectedDrone)
 
-  // Read weather assessment from persisted mission data (with React Query cache fallback)
-  let weatherMetrics: MetricAssessment[] = []
+  // Segment IDs to iterate over (null = legacy non-prefixed)
+  const segmentIds = segments.length > 0 ? segments.map(s => s.id) : [null]
 
-  const persistedWeather = readStorage<WeatherResponse | null>('env:weather', null, missionId)
+  // Read manual checks from all segments (merged)
+  let manualChecks: Record<string, boolean> = {}
+  for (const segId of segmentIds) {
+    const prefix = segId ? `seg:${segId}:` : ''
+    const segChecks = readStorage<Record<string, boolean>>(`${prefix}nearby:manualChecks`, {}, missionId)
+    manualChecks = { ...manualChecks, ...segChecks }
+  }
+
+  // Read weather assessment from all segments (keep worst status per metric)
+  let weatherMetrics: MetricAssessment[] = []
   const persistedKIndex = readStorage<{ kIndex: number } | null>('env:kindex', null, missionId)
 
-  if (persistedWeather?.current && persistedKIndex?.kIndex != null) {
-    const assessment = computeAssessment(persistedWeather.current, persistedKIndex.kIndex, drone, persistedWeather.windByAltitude ?? undefined, maxAltitude)
-    weatherMetrics = assessment.metrics
-  } else {
-    // Fallback: try React Query cache
+  for (const segId of segmentIds) {
+    const prefix = segId ? `seg:${segId}:` : ''
+    const segWeather = readStorage<WeatherResponse | null>(`${prefix}env:weather`, null, missionId)
+
+    if (segWeather?.current && persistedKIndex?.kIndex != null) {
+      const assessment = computeAssessment(segWeather.current, persistedKIndex.kIndex, drone, segWeather.windByAltitude ?? undefined, maxAltitude)
+      for (const metric of assessment.metrics) {
+        const existing = weatherMetrics.find(m => m.key === metric.key)
+        if (!existing) {
+          weatherMetrics.push(metric)
+        } else if (STATUS_SEVERITY[metric.status] > STATUS_SEVERITY[existing.status]) {
+          weatherMetrics[weatherMetrics.indexOf(existing)] = metric
+        }
+      }
+    }
+  }
+
+  // Fallback: try React Query cache (for legacy missions without persisted segment data)
+  if (weatherMetrics.length === 0) {
     try {
       const raw = localStorage.getItem(`uav-manual-location:${missionId}`)
       if (raw) {
@@ -136,9 +162,25 @@ function usePreflightHints(): Record<string, PreflightHint[]> {
     } catch { /* ignore cache misses */ }
   }
 
-  // Read nearby categories from persisted mission data (with React Query cache fallback)
-  let nearbyCategories: NearbyCategory[] = readStorage<NearbyCategory[] | null>('env:nearby', null, missionId) ?? []
+  // Read nearby categories from all segments (merged)
+  let nearbyCategories: NearbyCategory[] = []
 
+  for (const segId of segmentIds) {
+    const prefix = segId ? `seg:${segId}:` : ''
+    const segNearby = readStorage<NearbyCategory[] | null>(`${prefix}env:nearby`, null, missionId)
+    if (segNearby) {
+      for (const cat of segNearby) {
+        const existing = nearbyCategories.find(c => c.key === cat.key)
+        if (!existing) {
+          nearbyCategories.push(cat)
+        } else if (cat.items.length > existing.items.length) {
+          nearbyCategories[nearbyCategories.indexOf(existing)] = cat
+        }
+      }
+    }
+  }
+
+  // Fallback: try React Query cache for nearby (legacy missions)
   if (nearbyCategories.length === 0) {
     try {
       const raw = localStorage.getItem(`uav-manual-location:${missionId}`)

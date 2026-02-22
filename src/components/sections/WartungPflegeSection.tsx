@@ -9,6 +9,7 @@ import { readStorage } from '../../hooks/usePersistedState'
 import { computeFollowupSuggestions, type FollowupContext, type FollowupSuggestion } from '../../utils/followupSuggestions'
 import { computeAssessment } from '../../utils/assessment'
 import { getDroneById } from '../../data/drones'
+import { useMissionSegment } from '../../hooks/useMissionSegment'
 import type { DroneId } from '../../types/drone'
 import type { FlightLogEntry } from '../../types/flightLog'
 import type { MetricStatus, MetricAssessment } from '../../types/assessment'
@@ -41,12 +42,22 @@ function useFollowupContext(): FollowupContext {
   const maxAltitude = readStorage<number>('maxAltitude', 120, missionId)
   const drone = getDroneById(selectedDrone)
 
-  // Read weather data for assessment
+  // Read weather data for assessment (segment-aware)
+  const { segments } = useMissionSegment()
+  const segmentIds = segments.length > 0 ? segments.map(s => s.id) : [null]
+
   let weatherCurrent: FollowupContext['weatherCurrent'] = null
   let humidityStatus: MetricStatus | null = null
 
-  const persistedWeather = readStorage<WeatherResponse | null>('env:weather', null, missionId)
   const persistedKIndex = readStorage<{ kIndex: number } | null>('env:kindex', null, missionId)
+
+  // Find weather data from segment-prefixed storage
+  let persistedWeather: WeatherResponse | null = null
+  for (const segId of segmentIds) {
+    const prefix = segId ? `seg:${segId}:` : ''
+    persistedWeather = readStorage<WeatherResponse | null>(`${prefix}env:weather`, null, missionId)
+    if (persistedWeather) break
+  }
 
   if (persistedWeather?.current) {
     weatherCurrent = {
@@ -61,7 +72,7 @@ function useFollowupContext(): FollowupContext {
       if (humidityMetric) humidityStatus = humidityMetric.status
     }
   } else {
-    // Fallback: try React Query cache
+    // Fallback: try React Query cache (legacy missions)
     try {
       const raw = localStorage.getItem(`uav-manual-location:${missionId}`)
       if (raw) {
