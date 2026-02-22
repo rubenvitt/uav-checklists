@@ -30,9 +30,18 @@ function OverviewLayout() {
           onCycleTheme={cycleTheme}
         />
         <MissionOverview />
-        <footer className="flex items-center justify-center gap-1.5 py-6 text-[11px] text-text-muted/40">
-          <PiShieldCheck className="text-sm" />
-          Alle Daten bleiben lokal auf deinem Gerät.
+        <footer className="flex flex-col items-center gap-2 py-6">
+          <span className="flex items-center gap-1.5 text-[11px] text-text-muted/40">
+            <PiShieldCheck className="text-sm" />
+            Alle Daten bleiben lokal auf deinem Gerät.
+          </span>
+          <button
+            type="button"
+            className="rounded bg-red-600/20 px-2 py-1 text-[10px] text-red-400 hover:bg-red-600/30"
+            onClick={() => { throw new Error('Sentry Test: Kaputten Button geklickt!') }}
+          >
+            Kaputter Button (Sentry-Test)
+          </button>
         </footer>
       </div>
     </div>
