@@ -1260,25 +1260,34 @@ export function generateReport(data: ReportData) {
     doc.text(rightText, margin + contentWidth - doc.getTextWidth(rightText), pageHeight - 10)
   }
 
-  // ── Download ─────────────────────────────────────────────────────────────
+  // ── Return blob for caller to handle ──────────────────────────────────────
 
   const filename = `UAV_Missionsbericht_${dateStr.replace(/\./g, '-')}.pdf`
   const blob = doc.output('blob')
-  const file = new File([blob], filename, { type: 'application/pdf' })
 
-  // Use Web Share API on mobile (iOS doesn't support <a download> properly)
-  if (navigator.canShare?.({ files: [file] })) {
-    navigator.share({ files: [file], title: 'UAV Missionsbericht' }).catch(() => {
-      // User cancelled share — ignore
-    })
-  } else {
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
+  return { blob, filename }
+}
+
+// ── PDF Download & Share Utilities ──────────────────────────────────────────
+
+export function downloadPdf(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+export function sharePdf(blob: Blob, filename: string) {
+  const file = new File([blob], filename, { type: 'application/pdf' })
+  return navigator.share({ files: [file], title: 'UAV Missionsbericht' })
+}
+
+export function canSharePdf() {
+  if (!navigator.canShare) return false
+  const testFile = new File([''], 'test.pdf', { type: 'application/pdf' })
+  return navigator.canShare({ files: [testFile] })
 }

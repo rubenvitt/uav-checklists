@@ -713,5 +713,5 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     segments: segmentReportDataList,
   }
 
-  generateReport(data)
+  return generateReport(data)
 }

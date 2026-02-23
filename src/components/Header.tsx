@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router'
-import { PiMonitor, PiSun, PiMoon, PiArrowsClockwise, PiFilePdf, PiArrowLeft } from 'react-icons/pi'
+import { PiMonitor, PiSun, PiMoon, PiArrowsClockwise, PiFilePdf, PiArrowLeft, PiShareNetwork } from 'react-icons/pi'
 import type { ThemeSetting } from '../hooks/useTheme'
 
 interface OverviewHeaderProps {
@@ -9,6 +9,7 @@ interface OverviewHeaderProps {
   onCycleTheme: () => void
   onRefresh?: undefined
   onExportPdf?: undefined
+  onSharePdf?: undefined
   missionLabel?: undefined
 }
 
@@ -19,6 +20,7 @@ interface MissionHeaderProps {
   onCycleTheme: () => void
   onRefresh?: () => void
   onExportPdf?: () => void
+  onSharePdf?: () => void
 }
 
 type HeaderProps = OverviewHeaderProps | MissionHeaderProps
@@ -76,10 +78,20 @@ export default function Header(props: HeaderProps) {
           <button
             onClick={props.onExportPdf}
             className={iconBtnClass}
-            aria-label="Als PDF exportieren"
-            title="Als PDF exportieren"
+            aria-label="PDF herunterladen"
+            title="PDF herunterladen"
           >
             <PiFilePdf />
+          </button>
+        )}
+        {props.onSharePdf && (
+          <button
+            onClick={props.onSharePdf}
+            className={iconBtnClass}
+            aria-label="PDF teilen"
+            title="PDF teilen"
+          >
+            <PiShareNetwork />
           </button>
         )}
         <button

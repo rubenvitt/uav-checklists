@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { PiCheckCircle, PiFilePdf, PiWarning, PiInfo } from 'react-icons/pi'
+import { PiCheckCircle, PiFilePdf, PiWarning, PiInfo, PiShareNetwork } from 'react-icons/pi'
 import { useMissionId } from '../context/MissionContext'
 import { getMission, getSegments } from '../utils/missionStorage'
 import { readStorage } from '../hooks/usePersistedState'
 import { useMissions } from '../hooks/useMissions'
 import { generateMissionReport } from '../utils/generateMissionReport'
+import { downloadPdf, sharePdf, canSharePdf } from '../utils/generateReport'
 import { useAutoExpand } from '../hooks/useAutoExpand'
 import { useNachbereitungCompleteness } from '../hooks/useSectionCompleteness'
 import type { FlightLogEntry } from '../types/flightLog'
@@ -41,8 +42,14 @@ export default function NachbereitungPhase() {
     navigate('/')
   }
 
-  const handleExportPdf = () => {
-    generateMissionReport(missionId, queryClient)
+  const handleDownloadPdf = () => {
+    const result = generateMissionReport(missionId, queryClient)
+    if (result) downloadPdf(result.blob, result.filename)
+  }
+
+  const handleSharePdf = () => {
+    const result = generateMissionReport(missionId, queryClient)
+    if (result) sharePdf(result.blob, result.filename).catch(() => { /* user cancelled */ })
   }
 
   if (isCompleted) {
@@ -57,13 +64,25 @@ export default function NachbereitungPhase() {
             </p>
           </div>
         </div>
-        <button
-          onClick={handleExportPdf}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt active:scale-[0.99]"
-        >
-          <PiFilePdf className="text-lg" />
-          Einsatzbericht als PDF exportieren
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleDownloadPdf}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt active:scale-[0.99]"
+          >
+            <PiFilePdf className="text-lg" />
+            PDF herunterladen
+          </button>
+          {canSharePdf() && (
+            <button
+              onClick={handleSharePdf}
+              className="flex items-center justify-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt active:scale-[0.99]"
+              aria-label="PDF teilen"
+              title="PDF teilen"
+            >
+              <PiShareNetwork className="text-lg" />
+            </button>
+          )}
+        </div>
       </div>
     )
   }
