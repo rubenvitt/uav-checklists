@@ -52,6 +52,10 @@ export default function NachbereitungPhase() {
     if (result) sharePdf(result.blob, result.filename).catch(() => { /* user cancelled */ })
   }
 
+  // Auto-expand logic — must be called unconditionally (Rules of Hooks)
+  const sections = useNachbereitungCompleteness(hasFlights)
+  const { openState, toggle, continueToNext, isComplete } = useAutoExpand(sections, 'nachbereitung')
+
   if (isCompleted) {
     return (
       <div className="space-y-4">
@@ -86,10 +90,6 @@ export default function NachbereitungPhase() {
       </div>
     )
   }
-
-  // Auto-expand logic
-  const sections = useNachbereitungCompleteness(hasFlights)
-  const { openState, toggle, continueToNext, isComplete } = useAutoExpand(sections, 'nachbereitung')
 
   return (
     <div className="space-y-4">

@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react'
 
 Sentry.init({
   dsn: 'https://41757821305362d95e55f076d122fc5f@sentry.rubeen.dev/2',
+  release: __SENTRY_RELEASE__,
   sendDefaultPii: true,
   integrations: [
     Sentry.browserTracingIntegration(),
