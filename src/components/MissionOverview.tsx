@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { PiPlus, PiTrash, PiClock, PiMapTrifold, PiFilePdf, PiCheckCircle } from 'react-icons/pi'
+import { PiPlus, PiTrash, PiClock, PiMapTrifold, PiFilePdf, PiCheckCircle, PiShareNetwork } from 'react-icons/pi'
 import { useMissions } from '../hooks/useMissions'
 import { useMissionDisplayLabel } from '../hooks/useMissionDisplayLabel'
 import { getRemainingTime } from '../utils/missionStorage'
 import { generateMissionReport } from '../utils/generateMissionReport'
+import { downloadPdf, sharePdf, canSharePdf } from '../utils/generateReport'
 import type { Mission, MissionPhase } from '../types/mission'
 
 const PHASE_LABELS: Record<MissionPhase, string> = {
@@ -92,7 +93,8 @@ export default function MissionOverview() {
             isConfirmingDelete={confirmDelete === mission.id}
             onNavigate={() => navigate(`/mission/${mission.id}/${mission.phase}`)}
             onDelete={() => handleDelete(mission.id)}
-            onExportPdf={() => generateMissionReport(mission.id, queryClient)}
+            onDownloadPdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) downloadPdf(r.blob, r.filename) }}
+            onSharePdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) sharePdf(r.blob, r.filename).catch(() => {}) }}
           />
         ))}
       </div>
@@ -109,7 +111,8 @@ export default function MissionOverview() {
               isConfirmingDelete={confirmDelete === mission.id}
               onNavigate={() => navigate(`/mission/${mission.id}/nachbereitung`)}
               onDelete={() => handleDelete(mission.id)}
-              onExportPdf={() => generateMissionReport(mission.id, queryClient)}
+              onDownloadPdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) downloadPdf(r.blob, r.filename) }}
+            onSharePdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) sharePdf(r.blob, r.filename).catch(() => {}) }}
             />
           ))}
         </div>
@@ -118,12 +121,13 @@ export default function MissionOverview() {
   )
 }
 
-function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onExportPdf }: {
+function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onDownloadPdf, onSharePdf }: {
   mission: Mission
   isConfirmingDelete: boolean
   onNavigate: () => void
   onDelete: () => void
-  onExportPdf: () => void
+  onDownloadPdf: () => void
+  onSharePdf: () => void
 }) {
   const isCompleted = !!mission.completedAt
   const displayLabel = useMissionDisplayLabel(mission.id, mission.createdAt)
@@ -167,14 +171,27 @@ function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onExpo
           <button
             onClick={(e) => {
               e.stopPropagation()
-              onExportPdf()
+              onDownloadPdf()
             }}
             className={`${iconBtnClass} hover:bg-surface-alt hover:text-text`}
-            aria-label="Als PDF exportieren"
-            title="Als PDF exportieren"
+            aria-label="PDF herunterladen"
+            title="PDF herunterladen"
           >
             <PiFilePdf />
           </button>
+          {canSharePdf() && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onSharePdf()
+              }}
+              className={`${iconBtnClass} hover:bg-surface-alt hover:text-text`}
+              aria-label="PDF teilen"
+              title="PDF teilen"
+            >
+              <PiShareNetwork />
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation()

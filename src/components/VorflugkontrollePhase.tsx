@@ -31,10 +31,10 @@ import FlugbriefingSection, { FLUGBRIEFING_ITEMS } from './sections/Flugbriefing
 import FunktionskontrolleSection, { FUNKTIONS_ITEMS } from './sections/FunktionskontrolleSection'
 
 interface VorflugkontrollePhaseProps {
-  setExportPdf: (fn: () => void) => void
+  setGetPdfBlob: (fn: () => { blob: Blob; filename: string }) => void
 }
 
-export default function VorflugkontrollePhase({ setExportPdf }: VorflugkontrollePhaseProps) {
+export default function VorflugkontrollePhase({ setGetPdfBlob }: VorflugkontrollePhaseProps) {
   const missionId = useMissionId()
   const segmentId = useSegmentId()
   const queryClient = useQueryClient()
@@ -110,7 +110,7 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
 
   // Register PDF export handler
   useEffect(() => {
-    setExportPdf(() => {
+    setGetPdfBlob(() => {
       const mission = getMission(missionId)
       const locationName = geo.isManual && geo.manualName
         ? geo.manualName.split(',').slice(0, 2).map(p => p.trim()).join(', ')
@@ -284,7 +284,7 @@ export default function VorflugkontrollePhase({ setExportPdf }: Vorflugkontrolle
         checklistGroups,
         flugfreigabe,
       }
-      generateReport(data)
+      return generateReport(data)
     })
   })
 
