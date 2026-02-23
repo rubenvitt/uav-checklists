@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router'
-import { PiShieldCheck } from 'react-icons/pi'
+import { PiShieldCheck, PiChatDots } from 'react-icons/pi'
+import * as Sentry from '@sentry/react'
 import { useCallback, useRef, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { MissionProvider, useMissionId } from './context/MissionContext'
@@ -18,6 +19,36 @@ import VorflugkontrollePhase from './components/VorflugkontrollePhase'
 import FluegePhase from './components/FluegePhase'
 import NachbereitungPhase from './components/NachbereitungPhase'
 
+function openFeedback() {
+  const isDark = document.documentElement.classList.contains('dark')
+  const feedback = Sentry.getFeedback()
+  feedback?.createForm({ colorScheme: isDark ? 'dark' : 'light' }).then(form => {
+    form.appendToDom()
+    form.open()
+    const shadow = document.querySelector('#sentry-feedback')?.shadowRoot
+    if (shadow && !shadow.querySelector('#feedback-backdrop')) {
+      const style = document.createElement('style')
+      style.id = 'feedback-backdrop'
+      style.textContent = '@media (max-width: 640px) { .dialog { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.15); } }'
+      shadow.appendChild(style)
+    }
+  })
+}
+
+function AppFooter() {
+  return (
+    <footer className="flex items-center justify-center gap-1.5 py-6 text-[11px] text-text-muted/40">
+      <PiShieldCheck className="text-sm" />
+      Alle Daten bleiben lokal auf deinem Gerät.
+      <span className="mx-1">·</span>
+      <button onClick={openFeedback} className="inline-flex items-center gap-1 hover:text-text-muted transition-colors">
+        <PiChatDots className="text-sm" />
+        Feedback
+      </button>
+    </footer>
+  )
+}
+
 function OverviewLayout() {
   const { setting: themeSetting, cycle: cycleTheme } = useTheme(null)
 
@@ -30,10 +61,7 @@ function OverviewLayout() {
           onCycleTheme={cycleTheme}
         />
         <MissionOverview />
-        <footer className="flex items-center justify-center gap-1.5 py-6 text-[11px] text-text-muted/40">
-          <PiShieldCheck className="text-sm" />
-          Alle Daten bleiben lokal auf deinem Gerät.
-        </footer>
+        <AppFooter />
       </div>
     </div>
   )
@@ -130,10 +158,7 @@ function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
           )}
           {currentPhase === 'fluege' && <FluegePhase />}
           {currentPhase === 'nachbereitung' && <NachbereitungPhase />}
-          <footer className="flex items-center justify-center gap-1.5 py-6 text-[11px] text-text-muted/40">
-            <PiShieldCheck className="text-sm" />
-            Alle Daten bleiben lokal auf deinem Gerät.
-          </footer>
+          <AppFooter />
         </div>
       </div>
     </SegmentProvider>
