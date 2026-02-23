@@ -1178,6 +1178,59 @@ export function generateReport(data: ReportData) {
   }
 
   // ════════════════════════════════════════════════════════════════════════
+  // UNTERSCHRIFTEN (Signature Section)
+  // ════════════════════════════════════════════════════════════════════════
+
+  checkPageBreak(70)
+  y += 10
+
+  // Section header
+  doc.setFontSize(FONTS.sectionHeader)
+  doc.setFont('helvetica', 'bold')
+  setColor(COLORS.text)
+  doc.text('Unterschriften', margin, y)
+  y += 10
+
+  const sigWidth = (contentWidth - 10) / 2 // Two signature blocks side by side
+
+  // Resolve names from crew data
+  const fkName = data.truppstaerke?.members.find(m => m.role === 'Führungskraft')?.name || ''
+  const elName = data.einsatzdetails?.einsatzleiter || ''
+
+  // Left: Führungskraft UAS
+  if (fkName) {
+    doc.setFontSize(FONTS.body)
+    doc.setFont('helvetica', 'normal')
+    setColor(COLORS.text)
+    doc.text(fkName, margin, y + 16)
+  }
+  setDraw(COLORS.textMuted)
+  doc.setLineWidth(0.4)
+  doc.line(margin, y + 20, margin + sigWidth, y + 20)
+  doc.setFontSize(FONTS.small)
+  doc.setFont('helvetica', 'normal')
+  setColor(COLORS.textMuted)
+  doc.text('Ort, Datum', margin, y + 25)
+  doc.text('Führungskraft UAS', margin, y + 30)
+
+  // Right: Einsatzleitung
+  const rightX = margin + sigWidth + 10
+  if (elName) {
+    doc.setFontSize(FONTS.body)
+    doc.setFont('helvetica', 'normal')
+    setColor(COLORS.text)
+    doc.text(elName, rightX, y + 16)
+  }
+  doc.line(rightX, y + 20, rightX + sigWidth, y + 20)
+  doc.setFontSize(FONTS.small)
+  doc.setFont('helvetica', 'normal')
+  setColor(COLORS.textMuted)
+  doc.text('Ort, Datum', rightX, y + 25)
+  doc.text('Einsatzleitung', rightX, y + 30)
+
+  y += 40
+
+  // ════════════════════════════════════════════════════════════════════════
   // FOOTER (all pages)
   // ════════════════════════════════════════════════════════════════════════
 
@@ -1207,7 +1260,25 @@ export function generateReport(data: ReportData) {
     doc.text(rightText, margin + contentWidth - doc.getTextWidth(rightText), pageHeight - 10)
   }
 
-  // ── Save ────────────────────────────────────────────────────────────────
+  // ── Download ─────────────────────────────────────────────────────────────
 
-  doc.save(`UAV_Missionsbericht_${dateStr.replace(/\./g, '-')}.pdf`)
+  const filename = `UAV_Missionsbericht_${dateStr.replace(/\./g, '-')}.pdf`
+  const blob = doc.output('blob')
+  const file = new File([blob], filename, { type: 'application/pdf' })
+
+  // Use Web Share API on mobile (iOS doesn't support <a download> properly)
+  if (navigator.canShare?.({ files: [file] })) {
+    navigator.share({ files: [file], title: 'UAV Missionsbericht' }).catch(() => {
+      // User cancelled share — ignore
+    })
+  } else {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 }
