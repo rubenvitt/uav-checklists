@@ -185,6 +185,18 @@ export interface ReportData {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+/**
+ * Strip characters that jsPDF's built-in helvetica (WinAnsiEncoding) cannot render.
+ * Keeps printable ASCII (U+0020–U+007E) and Latin-1 Supplement (U+00A0–U+00FF),
+ * plus common Windows-1252 extras (€, –, —, ', ', ", ", …).
+ * Everything else (emoji, CJK, etc.) is removed to prevent garbled glyphs
+ * and corrupted text metrics in the PDF.
+ */
+function sanitizeForPdf(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/[^\x20-\x7E\xA0-\xFF\u20AC\u2013\u2014\u2018\u2019\u201C\u201D\u2026\u2022]/g, '').trim()
+}
+
 function formatDistance(meters: number): string {
   if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`
   return `${meters} m`
@@ -374,7 +386,7 @@ export function generateReport(data: ReportData) {
       doc.setFontSize(FONTS.small)
       doc.setFont('helvetica', 'italic')
       setColor(COLORS.textLight)
-      const noteLines = doc.splitTextToSize(`\u2192 ${note}`, contentWidth - 14)
+      const noteLines = doc.splitTextToSize(`\u2192 ${sanitizeForPdf(note)}`, contentWidth - 14)
       doc.text(noteLines, margin + 10, y)
       y += noteLines.length * 4
     }
@@ -410,7 +422,7 @@ export function generateReport(data: ReportData) {
     setColor(COLORS.textMuted)
     doc.text(key, margin, y)
     setColor(COLORS.text)
-    doc.text(value, margin + 60, y)
+    doc.text(sanitizeForPdf(value), margin + 60, y)
     y += 5.5
   }
 
@@ -708,7 +720,7 @@ export function generateReport(data: ReportData) {
       if (note.text) {
         doc.setFont('helvetica', 'normal')
         setColor(COLORS.text)
-        const lines = doc.splitTextToSize(note.text, contentWidth - 4)
+        const lines = doc.splitTextToSize(sanitizeForPdf(note.text), contentWidth - 4)
         checkPageBreak(lines.length * 4.5)
         doc.text(lines, margin + 2, y)
         y += lines.length * 4.5
@@ -910,7 +922,7 @@ export function generateReport(data: ReportData) {
       doc.text('Weitere Informationen', margin, y)
       y += 4
       setColor(COLORS.text)
-      const lines = doc.splitTextToSize(data.einsatzauftrag.freitext, contentWidth - 4)
+      const lines = doc.splitTextToSize(sanitizeForPdf(data.einsatzauftrag.freitext), contentWidth - 4)
       doc.text(lines, margin, y)
       y += lines.length * 4.5
     }
@@ -1027,7 +1039,7 @@ export function generateReport(data: ReportData) {
         if (cat.note) {
           doc.setFont('helvetica', 'normal')
           setColor(COLORS.text)
-          const lines = doc.splitTextToSize(cat.note, contentWidth - 4)
+          const lines = doc.splitTextToSize(sanitizeForPdf(cat.note), contentWidth - 4)
           checkPageBreak(lines.length * 4.5)
           doc.text(lines, margin + 2, y)
           y += lines.length * 4.5
@@ -1062,7 +1074,7 @@ export function generateReport(data: ReportData) {
       doc.setFontSize(FONTS.body)
       doc.setFont('helvetica', 'normal')
       setColor(COLORS.text)
-      const remarkLines = doc.splitTextToSize(pfi.remarks, contentWidth - 4)
+      const remarkLines = doc.splitTextToSize(sanitizeForPdf(pfi.remarks), contentWidth - 4)
       checkPageBreak(remarkLines.length * 4.5)
       doc.text(remarkLines, margin + 2, y)
       y += remarkLines.length * 4.5
@@ -1108,7 +1120,7 @@ export function generateReport(data: ReportData) {
       doc.setFontSize(FONTS.body)
       doc.setFont('helvetica', 'normal')
       setColor(COLORS.text)
-      const fbLines = doc.splitTextToSize(ea.feedback, contentWidth - 4)
+      const fbLines = doc.splitTextToSize(sanitizeForPdf(ea.feedback), contentWidth - 4)
       checkPageBreak(fbLines.length * 4.5)
       doc.text(fbLines, margin + 2, y)
       y += fbLines.length * 4.5
@@ -1169,7 +1181,7 @@ export function generateReport(data: ReportData) {
         doc.text('Details', margin, y)
         y += 4
         setColor(COLORS.text)
-        const lines = doc.splitTextToSize(mr.abortNotes, contentWidth - 4)
+        const lines = doc.splitTextToSize(sanitizeForPdf(mr.abortNotes), contentWidth - 4)
         checkPageBreak(lines.length * 4.5)
         doc.text(lines, margin + 2, y)
         y += lines.length * 4.5

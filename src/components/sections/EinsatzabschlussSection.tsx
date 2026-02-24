@@ -17,6 +17,7 @@ import {
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
 import { useMissionId } from '../../context/MissionContext'
 import { readStorage } from '../../hooks/usePersistedState'
+import { getSegments } from '../../utils/missionStorage'
 import { getDroneById } from '../../data/drones'
 import type { DroneId } from '../../types/drone'
 import type { FlightLogEntry } from '../../types/flightLog'
@@ -43,9 +44,22 @@ interface WrapupItem {
 function useWrapupItems(): { items: WrapupItem[]; noAnmeldungen: boolean } {
   const missionId = useMissionId()
 
-  // --- Anmeldungen aus Vorflugkontrolle ---
-  const anmeldungenChecked = readStorage<Record<string, boolean>>('anmeldungen:checked', {}, missionId)
-  const anmeldungenAdditional = readStorage<AdditionalNotification[]>('anmeldungen:additional', [], missionId)
+  // --- Anmeldungen aus Vorflugkontrolle (segment-scoped) ---
+  const segments = getSegments(missionId)
+  const anmeldungenChecked: Record<string, boolean> = {}
+  let anmeldungenAdditional: AdditionalNotification[] = []
+  for (const seg of segments) {
+    const segChecked = readStorage<Record<string, boolean>>(`seg:${seg.id}:anmeldungen:checked`, {}, missionId)
+    for (const [k, v] of Object.entries(segChecked)) {
+      if (v) anmeldungenChecked[k] = true
+    }
+    const segAdditional = readStorage<AdditionalNotification[]>(`seg:${seg.id}:anmeldungen:additional`, [], missionId)
+    for (const item of segAdditional) {
+      if (item.label && !anmeldungenAdditional.some(a => a.label === item.label)) {
+        anmeldungenAdditional.push(item)
+      }
+    }
+  }
 
   // --- Flugdaten ---
   const entries = readStorage<FlightLogEntry[]>('flightlog:entries', [], missionId)

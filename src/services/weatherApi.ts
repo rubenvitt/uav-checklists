@@ -15,9 +15,11 @@ function lerpAngle(a: number, b: number, t: number): number {
 
 function findCurrentHourIndex(times: string[]): number {
   const now = new Date()
-  const currentHour = now.getHours()
-  const todayStr = now.toISOString().slice(0, 10)
-  const target = `${todayStr}T${String(currentHour).padStart(2, '0')}:00`
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hour = String(now.getHours()).padStart(2, '0')
+  const target = `${year}-${month}-${day}T${hour}:00`
   const idx = times.findIndex((t) => t === target)
   return idx >= 0 ? idx : 0
 }
@@ -99,25 +101,22 @@ function buildWindByAltitude(hourly: Record<string, number[]>, idx: number, maxA
   return steps.map((alt) => interpolateAtAltitude(alt, anchors))
 }
 
-function buildHourlyForecast(hourly: Record<string, (number | string)[]>, startIdx: number): HourlyForecastPoint[] {
+function buildHourlyForecast(hourly: Record<string, (number | string)[]>): HourlyForecastPoint[] {
   const points: HourlyForecastPoint[] = []
   const times = hourly.time as string[]
-  const count = Math.min(24, times.length - startIdx)
 
-  for (let i = 0; i < count; i++) {
-    const idx = startIdx + i
-    const timeStr = times[idx] as string
+  for (let i = 0; i < times.length; i++) {
     points.push({
-      time: timeStr.slice(11, 16),
-      temperature: hourly.temperature_2m[idx] as number,
-      windSpeed: hourly.wind_speed_10m[idx] as number,
-      windGusts: hourly.wind_gusts_10m[idx] as number,
-      humidity: hourly.relative_humidity_2m[idx] as number,
-      precipitationProbability: hourly.precipitation_probability[idx] as number,
-      visibility: hourly.visibility[idx] as number,
-      pressure: hourly.surface_pressure[idx] as number,
-      dewPoint: hourly.dew_point_2m[idx] as number,
-      weatherCode: hourly.weather_code[idx] as number,
+      time: times[i] as string,
+      temperature: hourly.temperature_2m[i] as number,
+      windSpeed: hourly.wind_speed_10m[i] as number,
+      windGusts: hourly.wind_gusts_10m[i] as number,
+      humidity: hourly.relative_humidity_2m[i] as number,
+      precipitationProbability: hourly.precipitation_probability[i] as number,
+      visibility: hourly.visibility[i] as number,
+      pressure: hourly.surface_pressure[i] as number,
+      dewPoint: hourly.dew_point_2m[i] as number,
+      weatherCode: hourly.weather_code[i] as number,
     })
   }
 
@@ -168,7 +167,7 @@ export async function fetchWeather(lat: number, lon: number, maxAltitude: number
       'weather_code',
     ].join(','),
     timezone: 'auto',
-    forecast_days: '1',
+    forecast_days: '2',
   })
 
   const response = await fetch(`${BASE_URL}?${params}`)
@@ -199,6 +198,6 @@ export async function fetchWeather(lat: number, lon: number, maxAltitude: number
     current,
     sun: buildSunData(json.daily),
     windByAltitude: buildWindByAltitude(json.hourly, hourlyIdx, maxAltitude),
-    hourlyForecast: buildHourlyForecast(json.hourly, hourlyIdx),
+    hourlyForecast: buildHourlyForecast(json.hourly),
   }
 }
