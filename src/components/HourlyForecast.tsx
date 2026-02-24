@@ -42,8 +42,24 @@ interface MetricRow {
   status: (p: HourlyForecastPoint) => MetricStatus
 }
 
+function filterNextHours(data: HourlyForecastPoint[], count: number): HourlyForecastPoint[] {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  const hour = String(now.getHours()).padStart(2, '0')
+  const nowStr = `${year}-${month}-${day}T${hour}:00`
+  const startIdx = data.findIndex((p) => p.time >= nowStr)
+  return data.slice(startIdx >= 0 ? startIdx : 0, (startIdx >= 0 ? startIdx : 0) + count)
+}
+
+function formatDisplayTime(isoTime: string): string {
+  return isoTime.slice(11, 16)
+}
+
 export default function HourlyForecast({ data, drone }: { data: HourlyForecastPoint[]; drone: DroneSpec }) {
   const hasIp = drone.ipRating !== null
+  const visibleData = filterNextHours(data, 24)
 
   const rows: MetricRow[] = [
     {
@@ -109,15 +125,15 @@ export default function HourlyForecast({ data, drone }: { data: HourlyForecastPo
           <thead>
             <tr>
               <th className="sticky left-0 z-10 bg-surface" />
-              {data.map((p) => (
+              {visibleData.map((p) => (
                 <th key={p.time} className="min-w-14 px-1 pb-1 text-center text-xs font-normal text-text-muted">
-                  {p.time}
+                  {formatDisplayTime(p.time)}
                 </th>
               ))}
             </tr>
             <tr>
               <td className="sticky left-0 z-10 bg-surface" />
-              {data.map((p) => (
+              {visibleData.map((p) => (
                 <td key={p.time} className="pb-1 text-center text-base">
                   {weatherIcon(p.weatherCode)}
                 </td>
@@ -130,7 +146,7 @@ export default function HourlyForecast({ data, drone }: { data: HourlyForecastPo
                 <td className="sticky left-0 z-10 bg-surface pr-2 text-xs text-text-muted whitespace-nowrap">
                   <span className="inline-flex items-center gap-1">{row.icon} {row.label}</span>
                 </td>
-                {data.map((p) => (
+                {visibleData.map((p) => (
                   <td
                     key={p.time}
                     className={`rounded px-1 py-1 text-center text-xs font-medium ${statusBg[row.status(p)]}`}
