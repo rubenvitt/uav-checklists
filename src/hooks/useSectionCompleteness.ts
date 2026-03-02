@@ -80,6 +80,7 @@ export function useVorflugkontrolleCompleteness(
     rcChecked: s['techcheck:rc'] as Record<string, boolean> | undefined,
     flugbriefingChecked: (s[`${segPrefix}flugbriefing:checked`] ?? s['flugbriefing:checked']) as Record<string, boolean> | undefined,
     flugfreigabe: (s[`${segPrefix}flugfreigabe`] ?? s['flugfreigabe']) as string | null | undefined,
+    flugentscheidung: (s[`${segPrefix}flugentscheidung`] ?? s['flugentscheidung']) as { status: 'granted' | 'denied'; timestamp: string } | null | undefined,
   }))
 
   // Anmeldungen: at least leitstelle + polizei must be checked
@@ -134,7 +135,7 @@ export function useVorflugkontrolleCompleteness(
     },
     {
       id: 'funktionskontrolle',
-      isComplete: !!state.flugfreigabe,
+      isComplete: !!state.flugentscheidung || !!state.flugfreigabe,
     },
   ]
 }

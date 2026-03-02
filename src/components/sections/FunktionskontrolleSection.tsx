@@ -3,6 +3,22 @@ import { useSegmentPersistedState } from '../../hooks/useSegmentPersistedState'
 import type { MetricStatus } from '../../types/assessment'
 import ChecklistSection from '../ChecklistSection'
 
+type FlightDecision = {
+  status: 'granted' | 'denied'
+  timestamp: string
+}
+
+interface FunktionskontrolleSectionProps {
+  open?: boolean
+  onToggle?: () => void
+  isComplete?: boolean
+  onContinue?: () => void
+  continueLabel?: string
+  isPhaseComplete?: boolean
+  noGoRecommended?: boolean
+  noGoReasons?: string[]
+}
+
 // ---------------------------------------------------------------------------
 // Functional test items (3m hover)
 // ---------------------------------------------------------------------------
@@ -21,18 +37,32 @@ export const FUNKTIONS_ITEMS: Array<{ key: string; label: string; hint?: string 
 // Component
 // ---------------------------------------------------------------------------
 
-export default function FunktionskontrolleSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean } = {}) {
+export default function FunktionskontrolleSection({
+  open,
+  onToggle,
+  isComplete,
+  onContinue,
+  continueLabel,
+  isPhaseComplete,
+  noGoRecommended = false,
+  noGoReasons = [],
+}: FunktionskontrolleSectionProps = {}) {
   const [checked, setChecked] = useSegmentPersistedState<Record<string, boolean>>('techcheck:funktionstest', {})
   const [flugFreigabe, setFlugFreigabe] = useSegmentPersistedState<string | null>('flugfreigabe', null)
+  const [flugEntscheidung, setFlugEntscheidung] = useSegmentPersistedState<FlightDecision | null>('flugentscheidung', null)
 
   const checkedCount = FUNKTIONS_ITEMS.filter((item) => checked[item.key]).length
   const totalCount = FUNKTIONS_ITEMS.length
   const allChecked = checkedCount === totalCount
 
-  const isFreigegeben = !!flugFreigabe
+  const effectiveDecision: FlightDecision | null = flugEntscheidung ?? (flugFreigabe ? { status: 'granted', timestamp: flugFreigabe } : null)
+  const isFreigegeben = effectiveDecision?.status === 'granted'
+  const isAbgelehnt = effectiveDecision?.status === 'denied'
 
   const badge: { label: string; status: MetricStatus } = isFreigegeben
     ? { label: 'Flug freigegeben', status: 'good' }
+    : isAbgelehnt
+      ? { label: 'Flug nicht freigegeben', status: 'warning' }
     : allChecked
       ? { label: 'Bereit', status: 'caution' }
       : { label: `${checkedCount}/${totalCount}`, status: 'warning' }
@@ -40,17 +70,27 @@ export default function FunktionskontrolleSection({ open, onToggle, isComplete, 
   function toggleCheck(key: string) {
     setChecked((prev) => ({ ...prev, [key]: !prev[key] }))
     // Revoke clearance if a test item is unchecked
-    if (checked[key] && isFreigegeben) {
+    if (checked[key] && effectiveDecision) {
       setFlugFreigabe(null)
+      setFlugEntscheidung(null)
     }
   }
 
   function grantClearance() {
-    setFlugFreigabe(new Date().toISOString())
+    const timestamp = new Date().toISOString()
+    setFlugFreigabe(timestamp)
+    setFlugEntscheidung({ status: 'granted', timestamp })
+  }
+
+  function denyClearance() {
+    const timestamp = new Date().toISOString()
+    setFlugFreigabe(null)
+    setFlugEntscheidung({ status: 'denied', timestamp })
   }
 
   function revokeClearance() {
     setFlugFreigabe(null)
+    setFlugEntscheidung(null)
   }
 
   return (
@@ -109,7 +149,7 @@ export default function FunktionskontrolleSection({ open, onToggle, isComplete, 
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-good">Flug freigegeben</p>
                   <p className="text-xs text-good/70">
-                    {new Date(flugFreigabe!).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr
+                    {new Date(effectiveDecision!.timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr
                   </p>
                 </div>
               </div>
@@ -120,19 +160,58 @@ export default function FunktionskontrolleSection({ open, onToggle, isComplete, 
                 Freigabe widerrufen
               </button>
             </div>
+          ) : isAbgelehnt ? (
+            <div className="space-y-2">
+              <div className="rounded-lg bg-warning/10 px-4 py-3">
+                <p className="text-sm font-semibold text-warning">Flug nicht freigegeben</p>
+                <p className="text-xs text-warning/80">
+                  Entscheidung um {new Date(effectiveDecision!.timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr. Nach Neubewertung oder Standortwechsel bitte erneut entscheiden.
+                </p>
+              </div>
+              <button
+                onClick={revokeClearance}
+                className="text-xs text-text-muted hover:text-caution transition-colors"
+              >
+                Erneut entscheiden
+              </button>
+            </div>
           ) : (
-            <button
-              onClick={grantClearance}
-              disabled={!allChecked}
-              className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
-                allChecked
-                  ? 'bg-good text-white hover:bg-good/90'
-                  : 'bg-surface-alt text-text-muted cursor-not-allowed'
-              }`}
-            >
-              <PiShieldCheck className="text-[1rem]" />
-              Flug freigeben
-            </button>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <button
+                onClick={grantClearance}
+                disabled={!allChecked}
+                className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
+                  allChecked
+                    ? 'bg-good text-white hover:bg-good/90'
+                    : 'bg-surface-alt text-text-muted cursor-not-allowed'
+                }`}
+              >
+                <PiShieldCheck className="text-[1rem]" />
+                Flug freigeben
+              </button>
+              <button
+                onClick={denyClearance}
+                className={`rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
+                  noGoRecommended
+                    ? 'bg-warning text-white hover:bg-warning/90'
+                    : 'border border-warning/40 bg-warning/10 text-warning hover:bg-warning/20'
+                }`}
+              >
+                Flug nicht freigeben
+              </button>
+              {noGoReasons.length > 0 && (
+                <div className="sm:col-span-2 rounded-lg border border-warning/30 bg-warning-bg px-3 py-2">
+                  <p className="text-xs font-semibold text-warning">Empfehlung gegen Freigabe</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {noGoReasons.map((reason) => (
+                      <li key={reason} className="text-xs text-warning/90">
+                        • {reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
