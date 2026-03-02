@@ -187,11 +187,17 @@ export function canAccessPhase(missionId: string, phase: MissionPhase): boolean 
   const mission = getMission(missionId)
   const segmentId = mission?.activeSegmentId
   const flugfreigabeKey = segmentId ? `seg:${segmentId}:flugfreigabe` : 'flugfreigabe'
+  const flugentscheidungKey = segmentId ? `seg:${segmentId}:flugentscheidung` : 'flugentscheidung'
   const flugfreigabe = readStorage<string | null>(flugfreigabeKey, null, missionId)
-  if (phase === 'fluege') return !!flugfreigabe
+  const flugentscheidung = readStorage<{ status: 'granted' | 'denied'; timestamp: string } | null>(flugentscheidungKey, null, missionId)
+  const effectiveDecision = flugentscheidung ?? (flugfreigabe ? { status: 'granted' as const, timestamp: flugfreigabe } : null)
+  const isFreigegeben = effectiveDecision?.status === 'granted'
+  const isAbgelehnt = effectiveDecision?.status === 'denied'
+  if (phase === 'fluege') return isFreigegeben
   if (phase === 'nachbereitung') {
+    if (isAbgelehnt) return true
     const fluegeAbgeschlossen = readStorage<boolean>('fluegeAbgeschlossen', false, missionId)
-    return !!flugfreigabe && fluegeAbgeschlossen
+    return isFreigegeben && fluegeAbgeschlossen
   }
   return false
 }

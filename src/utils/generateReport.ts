@@ -150,6 +150,7 @@ export interface SegmentReportData {
   anmeldungen?: AnmeldungItem[]
   mapImage?: string
   flugfreigabe?: string | null
+  flugentscheidung?: { status: 'granted' | 'denied'; timestamp: string } | null
   checklistGroups?: ChecklistGroupData[]
   flightLog?: FlightLogEntry[]
   eventNotes?: EventNote[]
@@ -173,6 +174,7 @@ export interface ReportData {
   assessment: AssessmentResult | null
   checklistGroups?: ChecklistGroupData[]
   flugfreigabe?: string | null
+  flugentscheidung?: { status: 'granted' | 'denied'; timestamp: string } | null
   flightLog?: FlightLogEntry[]
   eventNotes?: EventNote[]
   disruptions?: DisruptionsData
@@ -586,10 +588,11 @@ export function generateReport(data: ReportData) {
     }
   }
 
-  function drawFlugfreigabe(flugfreigabe: string | null | undefined) {
-    if (flugfreigabe !== undefined) {
-      if (flugfreigabe) {
-        const freigabeDate = new Date(flugfreigabe)
+  function drawFlugfreigabe(flugfreigabe: string | null | undefined, flugentscheidung?: { status: 'granted' | 'denied'; timestamp: string } | null) {
+    if (flugfreigabe !== undefined || flugentscheidung !== undefined) {
+      const effectiveDecision = flugentscheidung ?? (flugfreigabe ? { status: 'granted' as const, timestamp: flugfreigabe } : null)
+      if (effectiveDecision?.status === 'granted') {
+        const freigabeDate = new Date(effectiveDecision.timestamp)
         const freigabeTime = freigabeDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
         const freigabeDateStr = freigabeDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
@@ -600,9 +603,20 @@ export function generateReport(data: ReportData) {
         setColor(COLORS.textMuted)
         doc.text(`Freigabe erteilt: ${freigabeDateStr} ${freigabeTime} Uhr`, margin, y)
         y += 6
+      } else if (effectiveDecision?.status === 'denied') {
+        checkPageBreak(12)
+        drawStatusBadge('Flug NICHT freigegeben', 'warning')
+        doc.setFontSize(FONTS.body)
+        doc.setFont('helvetica', 'normal')
+        setColor(COLORS.textMuted)
+        const deniedDate = new Date(effectiveDecision.timestamp)
+        const deniedTime = deniedDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+        const deniedDateStr = deniedDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        doc.text(`Nicht freigegeben am: ${deniedDateStr} ${deniedTime} Uhr`, margin, y)
+        y += 6
       } else {
         checkPageBreak(8)
-        drawStatusBadge('Flug NICHT freigegeben', 'warning')
+        drawStatusBadge('Noch keine Flugentscheidung', 'caution')
         y += 2
       }
     }
@@ -771,7 +785,7 @@ export function generateReport(data: ReportData) {
 
     // 3.1 Flugfreigabe
     drawSubHeader('3.1', 'Flugfreigabe')
-    drawFlugfreigabe(seg.flugfreigabe)
+    drawFlugfreigabe(seg.flugfreigabe, seg.flugentscheidung)
 
     // 3.2 Flugtagebuch
     if (seg.flightLog && seg.flightLog.length > 0) {
@@ -1000,7 +1014,7 @@ export function generateReport(data: ReportData) {
 
     // 3.1 Flugfreigabe
     drawSubHeader('3.1', 'Flugfreigabe')
-    drawFlugfreigabe(data.flugfreigabe)
+    drawFlugfreigabe(data.flugfreigabe, data.flugentscheidung)
 
     // 3.2 Flugtagebuch
     if (data.flightLog && data.flightLog.length > 0) {

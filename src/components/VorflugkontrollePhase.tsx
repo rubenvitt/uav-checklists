@@ -9,6 +9,7 @@ import { useGeolocation } from '../hooks/useGeolocation'
 import { useMissionWeather, useMissionKIndex, useMissionNearby } from '../hooks/useMissionEnvironment'
 import { useReverseGeocode } from '../hooks/useReverseGeocode'
 import { useMissionPersistedState, clearMissionFormStorageByPrefix } from '../hooks/useMissionPersistedState'
+import { useSegmentPersistedState } from '../hooks/useSegmentPersistedState'
 import { readStorage } from '../hooks/usePersistedState'
 import { computeAssessment } from '../utils/assessment'
 import { useAutoExpand } from '../hooks/useAutoExpand'
@@ -42,6 +43,8 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
   const [showRelocationDialog, setShowRelocationDialog] = useState(false)
   const [selectedDrone, setSelectedDrone] = useMissionPersistedState<DroneId>('selectedDrone', 'matrice-350-rtk')
   const [maxAltitude, setMaxAltitude] = useMissionPersistedState<number>('maxAltitude', 120)
+  const [currentFlugfreigabe] = useSegmentPersistedState<string | null>('flugfreigabe', null)
+  const [currentFlugentscheidung] = useSegmentPersistedState<{ status: 'granted' | 'denied'; timestamp: string } | null>('flugentscheidung', null)
   const isFirstSegment = segments.length > 0 && activeSegment?.id === segments[0].id
   const geo = useGeolocation(missionId, segmentId, isFirstSegment)
 
@@ -100,13 +103,21 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
 
   // Auto-expand logic
   const weatherWarning = assessment?.overall === 'warning'
-  const nearbyWarning = nearby.categories?.some((c: { key: string }) =>
-    ['aviation', 'military', 'prison'].includes(c.key)
-  )
+  const criticalNearbyKeys = ['aviation', 'military', 'prison']
+  const criticalNearbyCategories = nearby.categories?.filter((c: { key: string }) => criticalNearbyKeys.includes(c.key)) ?? []
+  const nearbyWarning = criticalNearbyCategories.length > 0
+  const noGoReasonsFromWeather = (assessment?.metrics ?? [])
+    .filter((metric) => metric.status === 'warning')
+    .map((metric) => `Wetter: ${metric.label} ${metric.value}${metric.unit ? ` ${metric.unit}` : ''}`)
+  const noGoReasonsFromNearby = criticalNearbyCategories.map((category) => `Umgebung: ${category.label}`)
+  const noGoReasons = [...new Set([...noGoReasonsFromWeather, ...noGoReasonsFromNearby])]
   const sections = useVorflugkontrolleCompleteness(!!weatherWarning, !!nearbyWarning, hasLocation)
   const { openState, toggle, continueToNext, isComplete } = useAutoExpand(sections, 'vorflugkontrolle')
   const navigate = useNavigate()
-  const goToNextPhase = () => navigate(`/mission/${missionId}/fluege`)
+  const currentDecision =
+    currentFlugentscheidung ?? (currentFlugfreigabe ? { status: 'granted' as const, timestamp: currentFlugfreigabe } : null)
+  const nextPhase: 'fluege' | 'nachbereitung' = currentDecision?.status === 'denied' ? 'nachbereitung' : 'fluege'
+  const goToNextPhase = () => navigate(`/mission/${missionId}/${nextPhase}`)
 
   // Register PDF export handler
   useEffect(() => {
@@ -241,6 +252,7 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
       const flugbriefingChecked = readStorage<Record<string, boolean>>(`${segPrefix}flugbriefing:checked`, {}, missionId)
       const funktionstestChecked = readStorage<Record<string, boolean>>(`${segPrefix}techcheck:funktionstest`, {}, missionId)
       const flugfreigabe = readStorage<string | null>(`${segPrefix}flugfreigabe`, null, missionId)
+      const flugentscheidung = readStorage<{ status: 'granted' | 'denied'; timestamp: string } | null>(`${segPrefix}flugentscheidung`, null, missionId)
 
       const checklistGroups: ChecklistGroupData[] = [
         {
@@ -283,6 +295,7 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
         assessment,
         checklistGroups,
         flugfreigabe,
+        flugentscheidung,
       }
       return generateReport(data)
     })
@@ -358,8 +371,10 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
         onToggle={() => toggle('funktionskontrolle')}
         isComplete={isComplete.funktionskontrolle}
         onContinue={goToNextPhase}
-        continueLabel="Weiter zu den Flügen"
+        continueLabel={nextPhase === 'nachbereitung' ? 'Weiter zur Nachbereitung' : 'Weiter zu den Flügen'}
         isPhaseComplete
+        noGoRecommended={noGoReasons.length > 0}
+        noGoReasons={noGoReasons}
       />
       <RelocationConfirmDialog
         open={showRelocationDialog}

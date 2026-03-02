@@ -160,6 +160,7 @@ interface SegmentCollectedData {
   anmeldungenAdditional: Array<{ label: string; detail: string }>
   mapImage: string
   flugfreigabe: string | null
+  flugentscheidung: { status: 'granted' | 'denied'; timestamp: string } | null
   checklistGroups: ChecklistGroupData[]
   flightLog: FlightLogEntry[]
   eventNotes: EventNote[]
@@ -263,6 +264,7 @@ function collectSegmentData(
 
   // Flugfreigabe
   const flugfreigabe = readSegmentField<string | null>(missionId, segId, 'flugfreigabe', null, legacy)
+  const flugentscheidung = readSegmentField<{ status: 'granted' | 'denied'; timestamp: string } | null>(missionId, segId, 'flugentscheidung', null, legacy)
 
   // Checklist groups (segment-scoped: aufstiegsort, flugbriefing, funktionstest)
   const aufstiegsortChecked = readSegmentField<Record<string, boolean>>(missionId, segId, 'techcheck:aufstiegsort', {}, legacy)
@@ -308,6 +310,7 @@ function collectSegmentData(
     anmeldungenAdditional,
     mapImage,
     flugfreigabe,
+    flugentscheidung,
     checklistGroups,
     flightLog,
     eventNotes,
@@ -355,6 +358,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
         anmeldungen: sd.anmeldungenItems,
         mapImage: sd.mapImage || undefined,
         flugfreigabe: sd.flugfreigabe,
+        flugentscheidung: sd.flugentscheidung,
         checklistGroups: sd.checklistGroups,
         flightLog: sd.flightLog.length > 0 ? sd.flightLog : undefined,
         eventNotes: sd.eventNotes.length > 0 ? sd.eventNotes : undefined,
@@ -702,6 +706,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     assessment: primaryData.assessment,
     checklistGroups: [...(primaryData.checklistGroups ?? []), ...globalChecklistGroups],
     flugfreigabe: primaryData.flugfreigabe,
+    flugentscheidung: primaryData.flugentscheidung,
     flightLog: allFlightLog.length > 0 ? allFlightLog : undefined,
     eventNotes: allEventNotes.length > 0 ? allEventNotes : undefined,
     disruptions,
