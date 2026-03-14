@@ -14,6 +14,7 @@ import { computeFollowupSuggestions, type FollowupContext } from './followupSugg
 import { AUFSTIEGSORT_ITEMS, UAV_ITEMS, RC_ITEMS } from '../components/sections/TechnischeKontrolleSections'
 import { FLUGBRIEFING_ITEMS } from '../components/sections/FlugbriefingSection'
 import { FUNKTIONS_ITEMS } from '../components/sections/FunktionskontrolleSection'
+import { isPositiveAnswer } from './checklistState'
 
 const PREFIX = 'uav-form:'
 const TTL = 56 * 60 * 60 * 1000
@@ -267,22 +268,22 @@ function collectSegmentData(
   const flugentscheidung = readSegmentField<{ status: 'granted' | 'denied'; timestamp: string } | null>(missionId, segId, 'flugentscheidung', null, legacy)
 
   // Checklist groups (segment-scoped: aufstiegsort, flugbriefing, funktionstest)
-  const aufstiegsortChecked = readSegmentField<Record<string, boolean>>(missionId, segId, 'techcheck:aufstiegsort', {}, legacy)
-  const flugbriefingChecked = readSegmentField<Record<string, boolean>>(missionId, segId, 'flugbriefing:checked', {}, legacy)
-  const funktionstestChecked = readSegmentField<Record<string, boolean>>(missionId, segId, 'techcheck:funktionstest', {}, legacy)
+  const aufstiegsortChecked = readSegmentField<Record<string, boolean | string>>(missionId, segId, 'techcheck:aufstiegsort', {}, legacy)
+  const flugbriefingChecked = readSegmentField<Record<string, boolean | string>>(missionId, segId, 'flugbriefing:checked', {}, legacy)
+  const funktionstestChecked = readSegmentField<Record<string, boolean | string>>(missionId, segId, 'techcheck:funktionstest', {}, legacy)
 
   const checklistGroups: ChecklistGroupData[] = [
     {
       title: 'Aufstiegsort',
-      items: AUFSTIEGSORT_ITEMS.map((i) => ({ label: i.label, checked: !!aufstiegsortChecked[i.key] })),
+      items: AUFSTIEGSORT_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(aufstiegsortChecked[i.key]) })),
     },
     {
       title: 'Flugbriefing',
-      items: FLUGBRIEFING_ITEMS.map((i) => ({ label: i.label, checked: !!flugbriefingChecked[i.key] })),
+      items: FLUGBRIEFING_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(flugbriefingChecked[i.key]) })),
     },
     {
       title: 'Funktionskontrolle (3 m Aufstieg)',
-      items: FUNKTIONS_ITEMS.map((i) => ({ label: i.label, checked: !!funktionstestChecked[i.key] })),
+      items: FUNKTIONS_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(funktionstestChecked[i.key]) })),
     },
   ]
 
@@ -372,16 +373,16 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
   }
 
   // Global checklist groups: UAV and RC checks (mission-scoped, not segment-scoped)
-  const uavChecked = readMissionField<Record<string, boolean>>(missionId, 'techcheck:uav', {})
-  const rcChecked = readMissionField<Record<string, boolean>>(missionId, 'techcheck:rc', {})
+  const uavChecked = readMissionField<Record<string, boolean | string>>(missionId, 'techcheck:uav', {})
+  const rcChecked = readMissionField<Record<string, boolean | string>>(missionId, 'techcheck:rc', {})
   const globalChecklistGroups: ChecklistGroupData[] = [
     {
       title: 'UAV',
-      items: UAV_ITEMS.map((i) => ({ label: i.label, checked: !!uavChecked[i.key] })),
+      items: UAV_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(uavChecked[i.key]) })),
     },
     {
       title: 'Remote Controller (A und B)',
-      items: RC_ITEMS.map((i) => ({ label: i.label, checked: !!rcChecked[i.key] })),
+      items: RC_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(rcChecked[i.key]) })),
     },
   ]
 
@@ -475,7 +476,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     : undefined
 
   // Nachflugkontrolle
-  const postflightChecked = readMissionField<Record<string, boolean>>(missionId, 'postflight:checked', {})
+  const postflightChecked = readMissionField<Record<string, boolean | string>>(missionId, 'postflight:checked', {})
   const postflightNotes = readMissionField<Record<string, string>>(missionId, 'postflight:notes', {})
   const postflightRemarks = readMissionField<string>(missionId, 'postflight:remarks', '')
 
@@ -521,7 +522,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
   const resultAbortNotes = readMissionField<string>(missionId, 'result:abortNotes', '')
 
   // Einsatzabschluss
-  const wrapupChecked = readMissionField<Record<string, boolean>>(missionId, 'wrapup:checked', {})
+  const wrapupChecked = readMissionField<Record<string, boolean | string>>(missionId, 'wrapup:checked', {})
   const wrapupNotes = readMissionField<Record<string, string>>(missionId, 'wrapup:notes', {})
   const wrapupFeedback = readMissionField<string>(missionId, 'wrapup:feedback', '')
 
@@ -558,7 +559,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
           const itemKey = `abmeldung_${key}`
           abmeldungItems.push({
             label: `${prefix}Abmeldung ${custom.label}`,
-            checked: !!wrapupChecked[itemKey],
+            checked: isPositiveAnswer(wrapupChecked[itemKey]),
             note: wrapupNotes[itemKey]?.trim() || undefined,
           })
         }
@@ -568,7 +569,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
         const itemKey = `abmeldung_${key}`
         abmeldungItems.push({
           label: `${prefix}${ABMELDUNG_LABEL_MAP[key]}`,
-          checked: !!wrapupChecked[itemKey],
+          checked: isPositiveAnswer(wrapupChecked[itemKey]),
           note: wrapupNotes[itemKey]?.trim() || undefined,
         })
       }
@@ -589,7 +590,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
   }
   const dokumentationItems: EinsatzabschlussItem[] = dokumentationItemKeys.map(key => ({
     label: DOKU_LABELS[key],
-    checked: !!wrapupChecked[key],
+    checked: isPositiveAnswer(wrapupChecked[key]),
   }))
 
   // Rückbau items
@@ -603,7 +604,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
   }
   const rueckbauItems: EinsatzabschlussItem[] = RUECKBAU_KEYS.map(key => ({
     label: RUECKBAU_LABELS[key],
-    checked: !!wrapupChecked[key],
+    checked: isPositiveAnswer(wrapupChecked[key]),
   }))
 
   const hasWrapupData = Object.keys(wrapupChecked).length > 0 || wrapupFeedback.trim()
@@ -673,7 +674,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     ? {
         items: POST_FLIGHT_LABELS.map((item): PostFlightInspectionItem => ({
           label: item.label,
-          checked: !!postflightChecked[item.key],
+          checked: isPositiveAnswer(postflightChecked[item.key]),
           note: postflightNotes[item.key]?.trim() || undefined,
         })),
         remarks: postflightRemarks,

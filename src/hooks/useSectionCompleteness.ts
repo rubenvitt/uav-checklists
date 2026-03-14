@@ -5,11 +5,12 @@ import { getMissionAtom } from '../stores/missionFormStore'
 import type { SectionConfig } from './useAutoExpand'
 import { AUFSTIEGSORT_ITEMS, UAV_ITEMS, RC_ITEMS } from '../components/sections/TechnischeKontrolleSections'
 import { FLUGBRIEFING_ITEMS } from '../components/sections/FlugbriefingSection'
+import { isAnswered } from '../utils/checklistState'
 
 // Helper: check if all items in a checklist are checked
-function allChecked(checked: Record<string, boolean> | undefined, items: ReadonlyArray<{ readonly key: string }>): boolean {
+function allChecked(checked: Record<string, boolean | string> | undefined, items: ReadonlyArray<{ readonly key: string }>): boolean {
   if (!checked) return false
-  return items.every(item => !!checked[item.key])
+  return items.every(item => isAnswered(checked[item.key]))
 }
 
 // --- Phase 1: Einsatzdaten ---
@@ -54,7 +55,7 @@ export function useEinsatzdatenCompleteness(): SectionConfig[] {
     {
       id: 'missionsbriefing',
       isComplete: state.briefingChecked
-        ? BRIEFING_KEYS.every(k => !!state.briefingChecked![k])
+        ? BRIEFING_KEYS.every(k => isAnswered(state.briefingChecked![k]))
         : false,
     },
   ]
@@ -170,7 +171,7 @@ export function useNachbereitungCompleteness(hasFlights: boolean = true): Sectio
       {
         id: 'einsatzabschluss',
         isComplete: state.wrapupChecked
-          ? WRAPUP_CORE_KEYS.every(k => !!state.wrapupChecked![k])
+          ? WRAPUP_CORE_KEYS.every(k => isAnswered(state.wrapupChecked![k]))
           : false,
         firstVisitOpen: true,
       },
@@ -185,7 +186,7 @@ export function useNachbereitungCompleteness(hasFlights: boolean = true): Sectio
     {
       id: 'postflightinspection',
       isComplete: state.postflightChecked
-        ? POST_FLIGHT_KEYS.every(k => !!state.postflightChecked![k])
+        ? POST_FLIGHT_KEYS.every(k => isAnswered(state.postflightChecked![k]))
         : false,
       firstVisitOpen: true,
     },
@@ -196,7 +197,7 @@ export function useNachbereitungCompleteness(hasFlights: boolean = true): Sectio
     {
       id: 'einsatzabschluss',
       isComplete: state.wrapupChecked
-        ? WRAPUP_CORE_KEYS.every(k => !!state.wrapupChecked![k])
+        ? WRAPUP_CORE_KEYS.every(k => isAnswered(state.wrapupChecked![k]))
         : false,
     },
     {
