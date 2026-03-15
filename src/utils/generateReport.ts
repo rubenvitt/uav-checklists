@@ -1224,12 +1224,7 @@ export function generateReport(data: ReportData) {
   const elName = data.einsatzdetails?.einsatzleiter || ''
 
   // Left: Führungskraft UAS
-  if (fkName) {
-    doc.setFontSize(FONTS.body)
-    doc.setFont('helvetica', 'normal')
-    setColor(COLORS.text)
-    doc.text(fkName, margin, y + 16)
-  }
+  const fkSignatureLabel = fkName ? `Führungskraft UAS, ${fkName}` : 'Führungskraft UAS'
   setDraw(COLORS.textMuted)
   doc.setLineWidth(0.4)
   doc.line(margin, y + 20, margin + sigWidth, y + 20)
@@ -1237,22 +1232,17 @@ export function generateReport(data: ReportData) {
   doc.setFont('helvetica', 'normal')
   setColor(COLORS.textMuted)
   doc.text('Ort, Datum', margin, y + 25)
-  doc.text('Führungskraft UAS', margin, y + 30)
+  doc.text(fkSignatureLabel, margin, y + 30)
 
   // Right: Einsatzleitung
   const rightX = margin + sigWidth + 10
-  if (elName) {
-    doc.setFontSize(FONTS.body)
-    doc.setFont('helvetica', 'normal')
-    setColor(COLORS.text)
-    doc.text(elName, rightX, y + 16)
-  }
+  const elSignatureLabel = elName ? `Einsatzleitung, ${elName}` : 'Einsatzleitung'
   doc.line(rightX, y + 20, rightX + sigWidth, y + 20)
   doc.setFontSize(FONTS.small)
   doc.setFont('helvetica', 'normal')
   setColor(COLORS.textMuted)
   doc.text('Ort, Datum', rightX, y + 25)
-  doc.text('Einsatzleitung', rightX, y + 30)
+  doc.text(elSignatureLabel, rightX, y + 30)
 
   y += 40
 
