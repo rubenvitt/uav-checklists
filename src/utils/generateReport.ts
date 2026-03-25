@@ -4,6 +4,7 @@ import type { DroneSpec } from '../types/drone'
 import type { NearbyCategory } from '../services/overpassApi'
 import type { AssessmentResult, MetricStatus } from '../types/assessment'
 import type { FlightLogEntry, EventNote } from '../types/flightLog'
+import type { MetarStationInfo } from '../types/weather'
 
 // ── Design System ──────────────────────────────────────────────────────────
 
@@ -56,6 +57,12 @@ const MANUAL_CHECK_LABELS: Record<string, string> = {
   bos_active: 'BOS-Einsatzstelle',
   verfassungsorgane: 'Verfassungsorgane',
   residential: 'Wohngrundstücke',
+}
+
+const METAR_STATUS_HINTS: Record<MetricStatus, string> = {
+  good: 'Die nächstgelegene METAR-Station liegt nah genug für eine in der Regel gut repräsentative Wetterbeurteilung.',
+  caution: 'Die nächstgelegene METAR-Station liegt weiter entfernt. Lokale Abweichungen am Einsatzort sollten berücksichtigt werden.',
+  warning: 'Die nächstgelegene METAR-Station liegt deutlich entfernt. Die Wetterdaten sind nur eingeschränkt repräsentativ für den Einsatzort.',
 }
 
 // ── Interfaces (unchanged) ─────────────────────────────────────────────────
@@ -144,6 +151,7 @@ export interface SegmentReportData {
   categories: NearbyCategory[]
   manualChecks: Record<string, boolean>
   assessment: AssessmentResult | null
+  metarStation?: MetarStationInfo | null
   grc: number | null
   arc: ArcClass | null
   sail: number | null
@@ -172,6 +180,7 @@ export interface ReportData {
   arc: ArcClass | null
   sail: number | null
   assessment: AssessmentResult | null
+  metarStation?: MetarStationInfo | null
   checklistGroups?: ChecklistGroupData[]
   flugfreigabe?: string | null
   flugentscheidung?: { status: 'granted' | 'denied'; timestamp: string } | null
@@ -195,7 +204,6 @@ export interface ReportData {
  * and corrupted text metrics in the PDF.
  */
 function sanitizeForPdf(text: string): string {
-  // eslint-disable-next-line no-control-regex
   return text.replace(/[^\x20-\x7E\xA0-\xFF\u20AC\u2013\u2014\u2018\u2019\u201C\u201D\u2026\u2022]/g, '').trim()
 }
 
@@ -526,7 +534,24 @@ export function generateReport(data: ReportData) {
     }
   }
 
-  function drawWeatherAssessment(assessment: AssessmentResult | null) {
+  function drawMetarStationInfo(metarStation: MetarStationInfo) {
+    drawMetricRow(
+      'Nächste METAR-Station',
+      `${metarStation.icao} · ${formatDistance(metarStation.distanceMeters)}`,
+      metarStation.status,
+      metarStation.name,
+    )
+
+    checkPageBreak(7)
+    doc.setFontSize(FONTS.small)
+    doc.setFont('helvetica', 'italic')
+    setColor(COLORS.textLight)
+    const lines = doc.splitTextToSize(sanitizeForPdf(METAR_STATUS_HINTS[metarStation.status]), contentWidth - 4)
+    doc.text(lines, margin, y)
+    y += lines.length * 4
+  }
+
+  function drawWeatherAssessment(assessment: AssessmentResult | null, metarStation?: MetarStationInfo | null) {
     if (assessment) {
       // Overall badge
       checkPageBreak(10)
@@ -542,6 +567,11 @@ export function generateReport(data: ReportData) {
       for (const metric of assessment.metrics) {
         const valStr = `${metric.value} ${metric.unit}`.trim()
         drawMetricRow(metric.label, valStr, metric.status, metric.detail)
+      }
+
+      if (metarStation) {
+        y += 1
+        drawMetarStationInfo(metarStation)
       }
 
       // Recommendations
@@ -567,6 +597,10 @@ export function generateReport(data: ReportData) {
       setColor(COLORS.textMuted)
       doc.text('Wetterdaten nicht verf\u00fcgbar.', margin, y)
       y += 6
+
+      if (metarStation) {
+        drawMetarStationInfo(metarStation)
+      }
     }
   }
 
@@ -772,7 +806,7 @@ export function generateReport(data: ReportData) {
 
     // 2.5 Wetterbewertung
     drawSubHeader('2.5', 'Wetterbewertung')
-    drawWeatherAssessment(seg.assessment)
+    drawWeatherAssessment(seg.assessment, seg.metarStation)
 
     // 2.6 Technische Checklisten (segment-scoped)
     if (seg.checklistGroups && seg.checklistGroups.length > 0) {
@@ -1001,7 +1035,7 @@ export function generateReport(data: ReportData) {
 
     // 2.5 Wetterbewertung
     drawSubHeader('2.5', 'Wetterbewertung')
-    drawWeatherAssessment(data.assessment)
+    drawWeatherAssessment(data.assessment, data.metarStation)
 
     // 2.6 Technische Checklisten
     if (data.checklistGroups && data.checklistGroups.length > 0) {

@@ -62,3 +62,9 @@ export function evaluateDewPoint(temp: number, dewPoint: number): MetricStatus {
   if (spread <= 4) return 'caution'
   return 'good'
 }
+
+export function evaluateMetarDistance(distanceKm: number): MetricStatus {
+  if (distanceKm >= 30) return 'warning'
+  if (distanceKm >= 10) return 'caution'
+  return 'good'
+}

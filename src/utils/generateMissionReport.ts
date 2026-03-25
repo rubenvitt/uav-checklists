@@ -153,6 +153,7 @@ interface SegmentCollectedData {
   manualChecks: Record<string, boolean>
   assessment: AssessmentResult | null
   persistedWeather: WeatherResponse | null
+  metarStation: WeatherResponse['metarStation']
   grc: number | null
   arc: ArcClass | null
   sail: number | null
@@ -222,18 +223,23 @@ function collectSegmentData(
   // Weather assessment
   let assessment: AssessmentResult | null = null
   const persistedWeather = readSegmentField<WeatherResponse | null>(missionId, segId, 'env:weather', null, legacy)
+  let cachedWeather: WeatherResponse | null = null
+
+  if (lat !== null && lon !== null) {
+    const roundedLat = Math.round(lat * 1000) / 1000
+    const roundedLon = Math.round(lon * 1000) / 1000
+    cachedWeather = queryClient.getQueryData<WeatherResponse>(['weather', roundedLat, roundedLon, maxAltitude]) ?? null
+  }
 
   if (persistedWeather?.current && persistedKIndex?.kIndex != null) {
     assessment = computeAssessment(persistedWeather.current, persistedKIndex.kIndex, drone, persistedWeather.windByAltitude ?? undefined, maxAltitude)
-  } else if (lat !== null && lon !== null) {
-    const roundedLat = Math.round(lat * 1000) / 1000
-    const roundedLon = Math.round(lon * 1000) / 1000
-    const weatherData = queryClient.getQueryData<WeatherResponse>(['weather', roundedLat, roundedLon, maxAltitude])
+  } else if (cachedWeather?.current) {
     const kIndexData = queryClient.getQueryData<{ kIndex: number }>(['kindex'])
-    if (weatherData?.current && kIndexData?.kIndex != null) {
-      assessment = computeAssessment(weatherData.current, kIndexData.kIndex, drone, weatherData.windByAltitude ?? undefined, maxAltitude)
+    if (kIndexData?.kIndex != null) {
+      assessment = computeAssessment(cachedWeather.current, kIndexData.kIndex, drone, cachedWeather.windByAltitude ?? undefined, maxAltitude)
     }
   }
+  const metarStation = persistedWeather?.metarStation ?? cachedWeather?.metarStation ?? null
 
   // Anmeldungen
   const anmeldungenChecked = readSegmentField<Record<string, boolean>>(missionId, segId, 'anmeldungen:checked', {}, legacy)
@@ -303,6 +309,7 @@ function collectSegmentData(
     manualChecks,
     assessment,
     persistedWeather,
+    metarStation,
     grc,
     arc,
     sail,
@@ -353,6 +360,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
         categories: sd.categories,
         manualChecks: sd.manualChecks,
         assessment: sd.assessment,
+        metarStation: sd.metarStation,
         grc: sd.grc,
         arc: sd.arc,
         sail: sd.sail,
@@ -705,6 +713,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     arc: primaryData.arc,
     sail: primaryData.sail,
     assessment: primaryData.assessment,
+    metarStation: primaryData.metarStation,
     checklistGroups: [...(primaryData.checklistGroups ?? []), ...globalChecklistGroups],
     flugfreigabe: primaryData.flugfreigabe,
     flugentscheidung: primaryData.flugentscheidung,

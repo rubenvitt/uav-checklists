@@ -1,3 +1,5 @@
+import type { MetricStatus } from './assessment'
+
 export interface WeatherData {
   temperature: number
   windSpeed: number
@@ -42,9 +44,19 @@ export interface HourlyForecastPoint {
   weatherCode: number
 }
 
+export interface MetarStationInfo {
+  icao: string
+  name: string
+  latitude: number
+  longitude: number
+  distanceMeters: number
+  status: MetricStatus
+}
+
 export interface WeatherResponse {
   current: WeatherData
   sun: SunData
   windByAltitude: WindAtAltitude[]
   hourlyForecast: HourlyForecastPoint[]
+  metarStation: MetarStationInfo | null
 }

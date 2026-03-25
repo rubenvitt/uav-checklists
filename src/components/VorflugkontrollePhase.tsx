@@ -70,14 +70,13 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
   const locationKey = geo.latitude !== null && geo.longitude !== null
     ? `${geo.latitude.toFixed(2)},${geo.longitude.toFixed(2)}`
     : ''
-  const [soraResetKey, setSoraResetKey] = useState(0)
+  const soraResetKey = `${segmentId ?? 'mission'}:${locationKey || 'unset'}`
   const prevLocationRef = useRef(locationKey)
   useEffect(() => {
     if (prevLocationRef.current && locationKey && prevLocationRef.current !== locationKey) {
       const prefix = segmentId ? `seg:${segmentId}:` : ''
       clearMissionFormStorageByPrefix(`${prefix}grc:`, missionId)
       clearMissionFormStorageByPrefix(`${prefix}arc:`, missionId)
-      setSoraResetKey((k) => k + 1)
     }
     prevLocationRef.current = locationKey
   }, [locationKey, missionId, segmentId])
@@ -293,6 +292,7 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
         arc: soraData.arc,
         sail: soraData.sail,
         assessment,
+        metarStation: weather.metarStation,
         checklistGroups,
         flugfreigabe,
         flugentscheidung,
@@ -340,6 +340,7 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
         sun={weather.sun}
         windByAltitude={weather.windByAltitude}
         hourlyForecast={weather.hourlyForecast}
+        metarStation={weather.metarStation}
         maxAltitude={maxAltitude}
         drone={drone}
         isLoading={geo.loading || weather.loading || kIndex.loading}
