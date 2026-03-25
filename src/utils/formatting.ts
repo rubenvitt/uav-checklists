@@ -32,3 +32,8 @@ export function formatKIndex(value: number): string {
 export function formatDewPoint(value: number): string {
   return value.toFixed(1)
 }
+
+export function formatDistance(meters: number): string {
+  if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`
+  return `${meters} m`
+}

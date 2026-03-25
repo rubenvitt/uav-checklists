@@ -8,6 +8,7 @@ import {
 import { useSegmentPersistedState } from '../../hooks/useSegmentPersistedState'
 import type { MetricStatus } from '../../types/assessment'
 import type { NearbyCategory } from '../../services/overpassApi'
+import { formatDistance } from '../../utils/formatting'
 import ChecklistSection from '../ChecklistSection'
 
 const CATEGORY_ICONS: Record<string, ReactNode> = {
@@ -59,11 +60,6 @@ function getOverallStatus(categories: NearbyCategory[]): MetricStatus {
   if (categories.some(c => highRisk.includes(c.key))) return 'warning'
   if (categories.length > 0) return 'caution'
   return 'good'
-}
-
-function formatDistance(meters: number): string {
-  if (meters >= 1000) return `${(meters / 1000).toFixed(1)} km`
-  return `${meters} m`
 }
 
 export default function NearbyCheckSection({ categories, loading, error, locked, onManualChecksChange, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: NearbyCheckSectionProps) {

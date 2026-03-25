@@ -5,7 +5,7 @@ import { useSegmentPersistedState } from './useSegmentPersistedState'
 import { fetchWeather } from '../services/weatherApi'
 import { fetchKIndex } from '../services/kIndexApi'
 import { fetchNearbyPOIs, type NearbyCategory } from '../services/overpassApi'
-import type { WeatherResponse, WeatherData, SunData, WindAtAltitude, HourlyForecastPoint } from '../types/weather'
+import type { WeatherResponse, WeatherData, SunData, WindAtAltitude, HourlyForecastPoint, MetarStationInfo } from '../types/weather'
 import { setMissionField } from '../stores/missionFormStore'
 
 /* ── Weather ──────────────────────────────────────────────── */
@@ -15,6 +15,7 @@ interface UseMissionWeatherResult {
   sun: SunData | null
   windByAltitude: WindAtAltitude[] | null
   hourlyForecast: HourlyForecastPoint[] | null
+  metarStation: MetarStationInfo | null
   loading: boolean
   error: string | null
   refresh: () => void
@@ -31,6 +32,7 @@ export function useMissionWeather(lat: number | null, lon: number | null, maxAlt
   const roundedLon = lon !== null ? Math.round(lon * 1000) / 1000 : null
   const hasLocation = lat !== null && lon !== null
   const currentCoords = hasLocation ? `${roundedLat},${roundedLon}` : null
+  const isLegacyPersistedWeather = persisted !== null && !('metarStation' in persisted)
 
   // Auto-invalidate when coordinates change significantly
   useEffect(() => {
@@ -43,7 +45,7 @@ export function useMissionWeather(lat: number | null, lon: number | null, maxAlt
   }, [currentCoords, persistedCoords, persisted, setPersisted, setPersistedCoords, setPersistedAlt, queryClient])
 
   // Need to fetch if: no persisted data, or altitude changed since last fetch
-  const needsFetch = persisted === null || persistedAlt !== maxAltitude
+  const needsFetch = persisted === null || isLegacyPersistedWeather || persistedAlt !== maxAltitude
   const shouldFetch = hasLocation && needsFetch
 
   const query = useQuery<WeatherResponse>({
@@ -75,6 +77,7 @@ export function useMissionWeather(lat: number | null, lon: number | null, maxAlt
     sun: data?.sun ?? null,
     windByAltitude: data?.windByAltitude ?? null,
     hourlyForecast: data?.hourlyForecast ?? null,
+    metarStation: data?.metarStation ?? null,
     loading: shouldFetch && query.isLoading,
     error: shouldFetch && query.error
       ? (query.error instanceof Error ? query.error.message : 'Wetterdaten konnten nicht geladen werden')

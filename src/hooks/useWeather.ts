@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import type { WeatherData, SunData, WindAtAltitude, HourlyForecastPoint, WeatherResponse } from '../types/weather'
+import type { WeatherData, SunData, WindAtAltitude, HourlyForecastPoint, WeatherResponse, MetarStationInfo } from '../types/weather'
 import { fetchWeather } from '../services/weatherApi'
 
 interface UseWeatherResult {
@@ -7,6 +7,7 @@ interface UseWeatherResult {
   sun: SunData | null
   windByAltitude: WindAtAltitude[] | null
   hourlyForecast: HourlyForecastPoint[] | null
+  metarStation: MetarStationInfo | null
   loading: boolean
   error: string | null
   refresh: () => void
@@ -33,6 +34,7 @@ export function useWeather(lat: number | null, lon: number | null, maxAltitude: 
     sun: query.data?.sun ?? null,
     windByAltitude: query.data?.windByAltitude ?? null,
     hourlyForecast: query.data?.hourlyForecast ?? null,
+    metarStation: query.data?.metarStation ?? null,
     loading: query.isLoading,
     error: query.error ? (query.error instanceof Error ? query.error.message : 'Wetterdaten konnten nicht geladen werden') : null,
     refresh: () => queryClient.invalidateQueries({ queryKey: ['weather'] }),

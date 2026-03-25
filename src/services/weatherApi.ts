@@ -1,4 +1,5 @@
 import type { WeatherData, WeatherResponse, WindAtAltitude, HourlyForecastPoint, SunData } from '../types/weather'
+import { findNearestMetarStation } from './metarStationService'
 
 const BASE_URL = 'https://api.open-meteo.com/v1/forecast'
 
@@ -199,5 +200,6 @@ export async function fetchWeather(lat: number, lon: number, maxAltitude: number
     sun: buildSunData(json.daily),
     windByAltitude: buildWindByAltitude(json.hourly, hourlyIdx, maxAltitude),
     hourlyForecast: buildHourlyForecast(json.hourly),
+    metarStation: findNearestMetarStation(lat, lon),
   }
 }
