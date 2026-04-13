@@ -9,7 +9,7 @@ mkdir -p "$CERTS_DIR"
 
 echo "Generating self-signed development signing certificate..."
 
-# Generate private key and self-signed certificate
+# Generate private key and self-signed certificate with document signing extensions
 openssl req -x509 \
   -newkey rsa:2048 \
   -sha256 \
@@ -18,6 +18,9 @@ openssl req -x509 \
   -keyout "$CERTS_DIR/signing.key" \
   -out "$CERTS_DIR/signing.pem" \
   -subj "/CN=UAV Dev Signing/O=Development/C=DE" \
+  -addext "keyUsage=critical,digitalSignature,nonRepudiation" \
+  -addext "extendedKeyUsage=emailProtection" \
+  -addext "basicConstraints=critical,CA:false" \
   2>/dev/null
 
 # Package into PKCS#12

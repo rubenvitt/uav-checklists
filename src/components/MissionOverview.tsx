@@ -10,6 +10,7 @@ import { downloadPdf, sharePdf, canSharePdf } from '../utils/generateReport'
 import { useSignPdf } from '../hooks/useSignPdf'
 import { isSigningConfigured } from '../services/signingApi'
 import SigningSettings from './SigningSettings'
+import SignatureVerifier from './SignatureVerifier'
 import type { Mission, MissionPhase } from '../types/mission'
 
 const PHASE_LABELS: Record<MissionPhase, string> = {
@@ -91,7 +92,12 @@ export default function MissionOverview() {
         </div>
       </div>
 
-      {showSettings && <SigningSettings />}
+      {showSettings && (
+        <>
+          <SigningSettings />
+          <SignatureVerifier />
+        </>
+      )}
 
       {missions.length === 0 && (
         <div className="flex flex-col items-center gap-4 rounded-xl bg-surface py-16 text-center">

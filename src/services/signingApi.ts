@@ -62,9 +62,9 @@ export async function signPdf(blob: Blob, filename: string, accessToken?: string
   if (!response.ok) {
     if (response.status === 401) throwAuthError()
     if (response.status === 413) {
-      throw new Error('Die PDF-Datei ist zu gross fuer die Signatur.')
+      throw new Error('Die PDF-Datei ist zu groß für die Signatur.')
     }
-    throw new Error(`Signatur fehlgeschlagen (Fehler ${response.status}). Bitte spaeter erneut versuchen.`)
+    throw new Error(`Signatur fehlgeschlagen (Fehler ${response.status}). Bitte später erneut versuchen.`)
   }
 
   return response.blob()

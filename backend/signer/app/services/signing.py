@@ -22,6 +22,24 @@ def _get_tsa_client() -> timestamps.HTTPTimeStamper:
     return _tsa_client
 
 
+def _build_validation_context(signer: signers.SimpleSigner) -> ValidationContext:
+    """Build a ValidationContext that trusts the signing certificate.
+
+    Uses extra_trust_roots to ADD the signing cert without replacing the
+    system CA store — this is critical because the TSA certificate chain
+    (e.g. DigiCert) needs the system root CAs for validation.
+    """
+    extra_roots = [signer.signing_cert]
+    if signer.cert_registry:
+        for cert in signer.cert_registry:
+            if cert.ca:
+                extra_roots.append(cert)
+    return ValidationContext(
+        extra_trust_roots=extra_roots,
+        allow_fetching=True,
+    )
+
+
 async def sign_pdf(
     pdf_bytes: bytes,
     signer_name: str | None = None,
@@ -40,8 +58,9 @@ async def sign_pdf(
         subfilter=SigSeedSubFilter.PADES,
         use_pades_lta=True,
         embed_validation_info=True,
-        validation_context=ValidationContext(allow_fetching=True),
-        reason=f"Signed by {signer_name}" if signer_name else None,
+        validation_context=_build_validation_context(signer),
+        name=signer_name or None,
+        reason=f"Signiert von {signer_name}" if signer_name else None,
         contact_info=signer_email,
     )
 
