@@ -1315,13 +1315,15 @@ export function generateReport(data: ReportData) {
     if (data.verifyUrl) {
       const qrSize = 12
       const qrX = margin + contentWidth - qrSize
-      const qrY = pageHeight - 15 - qrSize - 2
+      const qrY = pageHeight - 15 - qrSize - 5
       const qrDataUrl = generateQrCodeDataUrl(data.verifyUrl, 3)
       doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize)
-      doc.setFontSize(5.5)
+      doc.setFontSize(5)
       doc.setFont('helvetica', 'normal')
       setColor(COLORS.textLight)
-      doc.text('Signatur pruefen', qrX, qrY + qrSize + 2.5)
+      const verifyLabel = sanitizeForPdf('Signatur pr\u00fcfen')
+      doc.text(verifyLabel, qrX, qrY + qrSize + 2)
+      doc.text(sanitizeForPdf(data.verifyUrl), qrX, qrY + qrSize + 4.5)
     }
   }
 
