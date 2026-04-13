@@ -1,7 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router'
-import { PiShieldCheck, PiChatDots } from 'react-icons/pi'
+import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router'
+import { PiShieldCheck, PiChatDots, PiArrowLeft, PiMonitor, PiSun, PiMoon } from 'react-icons/pi'
 import * as Sentry from '@sentry/react'
-import { useCallback, useRef, useEffect } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { MissionProvider, useMissionId } from './context/MissionContext'
 import { SegmentProvider } from './context/SegmentContext'
@@ -11,10 +11,12 @@ import { clearMissionEnvironment } from './hooks/useMissionEnvironment'
 import { useTheme } from './hooks/useTheme'
 import { migrateOldData, migrateLocationToSegment } from './utils/migration'
 import { downloadPdf, sharePdf, canSharePdf } from './utils/generateReport'
+import { generateMissionReport } from './utils/generateMissionReport'
 import { useSignPdf } from './hooks/useSignPdf'
 import { isSigningConfigured } from './services/signingApi'
 import type { MissionPhase } from './types/mission'
 import Header from './components/Header'
+import SignatureVerifier from './components/SignatureVerifier'
 import MissionOverview from './components/MissionOverview'
 import MissionStepper from './components/MissionStepper'
 import EinsatzdatenPhase from './components/EinsatzdatenPhase'
@@ -64,6 +66,40 @@ function OverviewLayout() {
           onCycleTheme={cycleTheme}
         />
         <MissionOverview />
+        <AppFooter />
+      </div>
+    </div>
+  )
+}
+
+function VerifyLayout() {
+  const navigate = useNavigate()
+  const { setting: themeSetting, cycle: cycleTheme } = useTheme(null)
+
+  return (
+    <div className="min-h-screen bg-base text-text">
+      <div className="mx-auto max-w-2xl space-y-4 p-4">
+        <header className="flex items-center justify-between py-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/')}
+              className="rounded-lg bg-surface p-2.5 text-lg text-text-muted transition-colors hover:bg-surface-alt hover:text-text active:scale-95"
+              aria-label="Zurück zur Übersicht"
+              title="Zurück zur Übersicht"
+            >
+              <PiArrowLeft />
+            </button>
+            <h1 className="text-lg font-bold text-text">Signatur prüfen</h1>
+          </div>
+          <button
+            onClick={cycleTheme}
+            className="rounded-lg bg-surface p-2.5 text-lg text-text-muted transition-colors hover:bg-surface-alt hover:text-text active:scale-95"
+            aria-label="Design wechseln"
+          >
+            {themeSetting === 'system' ? <PiMonitor /> : themeSetting === 'light' ? <PiSun /> : <PiMoon />}
+          </button>
+        </header>
+        <SignatureVerifier showUnconfiguredMessage />
         <AppFooter />
       </div>
     </div>
@@ -120,7 +156,6 @@ function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
   const missionId = useMissionId()
   const queryClient = useQueryClient()
   const { setting: themeSetting, cycle: cycleTheme } = useTheme(null)
-  const getPdfBlobRef = useRef<(() => { blob: Blob; filename: string }) | null>(null)
   const { activeSegmentId, initializeSegment } = useMissionSegment()
   const { signAndDownload, signing: pdfSigning } = useSignPdf()
   const signingConfigured = isSigningConfigured()
@@ -131,10 +166,6 @@ function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
       initializeSegment()
     }
   }, [currentPhase, isCompleted, initializeSegment])
-
-  const setGetPdfBlob = useCallback((fn: () => { blob: Blob; filename: string }) => {
-    getPdfBlobRef.current = fn
-  }, [])
 
   const handleRefresh = useCallback(() => {
     clearMissionEnvironment(missionId, activeSegmentId)
@@ -154,16 +185,14 @@ function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
             themeSetting={themeSetting}
             onCycleTheme={cycleTheme}
             onRefresh={isCompleted ? undefined : handleRefresh}
-            onExportPdf={currentPhase === 'vorflugkontrolle' ? () => { const r = getPdfBlobRef.current?.(); if (r) downloadPdf(r.blob, r.filename) } : undefined}
-            onSharePdf={currentPhase === 'vorflugkontrolle' && canSharePdf() ? () => { const r = getPdfBlobRef.current?.(); if (r) sharePdf(r.blob, r.filename).catch(() => {}) } : undefined}
-            onExportSignedPdf={currentPhase === 'vorflugkontrolle' && signingConfigured ? async () => { const r = getPdfBlobRef.current?.(); if (r) await signAndDownload(r.blob, r.filename) } : undefined}
+            onExportPdf={currentPhase === 'vorflugkontrolle' ? () => { const r = generateMissionReport(missionId, queryClient); if (r) downloadPdf(r.blob, r.filename) } : undefined}
+            onSharePdf={currentPhase === 'vorflugkontrolle' && canSharePdf() ? () => { const r = generateMissionReport(missionId, queryClient); if (r) sharePdf(r.blob, r.filename).catch(() => {}) } : undefined}
+            onExportSignedPdf={currentPhase === 'vorflugkontrolle' && signingConfigured ? async () => { const r = generateMissionReport(missionId, queryClient, { verifyUrl: `${window.location.origin}/verify` }); if (r) await signAndDownload(r.blob, r.filename) } : undefined}
             signingPdf={pdfSigning}
           />
           {!isCompleted && <MissionStepper currentPhase={currentPhase} />}
           {currentPhase === 'einsatzdaten' && <EinsatzdatenPhase />}
-          {currentPhase === 'vorflugkontrolle' && (
-            <VorflugkontrollePhase setGetPdfBlob={setGetPdfBlob} />
-          )}
+          {currentPhase === 'vorflugkontrolle' && <VorflugkontrollePhase />}
           {currentPhase === 'fluege' && <FluegePhase />}
           {currentPhase === 'nachbereitung' && <NachbereitungPhase />}
           <AppFooter />
@@ -183,6 +212,7 @@ export default function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<OverviewLayout />} />
+        <Route path="/verify" element={<VerifyLayout />} />
         <Route path="/mission/:missionId/:phase" element={<MissionLayout />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

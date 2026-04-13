@@ -55,7 +55,7 @@ export default function NachbereitungPhase() {
   }
 
   const handleSignedDownloadPdf = async () => {
-    const result = generateMissionReport(missionId, queryClient)
+    const result = generateMissionReport(missionId, queryClient, { verifyUrl: `${window.location.origin}/verify` })
     if (result) await signAndDownload(result.blob, result.filename)
   }
 
@@ -90,16 +90,20 @@ export default function NachbereitungPhase() {
         <div className="flex gap-2">
           <button
             onClick={handleDownloadPdf}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt active:scale-[0.99]"
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors active:scale-[0.99] ${
+              signingAvailable
+                ? 'bg-surface/60 text-text-muted opacity-70 hover:bg-surface-alt hover:opacity-100'
+                : 'bg-surface text-text hover:bg-surface-alt'
+            }`}
           >
             <PiFilePdf className="text-lg" />
-            PDF herunterladen
+            {signingAvailable ? 'PDF (nicht signiert)' : 'PDF herunterladen'}
           </button>
           {signingAvailable && (
             <button
               onClick={handleSignedDownloadPdf}
               disabled={signing}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-good-bg px-4 py-3 text-sm font-medium text-good transition-colors hover:bg-good/20 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
             >
               {signing ? <PiSpinner className="text-lg animate-spin" /> : <PiSealCheck className="text-lg" />}
               {signing ? 'Wird signiert...' : 'PDF signiert herunterladen'}

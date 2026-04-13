@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import { generateQrCodeDataUrl } from './qrCode'
 import type { ArcClass } from '../components/ArcDetermination'
 import type { DroneSpec } from '../types/drone'
 import type { NearbyCategory } from '../services/overpassApi'
@@ -192,6 +193,7 @@ export interface ReportData {
   wartungPflege?: WartungPflegeData
   missionResult?: MissionResultData
   segments?: SegmentReportData[]
+  verifyUrl?: string
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -1308,6 +1310,19 @@ export function generateReport(data: ReportData) {
     // Right: date
     const rightText = `${dateStr} ${timeStr}`
     doc.text(rightText, margin + contentWidth - doc.getTextWidth(rightText), pageHeight - 10)
+
+    // QR code for signature verification (only when verifyUrl is provided)
+    if (data.verifyUrl) {
+      const qrSize = 12
+      const qrX = margin + contentWidth - qrSize
+      const qrY = pageHeight - 15 - qrSize - 2
+      const qrDataUrl = generateQrCodeDataUrl(data.verifyUrl, 3)
+      doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize)
+      doc.setFontSize(5.5)
+      doc.setFont('helvetica', 'normal')
+      setColor(COLORS.textLight)
+      doc.text('Signatur pruefen', qrX, qrY + qrSize + 2.5)
+    }
   }
 
   // ── Return blob for caller to handle ──────────────────────────────────────

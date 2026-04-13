@@ -92,12 +92,8 @@ export default function MissionOverview() {
         </div>
       </div>
 
-      {showSettings && (
-        <>
-          <SigningSettings />
-          <SignatureVerifier />
-        </>
-      )}
+      {showSettings && <SigningSettings />}
+      {signingConfigured && <SignatureVerifier />}
 
       {missions.length === 0 && (
         <div className="flex flex-col items-center gap-4 rounded-xl bg-surface py-16 text-center">
@@ -119,7 +115,7 @@ export default function MissionOverview() {
             onDelete={() => handleDelete(mission.id)}
             onDownloadPdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) downloadPdf(r.blob, r.filename) }}
             onSharePdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) sharePdf(r.blob, r.filename).catch(() => {}) }}
-            onSignedDownloadPdf={signingConfigured ? async () => { const r = generateMissionReport(mission.id, queryClient); if (r) await signAndDownload(r.blob, r.filename) } : undefined}
+            onSignedDownloadPdf={signingConfigured ? async () => { const r = generateMissionReport(mission.id, queryClient, { verifyUrl: `${window.location.origin}/verify` }); if (r) await signAndDownload(r.blob, r.filename) } : undefined}
           />
         ))}
       </div>
@@ -138,7 +134,7 @@ export default function MissionOverview() {
               onDelete={() => handleDelete(mission.id)}
               onDownloadPdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) downloadPdf(r.blob, r.filename) }}
               onSharePdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) sharePdf(r.blob, r.filename).catch(() => {}) }}
-              onSignedDownloadPdf={signingConfigured ? async () => { const r = generateMissionReport(mission.id, queryClient); if (r) await signAndDownload(r.blob, r.filename) } : undefined}
+              onSignedDownloadPdf={signingConfigured ? async () => { const r = generateMissionReport(mission.id, queryClient, { verifyUrl: `${window.location.origin}/verify` }); if (r) await signAndDownload(r.blob, r.filename) } : undefined}
             />
           ))}
         </div>
@@ -200,9 +196,9 @@ function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onDown
               e.stopPropagation()
               onDownloadPdf()
             }}
-            className={`${iconBtnClass} hover:bg-surface-alt hover:text-text`}
-            aria-label="PDF herunterladen"
-            title="PDF herunterladen"
+            className={`${iconBtnClass} ${onSignedDownloadPdf ? 'opacity-50 hover:opacity-70' : 'hover:bg-surface-alt hover:text-text'}`}
+            aria-label={onSignedDownloadPdf ? 'PDF herunterladen (nicht signiert)' : 'PDF herunterladen'}
+            title={onSignedDownloadPdf ? 'PDF (nicht signiert)' : 'PDF herunterladen'}
           >
             <PiFilePdf />
           </button>
@@ -212,9 +208,9 @@ function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onDown
                 e.stopPropagation()
                 onSignedDownloadPdf()
               }}
-              className={`${iconBtnClass} hover:bg-surface-alt hover:text-text`}
-              aria-label="PDF signiert herunterladen"
-              title="PDF signiert herunterladen"
+              className={`${iconBtnClass} text-good hover:bg-good-bg`}
+              aria-label="Signiertes PDF herunterladen (empfohlen)"
+              title="PDF signiert herunterladen (empfohlen)"
             >
               <PiSealCheck />
             </button>

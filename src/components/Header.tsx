@@ -86,9 +86,9 @@ export default function Header(props: HeaderProps) {
         {props.onExportPdf && (
           <button
             onClick={props.onExportPdf}
-            className={iconBtnClass}
-            aria-label="PDF herunterladen"
-            title="PDF herunterladen"
+            className={props.onExportSignedPdf ? `${iconBtnClass} opacity-60` : iconBtnClass}
+            aria-label={props.onExportSignedPdf ? 'PDF herunterladen (nicht signiert)' : 'PDF herunterladen'}
+            title={props.onExportSignedPdf ? 'PDF herunterladen (nicht signiert)' : 'PDF herunterladen'}
           >
             <PiFilePdf />
           </button>
@@ -97,9 +97,9 @@ export default function Header(props: HeaderProps) {
           <button
             onClick={props.onExportSignedPdf}
             disabled={props.signingPdf}
-            className={`${iconBtnClass} ${props.signingPdf ? 'opacity-50 pointer-events-none' : ''}`}
-            aria-label="PDF signiert herunterladen"
-            title="PDF signiert herunterladen"
+            className={`rounded-lg bg-good-bg p-2.5 text-lg text-good transition-colors hover:bg-good/20 active:scale-95 ${props.signingPdf ? 'opacity-50 pointer-events-none' : ''}`}
+            aria-label="Signiertes PDF herunterladen (empfohlen)"
+            title="Signiertes PDF herunterladen (empfohlen)"
           >
             {props.signingPdf ? <PiSpinner className="animate-spin" /> : <PiSealCheck />}
           </button>

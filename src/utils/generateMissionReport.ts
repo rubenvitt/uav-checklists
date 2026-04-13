@@ -325,7 +325,7 @@ function collectSegmentData(
   }
 }
 
-export function generateMissionReport(missionId: string, queryClient: QueryClient) {
+export function generateMissionReport(missionId: string, queryClient: QueryClient, options?: { verifyUrl?: string }) {
   const mission = getMission(missionId)
   if (!mission) return
 
@@ -726,6 +726,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     missionResult,
     // Multi-segment data (only present when >1 segment)
     segments: segmentReportDataList,
+    verifyUrl: options?.verifyUrl,
   }
 
   return generateReport(data)

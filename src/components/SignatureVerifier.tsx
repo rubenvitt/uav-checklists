@@ -3,7 +3,7 @@ import { PiShieldCheck, PiShieldWarning, PiSpinner, PiUpload, PiX, PiSealCheck, 
 import { verifyPdf, isSigningConfigured } from '../services/signingApi'
 import type { VerificationResult, SignatureInfo } from '../types/signing'
 
-export default function SignatureVerifier() {
+export default function SignatureVerifier({ showUnconfiguredMessage }: { showUnconfiguredMessage?: boolean } = {}) {
   const [result, setResult] = useState<VerificationResult | null>(null)
   const [verifying, setVerifying] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -11,7 +11,20 @@ export default function SignatureVerifier() {
   const [dragOver, setDragOver] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  if (!isSigningConfigured()) return null
+  if (!isSigningConfigured()) {
+    if (!showUnconfiguredMessage) return null
+    return (
+      <div className="rounded-xl bg-surface p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <PiShieldCheck className="text-lg text-text-muted" />
+          <h3 className="text-sm font-medium text-text">Signatur prüfen</h3>
+        </div>
+        <p className="text-xs text-text-muted">
+          Um Signaturen zu prüfen, konfiguriere zuerst das Signatur-Backend in den Einstellungen.
+        </p>
+      </div>
+    )
+  }
 
   const handleFile = async (file: File) => {
     if (file.type !== 'application/pdf') {

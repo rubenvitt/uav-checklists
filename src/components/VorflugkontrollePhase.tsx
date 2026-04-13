@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import type { DroneId } from '../types/drone'
@@ -10,14 +10,10 @@ import { useMissionWeather, useMissionKIndex, useMissionNearby } from '../hooks/
 import { useReverseGeocode } from '../hooks/useReverseGeocode'
 import { useMissionPersistedState, clearMissionFormStorageByPrefix } from '../hooks/useMissionPersistedState'
 import { useSegmentPersistedState } from '../hooks/useSegmentPersistedState'
-import { readStorage } from '../hooks/usePersistedState'
 import { computeAssessment } from '../utils/assessment'
 import { useAutoExpand } from '../hooks/useAutoExpand'
 import { useVorflugkontrolleCompleteness } from '../hooks/useSectionCompleteness'
 import { useMissionSegment } from '../hooks/useMissionSegment'
-import type { ArcClass } from './ArcDetermination'
-import { generateReport, type ReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type ChecklistGroupData } from '../utils/generateReport'
-import { getMission } from '../utils/missionStorage'
 import LocationBar from './LocationBar'
 import RelocationConfirmDialog from './RelocationConfirmDialog'
 import SegmentBanner from './SegmentBanner'
@@ -27,15 +23,11 @@ import NearbyCheckSection from './sections/NearbyCheckSection'
 import AnmeldungenSection from './sections/AnmeldungenSection'
 import RiskClassSection from './sections/RiskClassSection'
 import WeatherSection from './sections/WeatherSection'
-import { AufstiegsortSection, UavCheckSection, RemoteControllerSection, AUFSTIEGSORT_ITEMS, UAV_ITEMS, RC_ITEMS } from './sections/TechnischeKontrolleSections'
-import FlugbriefingSection, { FLUGBRIEFING_ITEMS } from './sections/FlugbriefingSection'
-import FunktionskontrolleSection, { FUNKTIONS_ITEMS } from './sections/FunktionskontrolleSection'
+import { AufstiegsortSection, UavCheckSection, RemoteControllerSection } from './sections/TechnischeKontrolleSections'
+import FlugbriefingSection from './sections/FlugbriefingSection'
+import FunktionskontrolleSection from './sections/FunktionskontrolleSection'
 
-interface VorflugkontrollePhaseProps {
-  setGetPdfBlob: (fn: () => { blob: Blob; filename: string }) => void
-}
-
-export default function VorflugkontrollePhase({ setGetPdfBlob }: VorflugkontrollePhaseProps) {
+export default function VorflugkontrollePhase() {
   const missionId = useMissionId()
   const segmentId = useSegmentId()
   const queryClient = useQueryClient()
@@ -60,11 +52,6 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
   const nearby = useMissionNearby(geo.latitude, geo.longitude)
   const weather = useMissionWeather(geo.latitude, geo.longitude, maxAltitude)
 
-  // Lifted state for PDF report
-  const [soraData, setSoraData] = useState<{ grc: number | null; arc: ArcClass | null; sail: number | null }>({ grc: null, arc: null, sail: null })
-  const [manualChecks, setManualChecks] = useState<Record<string, boolean>>({})
-  const handleSoraChange = useCallback((data: { grc: number | null; arc: ArcClass | null; sail: number | null }) => setSoraData(data), [])
-  const handleManualChecksChange = useCallback((checked: Record<string, boolean>) => setManualChecks(checked), [])
 
   // Reset SORA when location changes significantly (~1.1 km)
   const locationKey = geo.latitude !== null && geo.longitude !== null
@@ -118,189 +105,6 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
   const nextPhase: 'fluege' | 'nachbereitung' = currentDecision?.status === 'denied' ? 'nachbereitung' : 'fluege'
   const goToNextPhase = () => navigate(`/mission/${missionId}/${nextPhase}`)
 
-  // Register PDF export handler
-  useEffect(() => {
-    setGetPdfBlob(() => {
-      const mission = getMission(missionId)
-      const locationName = geo.isManual && geo.manualName
-        ? geo.manualName.split(',').slice(0, 2).map(p => p.trim()).join(', ')
-        : geocode.city
-          ? geocode.country ? `${geocode.city}, ${geocode.country}` : geocode.city
-          : 'Unbekannt'
-      const FLUG_ANLASS_LABELS: Record<string, string> = {
-        einsatz: 'Einsatz',
-        uebung: 'Übung',
-        ausbildung: 'Ausbildung',
-        testflug: 'Testflug/Wartung',
-      }
-      const flugAnlassRaw = readStorage<string>('flugAnlass', 'einsatz', missionId)
-      const einsatzdetails: EinsatzdetailsData = {
-        flugAnlass: FLUG_ANLASS_LABELS[flugAnlassRaw] ?? flugAnlassRaw,
-        einsatzstichwort: readStorage<string>('einsatzstichwort', '', missionId),
-        alarmzeit: readStorage<string>('alarmzeit', '', missionId),
-        alarmierungDurch: readStorage<string>('alarmierungDurch', '', missionId),
-        anforderndeStelle: readStorage<string>('anforderndeStelle', '', missionId),
-        einsatzleiter: readStorage<string>('einsatzleiter', '', missionId),
-        abschnittsleiter: readStorage<string>('abschnittsleiter', '', missionId),
-      }
-
-      // Truppstärke
-      const crewFk = readStorage<string>('crew_fk', '', missionId)
-      const crewFp = readStorage<string>('crew_fp', '', missionId)
-      const crewLrb = readStorage<string>('crew_lrb', '', missionId)
-      const crewBa = readStorage<string>('crew_ba', '', missionId)
-      const crewAdditional = readStorage<Array<{ role: string; name: string }>>('crew_additional', [], missionId)
-      const CREW_ROLE_LABELS: Record<string, string> = {
-        fernpilot: 'Fernpilot',
-        luftraumbeobachter: 'Luftraumbeobachter',
-        bildauswerter: 'Bildauswerter',
-      }
-      const crewMembers: Array<{ role: string; name: string }> = []
-      if (crewFk.trim()) crewMembers.push({ role: 'Führungskraft', name: crewFk })
-      if (crewFp.trim()) crewMembers.push({ role: 'Fernpilot', name: crewFp })
-      if (crewLrb.trim()) crewMembers.push({ role: 'Luftraumbeobachter', name: crewLrb })
-      if (crewBa.trim()) crewMembers.push({ role: 'Bildauswerter', name: crewBa })
-      for (const m of crewAdditional) {
-        if (m.name.trim()) {
-          crewMembers.push({ role: CREW_ROLE_LABELS[m.role] || m.role, name: m.name })
-        }
-      }
-      const fkCount = crewFk.trim() ? 1 : 0
-      const othersCount = [crewFp, crewLrb, crewBa].filter(n => n.trim()).length + crewAdditional.filter(m => m.name.trim()).length
-      const truppstaerke: TruppstaerkeData | undefined = crewMembers.length > 0
-        ? { members: crewMembers, summary: `${fkCount}/${othersCount}//${fkCount + othersCount}` }
-        : undefined
-
-      // Einsatzauftrag
-      const missionTemplate = readStorage<string>('mission_template', '', missionId)
-      const missionFreitext = readStorage<string>('mission_freitext', '', missionId)
-      const TEMPLATE_LABELS: Record<string, string> = {
-        personensuche: 'Personensuche',
-        erkundung: 'Erkundung',
-        transport: 'Transport',
-        ueberwachung: 'Überwachung',
-        custom: 'Sonstiges',
-      }
-      const auftragDetails: Array<{ label: string; value: string }> = []
-      const templateFields: Record<string, Array<{ key: string; label: string }>> = {
-        personensuche: [
-          { key: 'mission_person_name', label: 'Name / Beschreibung' },
-          { key: 'mission_person_alter', label: 'Alter' },
-          { key: 'mission_person_geschlecht', label: 'Geschlecht' },
-          { key: 'mission_person_position', label: 'Letzte bekannte Position' },
-          { key: 'mission_person_kleidung', label: 'Kleidung / Merkmale' },
-          { key: 'mission_person_vermisst_seit', label: 'Seit wann vermisst' },
-        ],
-        erkundung: [
-          { key: 'mission_erkundung_gebiet', label: 'Erkundungsgebiet / -objekt' },
-          { key: 'mission_erkundung_art', label: 'Art der Erkundung' },
-        ],
-        transport: [
-          { key: 'mission_transport_gut', label: 'Transportgut' },
-          { key: 'mission_transport_ziel', label: 'Zielort' },
-        ],
-        ueberwachung: [
-          { key: 'mission_ueberwachung_objekt', label: 'Überwachungsobjekt / -gebiet' },
-          { key: 'mission_ueberwachung_dauer', label: 'Dauer / Intervall' },
-        ],
-      }
-      const fields = templateFields[missionTemplate]
-      if (fields) {
-        for (const f of fields) {
-          const v = readStorage<string>(f.key, '', missionId)
-          if (v) auftragDetails.push({ label: f.label, value: v })
-        }
-      }
-      const einsatzauftrag: EinsatzauftragData | undefined = missionTemplate
-        ? { template: TEMPLATE_LABELS[missionTemplate] || missionTemplate, details: auftragDetails, freitext: missionFreitext }
-        : undefined
-
-      // Fluganmeldungen (segment-specific)
-      const segPrefix = segmentId ? `seg:${segmentId}:` : ''
-      const anmeldungenChecked = readStorage<Record<string, boolean>>(`${segPrefix}anmeldungen:checked`, {}, missionId)
-      const anmeldungenAdditional = readStorage<Array<{ label: string; detail: string }>>(`${segPrefix}anmeldungen:additional`, [], missionId)
-      const anmeldungenItems: Array<{ label: string; detail: string; checked: boolean }> = [
-        { label: 'Leitstelle', detail: '19222', checked: !!anmeldungenChecked['leitstelle'] },
-        { label: 'Polizei', detail: '110', checked: !!anmeldungenChecked['polizei'] },
-      ]
-      const hasRailway = nearby.categories.some((c: { key: string }) => c.key === 'railway')
-      const hasWaterway = nearby.categories.some((c: { key: string }) => c.key === 'waterway')
-      if (hasRailway) {
-        anmeldungenItems.push({ label: 'Bahn (DB Netz)', detail: 'Bahnlinien im Einsatzgebiet', checked: !!anmeldungenChecked['bahn'] })
-      }
-      if (hasWaterway) {
-        anmeldungenItems.push({ label: 'Wasserstraßen- und Schifffahrtsamt', detail: 'Wasserstraßen im Einsatzgebiet', checked: !!anmeldungenChecked['wsa'] })
-      }
-      for (let i = 0; i < anmeldungenAdditional.length; i++) {
-        const a = anmeldungenAdditional[i]
-        if (a.label.trim() || a.detail.trim()) {
-          anmeldungenItems.push({ label: a.label || 'Weitere Stelle', detail: a.detail, checked: !!anmeldungenChecked[`custom_${i}`] })
-        }
-      }
-
-      // Map image from Einsatzdaten phase — mode decides source (segment-specific)
-      const karteMode = readStorage<'map' | 'photo'>(`${segPrefix}einsatzkarte:mode`, 'map', missionId)
-      const mapImage = karteMode === 'photo'
-        ? readStorage<string>(`${segPrefix}einsatzkarte:photo`, '', missionId)
-        : readStorage<string>(`${segPrefix}einsatzkarte:snapshot`, '', missionId)
-
-      // Technische Vorflugkontrolle Checklisten (segment-specific where applicable)
-      const aufstiegsortChecked = readStorage<Record<string, boolean>>(`${segPrefix}techcheck:aufstiegsort`, {}, missionId)
-      const uavChecked = readStorage<Record<string, boolean>>('techcheck:uav', {}, missionId)
-      const rcChecked = readStorage<Record<string, boolean>>('techcheck:rc', {}, missionId)
-      const flugbriefingChecked = readStorage<Record<string, boolean>>(`${segPrefix}flugbriefing:checked`, {}, missionId)
-      const funktionstestChecked = readStorage<Record<string, boolean>>(`${segPrefix}techcheck:funktionstest`, {}, missionId)
-      const flugfreigabe = readStorage<string | null>(`${segPrefix}flugfreigabe`, null, missionId)
-      const flugentscheidung = readStorage<{ status: 'granted' | 'denied'; timestamp: string } | null>(`${segPrefix}flugentscheidung`, null, missionId)
-
-      const checklistGroups: ChecklistGroupData[] = [
-        {
-          title: 'Aufstiegsort',
-          items: AUFSTIEGSORT_ITEMS.map((i) => ({ label: i.label, checked: !!aufstiegsortChecked[i.key] })),
-        },
-        {
-          title: 'UAV',
-          items: UAV_ITEMS.map((i) => ({ label: i.label, checked: !!uavChecked[i.key] })),
-        },
-        {
-          title: 'Remote Controller (A und B)',
-          items: RC_ITEMS.map((i) => ({ label: i.label, checked: !!rcChecked[i.key] })),
-        },
-        {
-          title: 'Flugbriefing',
-          items: FLUGBRIEFING_ITEMS.map((i) => ({ label: i.label, checked: !!flugbriefingChecked[i.key] })),
-        },
-        {
-          title: 'Funktionskontrolle (3 m Aufstieg)',
-          items: FUNKTIONS_ITEMS.map((i) => ({ label: i.label, checked: !!funktionstestChecked[i.key] })),
-        },
-      ]
-
-      const data: ReportData = {
-        missionLabel: mission?.label,
-        einsatzdetails,
-        truppstaerke,
-        einsatzauftrag,
-        anmeldungen: anmeldungenItems,
-        mapImage: mapImage || undefined,
-        location: locationName,
-        drone,
-        maxAltitude,
-        categories: nearby.categories,
-        manualChecks,
-        grc: soraData.grc,
-        arc: soraData.arc,
-        sail: soraData.sail,
-        assessment,
-        metarStation: weather.metarStation,
-        checklistGroups,
-        flugfreigabe,
-        flugentscheidung,
-      }
-      return generateReport(data)
-    })
-  })
-
   return (
     <>
       <SegmentBanner
@@ -332,9 +136,9 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
         <div className="h-px flex-1 bg-surface-alt" />
       </div>
       <ExternalToolsSection latitude={geo.latitude} longitude={geo.longitude} locked={!hasLocation} open={openState.externaltools} onToggle={() => toggle('externaltools')} isComplete={isComplete.externaltools} onContinue={() => continueToNext('externaltools')} />
-      <NearbyCheckSection categories={nearby.categories} loading={nearby.loading} error={nearby.error} locked={!hasLocation} onManualChecksChange={handleManualChecksChange} open={openState.nearbycheck} onToggle={() => toggle('nearbycheck')} isComplete={isComplete.nearbycheck} onContinue={() => continueToNext('nearbycheck')} />
+      <NearbyCheckSection categories={nearby.categories} loading={nearby.loading} error={nearby.error} locked={!hasLocation} open={openState.nearbycheck} onToggle={() => toggle('nearbycheck')} isComplete={isComplete.nearbycheck} onContinue={() => continueToNext('nearbycheck')} />
       <AnmeldungenSection categories={nearby.categories} open={openState.anmeldungen} onToggle={() => toggle('anmeldungen')} isComplete={isComplete.anmeldungen} onContinue={() => continueToNext('anmeldungen')} />
-      <RiskClassSection key={soraResetKey} locked={!hasLocation} onSoraChange={handleSoraChange} open={openState.riskclass} onToggle={() => toggle('riskclass')} isComplete={isComplete.riskclass} onContinue={() => continueToNext('riskclass')} />
+      <RiskClassSection key={soraResetKey} locked={!hasLocation} open={openState.riskclass} onToggle={() => toggle('riskclass')} isComplete={isComplete.riskclass} onContinue={() => continueToNext('riskclass')} />
       <WeatherSection
         assessment={assessment}
         sun={weather.sun}
