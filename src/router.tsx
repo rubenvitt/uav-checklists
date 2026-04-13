@@ -11,6 +11,8 @@ import { clearMissionEnvironment } from './hooks/useMissionEnvironment'
 import { useTheme } from './hooks/useTheme'
 import { migrateOldData, migrateLocationToSegment } from './utils/migration'
 import { downloadPdf, sharePdf, canSharePdf } from './utils/generateReport'
+import { useSignPdf } from './hooks/useSignPdf'
+import { isSigningConfigured } from './services/signingApi'
 import type { MissionPhase } from './types/mission'
 import Header from './components/Header'
 import MissionOverview from './components/MissionOverview'
@@ -120,6 +122,8 @@ function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
   const { setting: themeSetting, cycle: cycleTheme } = useTheme(null)
   const getPdfBlobRef = useRef<(() => { blob: Blob; filename: string }) | null>(null)
   const { activeSegmentId, initializeSegment } = useMissionSegment()
+  const { signAndDownload, signing: pdfSigning } = useSignPdf()
+  const signingConfigured = isSigningConfigured()
 
   // Ensure default segment when entering vorflugkontrolle or fluege
   useEffect(() => {
@@ -152,6 +156,8 @@ function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
             onRefresh={isCompleted ? undefined : handleRefresh}
             onExportPdf={currentPhase === 'vorflugkontrolle' ? () => { const r = getPdfBlobRef.current?.(); if (r) downloadPdf(r.blob, r.filename) } : undefined}
             onSharePdf={currentPhase === 'vorflugkontrolle' && canSharePdf() ? () => { const r = getPdfBlobRef.current?.(); if (r) sharePdf(r.blob, r.filename).catch(() => {}) } : undefined}
+            onExportSignedPdf={currentPhase === 'vorflugkontrolle' && signingConfigured ? async () => { const r = getPdfBlobRef.current?.(); if (r) await signAndDownload(r.blob, r.filename) } : undefined}
+            signingPdf={pdfSigning}
           />
           {!isCompleted && <MissionStepper currentPhase={currentPhase} />}
           {currentPhase === 'einsatzdaten' && <EinsatzdatenPhase />}

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router'
-import { PiMonitor, PiSun, PiMoon, PiArrowsClockwise, PiFilePdf, PiArrowLeft, PiShareNetwork } from 'react-icons/pi'
+import { PiMonitor, PiSun, PiMoon, PiArrowsClockwise, PiFilePdf, PiArrowLeft, PiShareNetwork, PiSealCheck, PiSpinner } from 'react-icons/pi'
 import type { ThemeSetting } from '../hooks/useTheme'
 
 interface OverviewHeaderProps {
@@ -10,6 +10,8 @@ interface OverviewHeaderProps {
   onRefresh?: undefined
   onExportPdf?: undefined
   onSharePdf?: undefined
+  onExportSignedPdf?: undefined
+  signingPdf?: undefined
   missionLabel?: undefined
 }
 
@@ -21,6 +23,8 @@ interface MissionHeaderProps {
   onRefresh?: () => void
   onExportPdf?: () => void
   onSharePdf?: () => void
+  onExportSignedPdf?: () => void
+  signingPdf?: boolean
 }
 
 type HeaderProps = OverviewHeaderProps | MissionHeaderProps
@@ -82,6 +86,17 @@ export default function Header(props: HeaderProps) {
             title="PDF herunterladen"
           >
             <PiFilePdf />
+          </button>
+        )}
+        {props.onExportSignedPdf && (
+          <button
+            onClick={props.onExportSignedPdf}
+            disabled={props.signingPdf}
+            className={`${iconBtnClass} ${props.signingPdf ? 'opacity-50 pointer-events-none' : ''}`}
+            aria-label="PDF signiert herunterladen"
+            title="PDF signiert herunterladen"
+          >
+            {props.signingPdf ? <PiSpinner className="animate-spin" /> : <PiSealCheck />}
           </button>
         )}
         {props.onSharePdf && (
