@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { PiMonitor, PiSun, PiMoon, PiArrowsClockwise, PiFilePdf, PiArrowLeft, PiShareNetwork } from 'react-icons/pi'
 import type { ThemeSetting } from '../hooks/useTheme'
+import AuthStatus from './AuthStatus'
 
 interface OverviewHeaderProps {
   mode: 'overview'
@@ -46,14 +47,17 @@ export default function Header(props: HeaderProps) {
     return (
       <header className="flex items-center justify-between py-4">
         <h1 className="text-2xl font-bold text-text">UAV Einsatzverwaltung</h1>
-        <button
-          onClick={props.onCycleTheme}
-          className={iconBtnClass}
-          aria-label={themeLabel[props.themeSetting]}
-          title={themeLabel[props.themeSetting]}
-        >
-          {themeIcon[props.themeSetting]}
-        </button>
+        <div className="flex items-center gap-2">
+          <AuthStatus />
+          <button
+            onClick={props.onCycleTheme}
+            className={iconBtnClass}
+            aria-label={themeLabel[props.themeSetting]}
+            title={themeLabel[props.themeSetting]}
+          >
+            {themeIcon[props.themeSetting]}
+          </button>
+        </div>
       </header>
     )
   }
@@ -74,6 +78,7 @@ export default function Header(props: HeaderProps) {
         </div>
       </div>
       <div className="flex items-center gap-2">
+        <AuthStatus />
         {props.onExportPdf && (
           <button
             onClick={props.onExportPdf}
