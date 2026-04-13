@@ -1,0 +1,35 @@
+services:
+  api:
+    build: ./api
+    ports:
+      - "${API_PORT:-3001}:3001"
+    environment:
+      - API_PORT=3001
+      - SIGNER_URL=http://signer:8000
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:5173}
+      - OIDC_ISSUER=${OIDC_ISSUER:-}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-}
+    depends_on:
+      signer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  signer:
+    build: ./signer
+    expose:
+      - "8000"
+    environment:
+      - SIGNER_CERT_PATH=/certs/signing.p12
+      - SIGNER_CERT_PASSWORD=${SIGNER_CERT_PASSWORD:-}
+      - SIGNER_TSA_URL=${SIGNER_TSA_URL:-http://timestamp.digicert.com}
+    volumes:
+      - ./certs:/certs:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
