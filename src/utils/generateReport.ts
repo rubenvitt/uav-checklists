@@ -1313,17 +1313,21 @@ export function generateReport(data: ReportData) {
 
     // QR code for signature verification (only when verifyUrl is provided)
     if (data.verifyUrl) {
-      const qrSize = 12
+      const qrSize = 9
       const qrX = margin + contentWidth - qrSize
-      const qrY = pageHeight - 15 - qrSize - 5
+      const qrY = pageHeight - 15 - qrSize - 3
       const qrDataUrl = generateQrCodeDataUrl(data.verifyUrl, 3)
       doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize)
-      doc.setFontSize(5)
+      // Text left of QR code, vertically centered
+      const textX = qrX - 2
+      const textCenterY = qrY + qrSize / 2
+      doc.setFontSize(5.5)
       doc.setFont('helvetica', 'normal')
+      setColor(COLORS.textMuted)
+      doc.text(sanitizeForPdf('Signatur pr\u00fcfen'), textX, textCenterY - 1.2, { align: 'right' })
+      doc.setFontSize(4.5)
       setColor(COLORS.textLight)
-      const verifyLabel = sanitizeForPdf('Signatur pr\u00fcfen')
-      doc.text(verifyLabel, qrX, qrY + qrSize + 2)
-      doc.text(sanitizeForPdf(data.verifyUrl), qrX, qrY + qrSize + 4.5)
+      doc.text(sanitizeForPdf(data.verifyUrl), textX, textCenterY + 1.8, { align: 'right' })
     }
   }
 
