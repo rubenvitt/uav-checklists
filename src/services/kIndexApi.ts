@@ -2,18 +2,51 @@ import type { KIndexData } from '../types/weather'
 
 const K_INDEX_URL = 'https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json'
 
-function parseLatestKIndex(rows: string[][]): KIndexData {
-  for (let i = rows.length - 1; i >= 1; i -= 1) {
-    const row = rows[i]
-    const timestamp = row?.[0]
-    const value = row?.[1]
-    const parsed = Number.parseFloat(value)
+function parseNumericKIndex(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
 
-    if (timestamp && Number.isFinite(parsed)) {
-      return {
-        kIndex: parsed,
-        timestamp,
-      }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number.parseFloat(value)
+    return Number.isFinite(parsed) ? parsed : null
+  }
+
+  return null
+}
+
+function parseKIndexRow(row: unknown): KIndexData | null {
+  if (Array.isArray(row)) {
+    const [timestamp, kIndexValue] = row
+    const kIndex = parseNumericKIndex(kIndexValue)
+
+    return typeof timestamp === 'string' && kIndex !== null
+      ? { kIndex, timestamp }
+      : null
+  }
+
+  if (row !== null && typeof row === 'object') {
+    const record = row as Record<string, unknown>
+    const timestamp = record.time_tag ?? record.timestamp ?? record.time
+    const kIndex = parseNumericKIndex(record.Kp ?? record.kp ?? record.kIndex)
+
+    return typeof timestamp === 'string' && kIndex !== null
+      ? { kIndex, timestamp }
+      : null
+  }
+
+  return null
+}
+
+export function parseKIndexData(json: unknown): KIndexData {
+  if (!Array.isArray(json) || json.length === 0) {
+    throw new Error('Keine K-Index Daten verfügbar')
+  }
+
+  for (let index = json.length - 1; index >= 0; index -= 1) {
+    const parsed = parseKIndexRow(json[index])
+    if (parsed !== null) {
+      return parsed
     }
   }
 
@@ -27,12 +60,5 @@ export async function fetchKIndex(): Promise<KIndexData> {
     throw new Error(`K-Index konnte nicht geladen werden: ${response.status}`)
   }
 
-  const json: string[][] = await response.json()
-
-  // Erster Eintrag ist der Header
-  if (json.length < 2) {
-    throw new Error('Keine K-Index Daten verfügbar')
-  }
-
-  return parseLatestKIndex(json)
+  return parseKIndexData(await response.json())
 }
