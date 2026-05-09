@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { PiPlus, PiTrash, PiClock, PiMapTrifold, PiFilePdf, PiCheckCircle, PiShareNetwork } from 'react-icons/pi'
+import { PiPlus, PiTrash, PiClock, PiMapTrifold, PiFilePdf, PiCheckCircle, PiShareNetwork, PiSealCheck, PiGear } from 'react-icons/pi'
 import { useMissions } from '../hooks/useMissions'
 import { useMissionDisplayLabel } from '../hooks/useMissionDisplayLabel'
 import { getRemainingTime } from '../utils/missionStorage'
 import { generateMissionReport } from '../utils/generateMissionReport'
 import { downloadPdf, sharePdf, canSharePdf } from '../utils/generateReport'
+import { useSignPdf } from '../hooks/useSignPdf'
+import { isSigningConfigured } from '../services/signingApi'
+import SigningSettings from './SigningSettings'
+import SignatureVerifier from './SignatureVerifier'
 import type { Mission, MissionPhase } from '../types/mission'
 
 const PHASE_LABELS: Record<MissionPhase, string> = {
@@ -28,6 +32,9 @@ export default function MissionOverview() {
   const queryClient = useQueryClient()
   const { missions, create, remove, clean } = useMissions()
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
+  const { signAndDownload } = useSignPdf()
+  const signingConfigured = isSigningConfigured()
 
   useEffect(() => {
     clean()
@@ -66,14 +73,27 @@ export default function MissionOverview() {
             {activeMissions.length === 0 ? 'Keine aktiven Einsätze' : `${activeMissions.length} aktive${activeMissions.length === 1 ? 'r' : ''} Einsatz${activeMissions.length === 1 ? '' : 'e'}`}
           </p>
         </div>
-        <button
-          onClick={handleCreate}
-          className="flex items-center gap-2 rounded-lg bg-text px-4 py-2.5 text-sm font-medium text-base transition-colors hover:opacity-90 active:scale-95"
-        >
-          <PiPlus />
-          Neuer Einsatz
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSettings(s => !s)}
+            className="rounded-lg bg-surface p-2.5 text-lg text-text-muted transition-colors hover:bg-surface-alt hover:text-text active:scale-95"
+            aria-label="Einstellungen"
+            title="Einstellungen"
+          >
+            <PiGear />
+          </button>
+          <button
+            onClick={handleCreate}
+            className="flex items-center gap-2 rounded-lg bg-text px-4 py-2.5 text-sm font-medium text-base transition-colors hover:opacity-90 active:scale-95"
+          >
+            <PiPlus />
+            Neuer Einsatz
+          </button>
+        </div>
       </div>
+
+      {showSettings && <SigningSettings />}
+      {signingConfigured && <SignatureVerifier />}
 
       {missions.length === 0 && (
         <div className="flex flex-col items-center gap-4 rounded-xl bg-surface py-16 text-center">
@@ -95,6 +115,7 @@ export default function MissionOverview() {
             onDelete={() => handleDelete(mission.id)}
             onDownloadPdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) downloadPdf(r.blob, r.filename) }}
             onSharePdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) sharePdf(r.blob, r.filename).catch(() => {}) }}
+            onSignedDownloadPdf={signingConfigured ? async () => { const r = generateMissionReport(mission.id, queryClient, { verifyUrl: `${window.location.origin}/verify` }); if (r) await signAndDownload(r.blob, r.filename) } : undefined}
           />
         ))}
       </div>
@@ -112,7 +133,8 @@ export default function MissionOverview() {
               onNavigate={() => navigate(`/mission/${mission.id}/nachbereitung`)}
               onDelete={() => handleDelete(mission.id)}
               onDownloadPdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) downloadPdf(r.blob, r.filename) }}
-            onSharePdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) sharePdf(r.blob, r.filename).catch(() => {}) }}
+              onSharePdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) sharePdf(r.blob, r.filename).catch(() => {}) }}
+              onSignedDownloadPdf={signingConfigured ? async () => { const r = generateMissionReport(mission.id, queryClient, { verifyUrl: `${window.location.origin}/verify` }); if (r) await signAndDownload(r.blob, r.filename) } : undefined}
             />
           ))}
         </div>
@@ -121,13 +143,14 @@ export default function MissionOverview() {
   )
 }
 
-function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onDownloadPdf, onSharePdf }: {
+function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onDownloadPdf, onSharePdf, onSignedDownloadPdf }: {
   mission: Mission
   isConfirmingDelete: boolean
   onNavigate: () => void
   onDelete: () => void
   onDownloadPdf: () => void
   onSharePdf: () => void
+  onSignedDownloadPdf?: () => void
 }) {
   const isCompleted = !!mission.completedAt
   const displayLabel = useMissionDisplayLabel(mission.id, mission.createdAt)
@@ -173,12 +196,25 @@ function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onDown
               e.stopPropagation()
               onDownloadPdf()
             }}
-            className={`${iconBtnClass} hover:bg-surface-alt hover:text-text`}
-            aria-label="PDF herunterladen"
-            title="PDF herunterladen"
+            className={`${iconBtnClass} ${onSignedDownloadPdf ? 'opacity-50 hover:opacity-70' : 'hover:bg-surface-alt hover:text-text'}`}
+            aria-label={onSignedDownloadPdf ? 'PDF herunterladen (nicht signiert)' : 'PDF herunterladen'}
+            title={onSignedDownloadPdf ? 'PDF (nicht signiert)' : 'PDF herunterladen'}
           >
             <PiFilePdf />
           </button>
+          {onSignedDownloadPdf && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onSignedDownloadPdf()
+              }}
+              className={`${iconBtnClass} text-good hover:bg-good-bg`}
+              aria-label="Signiertes PDF herunterladen (empfohlen)"
+              title="PDF signiert herunterladen (empfohlen)"
+            >
+              <PiSealCheck />
+            </button>
+          )}
           {canSharePdf() && (
             <button
               onClick={(e) => {

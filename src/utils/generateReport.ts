@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import { generateQrCodeDataUrl } from './qrCode'
 import type { ArcClass } from '../components/ArcDetermination'
 import type { DroneSpec } from '../types/drone'
 import type { NearbyCategory } from '../services/overpassApi'
@@ -192,6 +193,7 @@ export interface ReportData {
   wartungPflege?: WartungPflegeData
   missionResult?: MissionResultData
   segments?: SegmentReportData[]
+  verifyUrl?: string
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -1308,6 +1310,25 @@ export function generateReport(data: ReportData) {
     // Right: date
     const rightText = `${dateStr} ${timeStr}`
     doc.text(rightText, margin + contentWidth - doc.getTextWidth(rightText), pageHeight - 10)
+
+    // QR code for signature verification (only when verifyUrl is provided)
+    if (data.verifyUrl) {
+      const qrSize = 9
+      const qrX = margin + contentWidth - qrSize
+      const qrY = pageHeight - 15 - qrSize - 3
+      const qrDataUrl = generateQrCodeDataUrl(data.verifyUrl, 3)
+      doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrSize, qrSize)
+      // Text left of QR code, vertically centered
+      const textX = qrX - 2
+      const textCenterY = qrY + qrSize / 2
+      doc.setFontSize(5.5)
+      doc.setFont('helvetica', 'normal')
+      setColor(COLORS.textMuted)
+      doc.text(sanitizeForPdf('Signatur pr\u00fcfen'), textX, textCenterY - 1.2, { align: 'right' })
+      doc.setFontSize(4.5)
+      setColor(COLORS.textLight)
+      doc.text(sanitizeForPdf(data.verifyUrl), textX, textCenterY + 1.8, { align: 'right' })
+    }
   }
 
   // ── Return blob for caller to handle ──────────────────────────────────────

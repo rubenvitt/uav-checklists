@@ -1,0 +1,6 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+pyHanko[opentype,image-support]>=0.25.0
+pyhanko-certvalidator>=0.26.0
+python-multipart>=0.0.18
+pydantic-settings>=2.7.0

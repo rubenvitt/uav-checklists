@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { PiCheckCircle, PiFilePdf, PiWarning, PiInfo, PiShareNetwork } from 'react-icons/pi'
+import { PiCheckCircle, PiFilePdf, PiWarning, PiInfo, PiShareNetwork, PiSealCheck, PiSpinner } from 'react-icons/pi'
 import { useMissionId } from '../context/MissionContext'
 import { getMission, getSegments } from '../utils/missionStorage'
 import { readStorage } from '../hooks/usePersistedState'
 import { useMissions } from '../hooks/useMissions'
 import { generateMissionReport } from '../utils/generateMissionReport'
 import { downloadPdf, sharePdf, canSharePdf } from '../utils/generateReport'
+import { useSignPdf } from '../hooks/useSignPdf'
 import { useAutoExpand } from '../hooks/useAutoExpand'
 import { useNachbereitungCompleteness } from '../hooks/useSectionCompleteness'
 import type { FlightLogEntry } from '../types/flightLog'
@@ -26,6 +27,7 @@ export default function NachbereitungPhase() {
   const mission = getMission(missionId)
   const isCompleted = !!mission?.completedAt
   const [confirmComplete, setConfirmComplete] = useState(false)
+  const { signAndDownload, signing, error: signError, clearError: clearSignError, available: signingAvailable } = useSignPdf()
 
   // Determine if flights were executed
   const entries = readStorage<FlightLogEntry[]>('flightlog:entries', [], missionId)
@@ -52,6 +54,11 @@ export default function NachbereitungPhase() {
     if (result) sharePdf(result.blob, result.filename).catch(() => { /* user cancelled */ })
   }
 
+  const handleSignedDownloadPdf = async () => {
+    const result = generateMissionReport(missionId, queryClient, { verifyUrl: `${window.location.origin}/verify` })
+    if (result) await signAndDownload(result.blob, result.filename)
+  }
+
   // Auto-expand logic — must be called unconditionally (Rules of Hooks)
   const sections = useNachbereitungCompleteness(hasFlights)
   const { openState, toggle, continueToNext, isComplete } = useAutoExpand(sections, 'nachbereitung')
@@ -68,14 +75,40 @@ export default function NachbereitungPhase() {
             </p>
           </div>
         </div>
+        {signError && (
+          <div className="flex items-start gap-3 rounded-xl bg-caution-bg p-4">
+            <PiWarning className="mt-0.5 shrink-0 text-lg text-caution" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-caution">Signatur-Fehler</p>
+              <p className="mt-0.5 text-xs text-text-muted">{signError}</p>
+            </div>
+            <button onClick={clearSignError} className="text-xs text-text-muted hover:text-text">
+              Schliessen
+            </button>
+          </div>
+        )}
         <div className="flex gap-2">
           <button
             onClick={handleDownloadPdf}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt active:scale-[0.99]"
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors active:scale-[0.99] ${
+              signingAvailable
+                ? 'bg-surface/60 text-text-muted opacity-70 hover:bg-surface-alt hover:opacity-100'
+                : 'bg-surface text-text hover:bg-surface-alt'
+            }`}
           >
             <PiFilePdf className="text-lg" />
-            PDF herunterladen
+            {signingAvailable ? 'PDF (nicht signiert)' : 'PDF herunterladen'}
           </button>
+          {signingAvailable && (
+            <button
+              onClick={handleSignedDownloadPdf}
+              disabled={signing}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-good-bg px-4 py-3 text-sm font-medium text-good transition-colors hover:bg-good/20 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
+            >
+              {signing ? <PiSpinner className="text-lg animate-spin" /> : <PiSealCheck className="text-lg" />}
+              {signing ? 'Wird signiert...' : 'PDF signiert herunterladen'}
+            </button>
+          )}
           {canSharePdf() && (
             <button
               onClick={handleSharePdf}
