@@ -27,6 +27,18 @@ export interface ArchiveRow {
   doc_hash: string;
   pdf: Buffer;
   archived_at: string;
+  signer_name: string | null;
+  signed_at: string | null;
+  filename: string | null;
+}
+
+/** Archive metadata row (no PDF bytes) for listing. */
+export interface ArchiveMetaRow {
+  doc_hash: string;
+  archived_at: string;
+  signer_name: string | null;
+  signed_at: string | null;
+  filename: string | null;
 }
 
 /**
@@ -78,6 +90,21 @@ function migrate(db: DB): void {
 
     CREATE INDEX IF NOT EXISTS idx_archive_doc_hash ON archive (doc_hash);
   `);
+
+  // Guarded ALTERs: add metadata columns to the archive table if an older
+  // database predates them. SQLite has no "ADD COLUMN IF NOT EXISTS", so we
+  // inspect the table schema first.
+  addColumnIfMissing(db, 'archive', 'signer_name', 'TEXT');
+  addColumnIfMissing(db, 'archive', 'signed_at', 'TEXT');
+  addColumnIfMissing(db, 'archive', 'filename', 'TEXT');
+}
+
+/** Add a column to a table only when it does not already exist. */
+function addColumnIfMissing(db: DB, table: string, column: string, type: string): void {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  if (!cols.some((c) => c.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+  }
 }
 
 /** The `prev_entry_hash` for the next appended row (genesis if the log is empty). */
@@ -196,16 +223,27 @@ export function deleteSignature(db: DB, sub: string): boolean {
 
 export function insertArchive(
   db: DB,
-  fields: { id: string; docHash: string; pdf: Buffer; archivedAt: string },
+  fields: {
+    id: string;
+    docHash: string;
+    pdf: Buffer;
+    archivedAt: string;
+    signerName?: string | null;
+    signedAt?: string | null;
+    filename?: string | null;
+  },
 ): void {
   db.prepare(
-    `INSERT INTO archive (id, doc_hash, pdf, archived_at)
-     VALUES (@id, @doc_hash, @pdf, @archived_at)`,
+    `INSERT INTO archive (id, doc_hash, pdf, archived_at, signer_name, signed_at, filename)
+     VALUES (@id, @doc_hash, @pdf, @archived_at, @signer_name, @signed_at, @filename)`,
   ).run({
     id: fields.id,
     doc_hash: fields.docHash,
     pdf: fields.pdf,
     archived_at: fields.archivedAt,
+    signer_name: fields.signerName ?? null,
+    signed_at: fields.signedAt ?? null,
+    filename: fields.filename ?? null,
   });
 }
 
@@ -214,4 +252,24 @@ export function isArchived(db: DB, docHash: string): boolean {
     .prepare('SELECT 1 AS one FROM archive WHERE doc_hash = ? LIMIT 1')
     .get(docHash) as { one: number } | undefined;
   return row !== undefined;
+}
+
+/** Archive metadata for all entries, newest first (no PDF bytes). */
+export function listArchiveMeta(db: DB): ArchiveMetaRow[] {
+  return db
+    .prepare(
+      `SELECT doc_hash, archived_at, signer_name, signed_at, filename
+       FROM archive ORDER BY archived_at DESC`,
+    )
+    .all() as ArchiveMetaRow[];
+}
+
+/** The archived PDF + metadata for a given doc hash, if present. */
+export function getArchive(db: DB, docHash: string): ArchiveRow | undefined {
+  return db
+    .prepare(
+      `SELECT id, doc_hash, pdf, archived_at, signer_name, signed_at, filename
+       FROM archive WHERE doc_hash = ? LIMIT 1`,
+    )
+    .get(docHash) as ArchiveRow | undefined;
 }

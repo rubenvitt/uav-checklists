@@ -44,7 +44,7 @@ export function getUserManager(): UserManager | null {
     redirect_uri: `${window.location.origin}${OIDC_CALLBACK_PATH}`,
     post_logout_redirect_uri: window.location.origin,
     response_type: 'code',
-    scope: 'openid profile',
+    scope: 'openid profile email groups',
     // PKCE is the default for a public client; no client secret involved.
     automaticSilentRenew: true,
     userStore: new WebStorageStateStore({ store: window.localStorage }),

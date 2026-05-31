@@ -3,7 +3,7 @@ import { cors } from 'hono/cors';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { authMiddleware, getUser, type TokenVerifier } from './auth.js';
+import { adminOnly, authMiddleware, getUser, isAdmin, type TokenVerifier } from './auth.js';
 import {
   buildSignedPayload,
   sha256Hex,
@@ -15,9 +15,11 @@ import {
   appendSigningLog,
   deleteSignature,
   findByDocHash,
+  getArchive,
   getSignature,
   insertArchive,
   isArchived,
+  listArchiveMeta,
   putSignature,
   type DB,
   type SigningLogRow,
@@ -31,6 +33,8 @@ export interface AppDeps {
   corsOrigin: string;
   /** Optional on-disk archive dir. If set, PDFs are also written as files. */
   archiveDir?: string;
+  /** Group whose members may list/download the archive. */
+  adminGroup: string;
 }
 
 const MAX_PDF_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -62,7 +66,7 @@ export function createApp(deps: AppDeps): Hono {
     cors({
       origin: deps.corsOrigin,
       allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowHeaders: ['Authorization', 'Content-Type'],
+      allowHeaders: ['Authorization', 'Content-Type', 'X-Filename'],
       maxAge: 600,
     }),
   );
@@ -72,6 +76,7 @@ export function createApp(deps: AppDeps): Hono {
 
   // --- everything below requires a valid PocketID bearer token ---
   const auth = authMiddleware(deps.verifier);
+  const admin = adminOnly(deps.adminGroup);
 
   /**
    * POST /sign — accepts PDF bytes, hashes them, signs (sub-bound) and appends
@@ -187,7 +192,20 @@ export function createApp(deps: AppDeps): Hono {
     }
     const id = randomUUID();
     const archivedAt = new Date().toISOString();
-    insertArchive(deps.db, { id, docHash, pdf, archivedAt });
+    // Optional original filename from header or query param (sanitized).
+    const rawFilename = c.req.header('X-Filename') ?? c.req.query('filename') ?? null;
+    const filename = rawFilename ? sanitizeFilename(rawFilename) : null;
+    // Signer + signing time come straight from the registered signing-log row
+    // already looked up by doc_hash above (findByDocHash).
+    insertArchive(deps.db, {
+      id,
+      docHash,
+      pdf,
+      archivedAt,
+      signerName: row.signer_name,
+      signedAt: row.created_at,
+      filename,
+    });
 
     if (deps.archiveDir) {
       mkdirSync(deps.archiveDir, { recursive: true });
@@ -195,6 +213,53 @@ export function createApp(deps: AppDeps): Hono {
     }
 
     return c.json({ archived: true, id, docHash, archivedAt }, 201);
+  });
+
+  /**
+   * GET /archive — admin-only listing of archived documents, newest first.
+   * Returns metadata only (no PDF bytes).
+   */
+  app.get('/archive', auth, admin, (c) => {
+    const rows = listArchiveMeta(deps.db);
+    return c.json(
+      rows.map((r) => ({
+        docHash: r.doc_hash,
+        signer: r.signer_name,
+        signedAt: r.signed_at,
+        archivedAt: r.archived_at,
+        filename: r.filename,
+      })),
+    );
+  });
+
+  /**
+   * GET /archive/:docHash — admin-only download of an archived PDF.
+   * 404 when the doc hash is not archived.
+   */
+  app.get('/archive/:docHash', auth, admin, (c) => {
+    const docHash = c.req.param('docHash');
+    const row = getArchive(deps.db, docHash);
+    if (!row) {
+      return c.json({ error: 'not_found' }, 404);
+    }
+    const filename = sanitizeFilename(row.filename ?? `${docHash}.pdf`);
+    c.header('Content-Type', 'application/pdf');
+    c.header('Content-Disposition', contentDisposition(filename));
+    return c.body(toArrayBuffer(row.pdf));
+  });
+
+  /**
+   * GET /me — the authenticated user's identity + admin status, so the SPA can
+   * display the real name and gate admin-only UI.
+   */
+  app.get('/me', auth, (c) => {
+    const user = getUser(c);
+    return c.json({
+      sub: user.sub,
+      name: user.name,
+      groups: user.groups,
+      isAdmin: isAdmin(user, deps.adminGroup),
+    });
   });
 
   // --- per-user stored signature (one PNG per sub) ---
@@ -246,6 +311,32 @@ function isPng(buf: Buffer): boolean {
 
 function toArrayBuffer(buf: Buffer): ArrayBuffer {
   return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+}
+
+/**
+ * Strip characters that could break a Content-Disposition header (CR/LF,
+ * quotes, backslashes, path separators) and trim length. Falls back to a safe
+ * default when the result is empty.
+ */
+function sanitizeFilename(name: string): string {
+  const cleaned = name
+    .replace(/[\r\n"\\/]/g, '_')
+    .replace(/[\x00-\x1f]/g, '')
+    .trim()
+    .slice(0, 255);
+  return cleaned === '' ? 'document.pdf' : cleaned;
+}
+
+/**
+ * Build an RFC 6266 Content-Disposition value. Provides an ASCII-only
+ * `filename=` (non-ASCII bytes replaced) for legacy clients PLUS a UTF-8
+ * `filename*=` so German filenames (umlauts) download correctly.
+ */
+function contentDisposition(filename: string): string {
+  // eslint-disable-next-line no-control-regex
+  const asciiFallback = filename.replace(/[^\x20-\x7e]/g, '_');
+  const encoded = encodeURIComponent(filename);
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encoded}`;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

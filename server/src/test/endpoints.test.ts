@@ -37,6 +37,7 @@ beforeEach(async () => {
     verifier: jwks.verifier,
     signingKey,
     corsOrigin: 'http://localhost:5173',
+    adminGroup: 'uav-admins',
   });
   token = await jwks.mintToken({ sub: 'user-abc', name: 'Erika Mustermann' });
 });

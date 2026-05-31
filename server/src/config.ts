@@ -28,8 +28,12 @@ export interface ServerConfig {
   oidcIssuer: string;
   /** JWKS endpoint of the OIDC issuer. Defaults to `${issuer}/.well-known/jwks.json`. */
   oidcJwksUrl: string;
+  /** OIDC userinfo endpoint. Defaults to `${issuer}/api/oidc/userinfo`. */
+  oidcUserinfoUrl: string;
   /** Expected `aud` claim of the access token (the API audience / client id). */
   oidcAudience: string;
+  /** Group name that grants admin access (archive listing/download). */
+  adminGroup: string;
   /** Filesystem path to the persisted SQLite database. */
   dbPath: string;
   /** Filesystem path to the Ed25519 signing key (PKCS#8 PEM). Generated if absent. */
@@ -42,12 +46,16 @@ export interface ServerConfig {
 
 export function loadConfig(): ServerConfig {
   const oidcIssuer = required('OIDC_ISSUER');
-  const defaultJwks = `${oidcIssuer.replace(/\/$/, '')}/.well-known/jwks.json`;
+  const issuerNoSlash = oidcIssuer.replace(/\/$/, '');
+  const defaultJwks = `${issuerNoSlash}/.well-known/jwks.json`;
+  const defaultUserinfo = `${issuerNoSlash}/api/oidc/userinfo`;
   return {
     port: Number(optional('PORT', '8787')),
     oidcIssuer,
     oidcJwksUrl: optional('OIDC_JWKS_URL', defaultJwks),
+    oidcUserinfoUrl: optional('OIDC_USERINFO_URL', defaultUserinfo),
     oidcAudience: required('OIDC_AUDIENCE'),
+    adminGroup: optional('ADMIN_GROUP', 'uav-admins'),
     dbPath: optional('DB_PATH', './data/signatures.db'),
     signingKeyPath: optional('SIGNING_KEY_PATH', './data/signing-key.pem'),
     archiveDir: optional('ARCHIVE_DIR', './data/archive'),

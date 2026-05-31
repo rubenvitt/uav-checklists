@@ -1,6 +1,6 @@
 import { serve } from '@hono/node-server';
 import { createApp } from './app.js';
-import { createJwksVerifier } from './auth.js';
+import { createJwksVerifier, withUserinfo } from './auth.js';
 import { loadConfig } from './config.js';
 import { loadOrCreateSigningKey } from './crypto.js';
 import { openDb } from './db.js';
@@ -10,11 +10,14 @@ function main(): void {
 
   const db = openDb(config.dbPath);
   const signingKey = loadOrCreateSigningKey(config.signingKeyPath);
-  const verifier = createJwksVerifier({
-    issuer: config.oidcIssuer,
-    audience: config.oidcAudience,
-    jwksUrl: config.oidcJwksUrl,
-  });
+  const verifier = withUserinfo(
+    createJwksVerifier({
+      issuer: config.oidcIssuer,
+      audience: config.oidcAudience,
+      jwksUrl: config.oidcJwksUrl,
+    }),
+    { userinfoUrl: config.oidcUserinfoUrl },
+  );
 
   const app = createApp({
     db,
@@ -22,6 +25,7 @@ function main(): void {
     signingKey,
     corsOrigin: config.corsOrigin,
     archiveDir: config.archiveDir,
+    adminGroup: config.adminGroup,
   });
 
   serve({ fetch: app.fetch, port: config.port }, (info) => {
