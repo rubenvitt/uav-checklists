@@ -54,7 +54,7 @@ function LoginAffordance() {
     return (
       <div className="flex items-center gap-2">
         <span className="flex items-center gap-1.5 max-w-[10rem] truncate text-sm text-text-muted" title={displayName}>
-          <PiUserCircle className="shrink-0 text-base" />
+          <PiUserCircle className="shrink-0" />
           <span className="truncate">{displayName}</span>
         </span>
         <button
@@ -75,7 +75,7 @@ function LoginAffordance() {
       className="flex items-center gap-1.5 rounded-lg bg-surface px-3 py-2 text-sm text-text-muted transition-colors hover:bg-surface-alt hover:text-text active:scale-95"
       title="Anmelden"
     >
-      <PiSignIn className="text-base" />
+      <PiSignIn />
       Anmelden
     </button>
   )
