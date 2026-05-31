@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { PiPlus, PiTrash, PiClock, PiMapTrifold, PiFilePdf, PiCheckCircle, PiShareNetwork } from 'react-icons/pi'
+import { PiPlus, PiTrash, PiClock, PiMapTrifold, PiFilePdf, PiCheckCircle, PiShareNetwork, PiArchive, PiCaretDown } from 'react-icons/pi'
+import { useAuth } from '../context/AuthContext'
+import ArchivePanel from './ArchivePanel'
 import { useMissions } from '../hooks/useMissions'
 import { useMissionDisplayLabel } from '../hooks/useMissionDisplayLabel'
 import { getRemainingTime } from '../utils/missionStorage'
@@ -27,7 +29,13 @@ export default function MissionOverview() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { missions, create, remove, clean } = useMissions()
+  const { configured, isAuthenticated, isAdmin } = useAuth()
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [archiveOpen, setArchiveOpen] = useState(false)
+
+  // The archive viewer is admin-only and degrades gracefully: hidden for
+  // non-admins, logged-out users, and when the backend/OIDC is unconfigured.
+  const showArchive = configured && isAuthenticated && isAdmin
 
   useEffect(() => {
     clean()
@@ -74,6 +82,23 @@ export default function MissionOverview() {
           Neuer Einsatz
         </button>
       </div>
+
+      {showArchive && (
+        <div className="space-y-3">
+          <button
+            onClick={() => setArchiveOpen((v) => !v)}
+            className="flex w-full items-center justify-between gap-2 rounded-lg bg-surface px-4 py-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-alt hover:text-text active:scale-[0.99]"
+            aria-expanded={archiveOpen}
+          >
+            <span className="flex items-center gap-2">
+              <PiArchive />
+              Archiv
+            </span>
+            <PiCaretDown className={`transition-transform ${archiveOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {archiveOpen && <ArchivePanel />}
+        </div>
+      )}
 
       {missions.length === 0 && (
         <div className="flex flex-col items-center gap-4 rounded-xl bg-surface py-16 text-center">

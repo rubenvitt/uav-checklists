@@ -2,12 +2,13 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { User } from 'oidc-client-ts'
 import {
   getUserManager,
+  isAdminFromProfile,
   isAuthConfigured,
   login as startLogin,
   logout as startLogout,
   userDisplayName,
 } from '../services/auth'
-import { pingHealth, setAccessTokenProvider } from '../services/signApi'
+import { fetchMe, pingHealth, setAccessTokenProvider } from '../services/signApi'
 
 interface AuthState {
   /**
@@ -20,6 +21,12 @@ interface AuthState {
   user: User | null
   isAuthenticated: boolean
   displayName: string
+  /**
+   * Whether the current user is an admin. Sourced from the backend `GET /me`
+   * (authoritative) once logged in; falls back to the OIDC `groups` claim when
+   * `/me` is unavailable. `false` when logged out or unconfigured.
+   */
+  isAdmin: boolean
   login: () => void
   logout: () => void
 }
@@ -29,6 +36,7 @@ const AuthContext = createContext<AuthState | null>(null)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const authConfigured = isAuthConfigured()
   const [user, setUser] = useState<User | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   // Hidden until /health confirms the backend is reachable. Unreachable or
   // unconfigured => login UI never appears; the core app is unaffected.
   const [backendAvailable, setBackendAvailable] = useState(false)
@@ -78,11 +86,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => setAccessTokenProvider(null)
   }, [user])
 
+  // Resolve admin status. The backend `GET /me` is authoritative; when it is
+  // unavailable (transient error / unconfigured) we fall back to the OIDC
+  // `groups` claim. Declared after the token-provider effect so the provider
+  // closure is current. Keyed on the access token so it re-runs on renewal.
+  useEffect(() => {
+    let active = true
+    const resolve = !user || user.expired
+      ? Promise.resolve(false)
+      : fetchMe().then((me) => (me ? me.isAdmin : isAdminFromProfile(user)))
+    resolve.then((admin) => {
+      if (active) setIsAdmin(admin)
+    })
+    return () => {
+      active = false
+    }
+  }, [user])
+
   const value: AuthState = {
     configured,
     user,
     isAuthenticated: !!user && !user.expired,
     displayName: userDisplayName(user),
+    isAdmin: !!user && !user.expired && isAdmin,
     login: () => {
       void startLogin()
     },
@@ -103,6 +129,7 @@ export function useAuth(): AuthState {
       user: null,
       isAuthenticated: false,
       displayName: '',
+      isAdmin: false,
       login: () => {},
       logout: () => {},
     }

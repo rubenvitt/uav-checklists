@@ -10,6 +10,7 @@
  * token is supplied by the caller (the auth context) via a registered provider,
  * so the wrappers stay usable from anywhere.
  */
+import { downloadPdf } from '../utils/generateReport'
 
 /** Configured backend base URL, or `undefined` when the feature is disabled. */
 const RAW_BASE_URL = import.meta.env.VITE_SIGN_API_URL as string | undefined
@@ -219,5 +220,83 @@ export async function archivePdf(pdf: Blob): Promise<ArchiveResult | null> {
     return (await res.json()) as ArchiveResult
   } catch {
     return null
+  }
+}
+
+/* ── Identity & admin (/me) ─────────────────────────────────── */
+
+/** Authenticated user identity + admin status, as returned by `GET /me`. */
+export interface MeResult {
+  sub: string
+  name: string
+  groups: string[]
+  isAdmin: boolean
+}
+
+/**
+ * `GET /me` — the authenticated user's identity and admin status. Returns
+ * `null` when unconfigured, unauthenticated (401), or on error, so callers can
+ * fall back to client-side group inspection.
+ */
+export async function fetchMe(): Promise<MeResult | null> {
+  if (!BASE_URL) return null
+  try {
+    const res = await fetch(`${BASE_URL}/me`, {
+      headers: authHeaders(),
+    })
+    if (!res.ok) return null
+    return (await res.json()) as MeResult
+  } catch {
+    return null
+  }
+}
+
+/* ── Admin archive viewer (/archive list + download) ───────── */
+
+/** One archived document's metadata, as returned by `GET /archive`. */
+export interface ArchiveEntry {
+  docHash: string
+  signer: string | null
+  signedAt: string | null
+  archivedAt: string
+  filename: string | null
+}
+
+/**
+ * `GET /archive` — admin-only listing of archived documents, newest first.
+ *
+ * Returns `null` when unconfigured, not permitted (401/403), or on error;
+ * returns an empty array `[]` on a successful-but-empty archive. Callers use
+ * this distinction to separate the error state from the empty state.
+ */
+export async function listArchive(): Promise<ArchiveEntry[] | null> {
+  if (!BASE_URL) return null
+  try {
+    const res = await fetch(`${BASE_URL}/archive`, {
+      headers: authHeaders(),
+    })
+    if (!res.ok) return null
+    return (await res.json()) as ArchiveEntry[]
+  } catch {
+    return null
+  }
+}
+
+/**
+ * `GET /archive/:docHash` — admin-only download of an archived PDF. Streams the
+ * blob to a browser download via {@link downloadPdf}. No-op when unconfigured,
+ * not permitted, not found, or on error.
+ */
+export async function downloadArchive(docHash: string, filename?: string): Promise<void> {
+  if (!BASE_URL) return
+  try {
+    const res = await fetch(`${BASE_URL}/archive/${encodeURIComponent(docHash)}`, {
+      headers: authHeaders(),
+    })
+    if (!res.ok) return
+    const blob = await res.blob()
+    downloadPdf(blob, filename ?? `${docHash}.pdf`)
+  } catch {
+    // Download failed — surface nothing; the panel keeps its current state.
   }
 }
