@@ -321,6 +321,7 @@ function toArrayBuffer(buf: Buffer): ArrayBuffer {
 function sanitizeFilename(name: string): string {
   const cleaned = name
     .replace(/[\r\n"\\/]/g, '_')
+    // eslint-disable-next-line no-control-regex
     .replace(/[\x00-\x1f]/g, '')
     .trim()
     .slice(0, 255);
@@ -333,7 +334,6 @@ function sanitizeFilename(name: string): string {
  * `filename*=` so German filenames (umlauts) download correctly.
  */
 function contentDisposition(filename: string): string {
-  // eslint-disable-next-line no-control-regex
   const asciiFallback = filename.replace(/[^\x20-\x7e]/g, '_');
   const encoded = encodeURIComponent(filename);
   return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encoded}`;
