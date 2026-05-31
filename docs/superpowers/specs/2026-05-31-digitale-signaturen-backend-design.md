@@ -83,15 +83,19 @@ erfassbar (Tablet-Weiterreichen, klassischer Papier-Ersatz).
 `uav-form:${missionId}:signature:fk` bzw. `:el` (Data-URL). Unterliegt der
 56h-TTL-Bereinigung wie alle Missionsdaten — bleibt lokal im Browser.
 
-**PDF-Einbettung:** Der Unterschriften-Block muss ins **Abschlussdokument**
-(`generateMissionReport.ts`), das ihn aktuell **noch nicht** hat. Vorhandene Linie
-+ Label beibehalten; existiert eine Signatur-Data-URL, wird das PNG per
-`doc.addImage()` **über** die Linie gezeichnet (skaliert in die Block-Breite).
-Ohne Bild → leeres Feld wie bisher (Hand-/Druckunterschrift bleibt möglich).
+**PDF-Einbettung:** Der Unterschriften-Block lebt **bereits** in
+`generateReport.ts` (Funktion `generateReport`) und wird **geteilt**:
+`generateMissionReport` sammelt nur Daten in ein `ReportData`-Objekt und ruft
+`generateReport(data)` auf. Phase 1 **erweitert den bestehenden Block** so, dass
+er bei vorhandener Signatur-Data-URL das PNG per `doc.addImage()` **über** die
+Linie zeichnet (skaliert in die Block-Breite). Ohne Bild → leeres Feld wie bisher
+(Hand-/Druckunterschrift bleibt möglich).
 
-> Der bestehende Signatur-Block in `generateReport.ts` ist der **Vorflug**-Report
-> und bleibt unangetastet. Finger-Unterschriften gibt es nur im
-> Einsatz-Abschlussdokument.
+> **Geteilter Code — Vorsicht:** `generateReport` rendert denselben Block auch für
+> den **Vorflug**-Report (Direktaufruf in `VorflugkontrollePhase.tsx:300`). Nur der
+> **Mission-Report-Pfad** (`generateMissionReport`) darf `signatureFk`/`signatureEl`
+> in die `ReportData` schreiben. Der Vorflug-Report bleibt unverändert (leere
+> Linien) — das ist eine explizite Regressionsprüfung in der Visual-Verifikation.
 
 **Kein Login, kein Netz nötig — voll offline.**
 
@@ -190,8 +194,13 @@ Log-Lookup fälschbar.
   und Access-Token-`aud`/`iss` müssen beim Backend-Bau abgeglichen werden.
 - **Server-Datenhaltung:** SQLite-Datei + Keypair-Secret benötigen ein
   persistentes Volume und ein Backup-Konzept (außerhalb dieser Spec).
-- **`generateMissionReport.ts`** muss um einen Unterschriften-Block erweitert
-  werden (existiert dort heute nicht).
+- **Geteilter Signatur-Block:** Der Block in `generateReport.ts` rendert für
+  Vorflug- **und** Mission-Report. Phase 1 darf nur den Mission-Report-Pfad mit
+  Signaturbildern versorgen, sonst regressiert der Vorflug-Report.
+- **Keine Test-Infrastruktur** im Projekt: Phase 1 wird visuell verifiziert
+  (App starten, beide Unterschriften zeichnen, Abschluss-PDF erzeugen). Echtes
+  TDD kommt in Phase 3 (Hash-Kette, Signatur-Roundtrip, Tamper-Erkennung,
+  Token-Validierung), wo das Backend einen eigenen Test-Runner erhält.
 
 ## Scope-Grenzen (YAGNI)
 

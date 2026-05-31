@@ -3,7 +3,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.js';
 import { openDb, type DB } from '../db.js';
 import { verifyChainFromDb } from '../verifyChain.js';
-import type { SigningKeyPair } from '../crypto.js';
+import {
+  computeEntryHash,
+  GENESIS_PREV_HASH,
+  sha256Hex,
+  type SigningKeyPair,
+} from '../crypto.js';
 import { createPublicKey } from 'node:crypto';
 import { createTestJwks, fakePdf, type TestJwksContext } from './helpers.js';
 
@@ -21,14 +26,16 @@ let db: DB;
 let jwks: TestJwksContext;
 let app: ReturnType<typeof createApp>;
 let token: string;
+let signingKey: SigningKeyPair;
 
 beforeEach(async () => {
   db = openDb(':memory:');
   jwks = await createTestJwks();
+  signingKey = makeSigningKey();
   app = createApp({
     db,
     verifier: jwks.verifier,
-    signingKey: makeSigningKey(),
+    signingKey,
     corsOrigin: 'http://localhost:5173',
   });
   token = await jwks.mintToken({ sub: 'user-abc', name: 'Erika Mustermann' });
@@ -71,8 +78,8 @@ describe('POST /sign + POST /verify round-trip', () => {
     expect(verdict.signer.sub).toBe('user-abc');
     expect(verdict.createdAt).toBe(receipt.createdAt);
 
-    // The append must have produced an intact chain.
-    expect(verifyChainFromDb(db).valid).toBe(true);
+    // The append must have produced an intact, signature-valid chain.
+    expect(verifyChainFromDb(db, signingKey.publicKey).valid).toBe(true);
   });
 
   it('verify rejects a modified PDF (different bytes -> different hash)', async () => {
@@ -84,6 +91,54 @@ describe('POST /sign + POST /verify round-trip', () => {
     expect(verifyRes.status).toBe(200);
     const verdict = (await verifyRes.json()) as { valid: boolean };
     expect(verdict.valid).toBe(false);
+  });
+
+  it('verify REJECTS a forged DB row (recomputed chain, bogus signature)', async () => {
+    // Attacker with DB write access inserts a row for an arbitrary signer with
+    // an internally-consistent entry_hash but a signature they cannot produce.
+    const pdf = fakePdf('forged-doc');
+    const docHash = sha256Hex(Buffer.from(`%PDF-1.7\nforged-doc\n%%EOF\n`, 'utf8'));
+    const createdAt = new Date().toISOString();
+    const prevEntryHash = GENESIS_PREV_HASH;
+    const id = 'forged-row';
+    const sub = 'attacker';
+    const signerName = 'Mallory';
+    const signature = Buffer.from('not-a-real-signature').toString('base64');
+    const entryHash = computeEntryHash({
+      prevEntryHash,
+      id,
+      sub,
+      createdAt,
+      docHash,
+      signature,
+    });
+    db.prepare(
+      `INSERT INTO signing_log
+        (id, sub, signer_name, created_at, doc_hash, signature, prev_entry_hash, entry_hash, rowseq)
+       VALUES (@id, @sub, @signer_name, @created_at, @doc_hash, @signature, @prev_entry_hash, @entry_hash, 1)`,
+    ).run({
+      id,
+      sub,
+      signer_name: signerName,
+      created_at: createdAt,
+      doc_hash: docHash,
+      signature,
+      prev_entry_hash: prevEntryHash,
+      entry_hash: entryHash,
+    });
+
+    // /verify must NOT trust mere row existence — the bogus signature fails.
+    const verifyRes = await authed('/verify', pdf);
+    expect(verifyRes.status).toBe(200);
+    expect(((await verifyRes.json()) as { valid: boolean }).valid).toBe(false);
+
+    // /archive must refuse to store the forged document.
+    const archiveRes = await authed('/archive', pdf);
+    expect(archiveRes.status).toBe(422);
+    expect(((await archiveRes.json()) as { archived: boolean }).archived).toBe(false);
+
+    // And the chain verifier flags the bogus signature directly.
+    expect(verifyChainFromDb(db, signingKey.publicKey).brokenAt?.reason).toBe('signature_invalid');
   });
 });
 

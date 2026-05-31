@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { completeLogin, isAuthConfigured } from '../services/auth'
 
@@ -10,8 +10,14 @@ import { completeLogin, isAuthConfigured } from '../services/auth'
 export default function AuthCallback() {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
+  // One-shot guard: the OIDC code/state can only be redeemed once. Under
+  // React StrictMode the effect double-invokes in dev; without this guard the
+  // second call fails and briefly flashes the German error even on success.
+  const ran = useRef(false)
 
   useEffect(() => {
+    if (ran.current) return
+    ran.current = true
     if (!isAuthConfigured()) {
       navigate('/', { replace: true })
       return

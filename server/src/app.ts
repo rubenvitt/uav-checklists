@@ -8,6 +8,7 @@ import {
   buildSignedPayload,
   sha256Hex,
   signPayload,
+  verifyPayload,
   type SigningKeyPair,
 } from './crypto.js';
 import {
@@ -19,7 +20,9 @@ import {
   isArchived,
   putSignature,
   type DB,
+  type SigningLogRow,
 } from './db.js';
+import { verifyChainFromDb } from './verifyChain.js';
 
 export interface AppDeps {
   db: DB;
@@ -86,8 +89,14 @@ export function createApp(deps: AppDeps): Hono {
     const id = randomUUID();
     const createdAt = new Date().toISOString();
 
-    // The signed payload binds sub + docHash + createdAt cryptographically.
-    const payload = buildSignedPayload({ sub: user.sub, docHash, createdAt });
+    // The signed payload binds sub + signerName + docHash + createdAt
+    // cryptographically.
+    const payload = buildSignedPayload({
+      sub: user.sub,
+      signerName: user.name,
+      docHash,
+      createdAt,
+    });
     const signature = signPayload(deps.signingKey.privateKey, payload);
 
     const row = appendSigningLog(deps.db, {
@@ -112,7 +121,30 @@ export function createApp(deps: AppDeps): Hono {
   });
 
   /**
-   * POST /verify — accepts PDF bytes, re-hashes, looks up the registry.
+   * Cryptographically validate a registered row: the Ed25519 signature over the
+   * canonical payload AND the integrity of the whole hash chain. A row found by
+   * doc_hash is NOT trusted on existence alone — an attacker with DB write
+   * access could insert a row with an arbitrary sub/signer_name and a bogus
+   * signature. Only the signature (which they cannot produce without the
+   * private key) proves authenticity.
+   */
+  function isRowCryptographicallyValid(row: SigningLogRow): boolean {
+    const payload = buildSignedPayload({
+      sub: row.sub,
+      signerName: row.signer_name,
+      docHash: row.doc_hash,
+      createdAt: row.created_at,
+    });
+    if (!verifyPayload(deps.signingKey.publicKey, payload, row.signature)) {
+      return false;
+    }
+    // Tamper-evidence across the whole append-only log.
+    return verifyChainFromDb(deps.db, deps.signingKey.publicKey).valid;
+  }
+
+  /**
+   * POST /verify — accepts PDF bytes, re-hashes, looks up the registry, and
+   * cryptographically verifies the Ed25519 signature + hash chain.
    */
   app.post('/verify', auth, async (c) => {
     let pdf: Buffer;
@@ -123,7 +155,7 @@ export function createApp(deps: AppDeps): Hono {
     }
     const docHash = sha256Hex(pdf);
     const row = findByDocHash(deps.db, docHash);
-    if (!row) {
+    if (!row || !isRowCryptographicallyValid(row)) {
       return c.json({ valid: false });
     }
     return c.json({
@@ -135,7 +167,8 @@ export function createApp(deps: AppDeps): Hono {
   });
 
   /**
-   * POST /archive — verifies first; only registered (valid) PDFs are stored.
+   * POST /archive — verifies first; only registered AND cryptographically
+   * valid PDFs are stored.
    */
   app.post('/archive', auth, async (c) => {
     let pdf: Buffer;
@@ -146,7 +179,7 @@ export function createApp(deps: AppDeps): Hono {
     }
     const docHash = sha256Hex(pdf);
     const row = findByDocHash(deps.db, docHash);
-    if (!row) {
+    if (!row || !isRowCryptographicallyValid(row)) {
       return c.json({ archived: false, reason: 'not_registered' }, 422);
     }
     if (isArchived(deps.db, docHash)) {

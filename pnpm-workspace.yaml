@@ -1,0 +1,6 @@
+overrides:
+  vite: ^8.0.0-beta.13
+
+allowBuilds:
+  '@sentry/cli': true
+  core-js: true

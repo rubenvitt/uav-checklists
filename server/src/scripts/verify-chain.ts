@@ -6,33 +6,42 @@
  *   tsx src/scripts/verify-chain.ts /path/to/signatures.db
  */
 import { loadConfig } from '../config.js';
+import { loadOrCreateSigningKey } from '../crypto.js';
 import { allSigningLog, openDb } from '../db.js';
 import { verifyChain } from '../verifyChain.js';
 
-function resolveDbPath(): string {
+interface ResolvedPaths {
+  dbPath: string;
+  signingKeyPath: string;
+}
+
+function resolvePaths(): ResolvedPaths {
   const arg = process.argv[2];
-  if (arg) return arg;
   try {
-    return loadConfig().dbPath;
+    const config = loadConfig();
+    return { dbPath: arg ?? config.dbPath, signingKeyPath: config.signingKeyPath };
   } catch {
-    return process.env.DB_PATH ?? './data/signatures.db';
+    return {
+      dbPath: arg ?? process.env.DB_PATH ?? './data/signatures.db',
+      signingKeyPath: process.env.SIGNING_KEY_PATH ?? './data/signing-key.pem',
+    };
   }
 }
 
 function main(): void {
-  const dbPath = resolveDbPath();
+  const { dbPath, signingKeyPath } = resolvePaths();
   const db = openDb(dbPath);
+  // The public key is required to verify each row's Ed25519 signature.
+  const { publicKey } = loadOrCreateSigningKey(signingKeyPath);
   const rows = allSigningLog(db);
-  const result = verifyChain(rows);
+  const result = verifyChain(rows, publicKey);
 
   if (result.valid) {
-    // eslint-disable-next-line no-console
     console.log(`OK  Hash chain intact: ${result.count} entr${result.count === 1 ? 'y' : 'ies'} in ${dbPath}`);
     process.exit(0);
   }
 
   const broken = result.brokenAt;
-  // eslint-disable-next-line no-console
   console.error(
     `FAIL  Hash chain BROKEN in ${dbPath}\n` +
       (broken

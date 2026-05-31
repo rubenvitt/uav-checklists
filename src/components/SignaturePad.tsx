@@ -158,7 +158,10 @@ export default function SignaturePad({ value, onChange, label }: SignaturePadPro
           </button>
         )}
       </div>
-      <div className="overflow-hidden rounded-lg border border-text-muted/20 bg-surface-alt">
+      {/* Fixed light "paper" background in ALL themes: the dark pen ink stays
+          visible while signing at dusk/night, and matches the white PDF where
+          the trimmed PNG is later embedded. */}
+      <div className="overflow-hidden rounded-lg border border-text-muted/20 bg-white">
         <canvas
           ref={canvasRef}
           className="block h-32 w-full cursor-crosshair touch-none"

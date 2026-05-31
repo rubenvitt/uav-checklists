@@ -6,10 +6,15 @@ describe('Ed25519 sign/verify with sub-bound payload', () => {
   const { privateKey } = generateKeyPairSync('ed25519');
   const publicKey = createPublicKey(privateKey);
 
-  it('round-trips a signature over (sub, docHash, createdAt)', () => {
+  it('round-trips a signature over (sub, signerName, docHash, createdAt)', () => {
     const docHash = sha256Hex(Buffer.from('the pdf bytes'));
     const createdAt = new Date().toISOString();
-    const payload = buildSignedPayload({ sub: 'user-1', docHash, createdAt });
+    const payload = buildSignedPayload({
+      sub: 'user-1',
+      signerName: 'Erika',
+      docHash,
+      createdAt,
+    });
     const sig = signPayload(privateKey, payload);
     expect(verifyPayload(publicKey, payload, sig)).toBe(true);
   });
@@ -17,8 +22,22 @@ describe('Ed25519 sign/verify with sub-bound payload', () => {
   it('fails verification if the sub is changed (identity is bound)', () => {
     const docHash = sha256Hex(Buffer.from('pdf'));
     const createdAt = new Date().toISOString();
-    const sig = signPayload(privateKey, buildSignedPayload({ sub: 'user-1', docHash, createdAt }));
-    const forged = buildSignedPayload({ sub: 'user-2', docHash, createdAt });
+    const sig = signPayload(
+      privateKey,
+      buildSignedPayload({ sub: 'user-1', signerName: 'Erika', docHash, createdAt }),
+    );
+    const forged = buildSignedPayload({ sub: 'user-2', signerName: 'Erika', docHash, createdAt });
+    expect(verifyPayload(publicKey, forged, sig)).toBe(false);
+  });
+
+  it('fails verification if the signerName is changed (name is bound)', () => {
+    const docHash = sha256Hex(Buffer.from('pdf'));
+    const createdAt = new Date().toISOString();
+    const sig = signPayload(
+      privateKey,
+      buildSignedPayload({ sub: 'u', signerName: 'Erika', docHash, createdAt }),
+    );
+    const forged = buildSignedPayload({ sub: 'u', signerName: 'Mallory', docHash, createdAt });
     expect(verifyPayload(publicKey, forged, sig)).toBe(false);
   });
 
@@ -26,9 +45,14 @@ describe('Ed25519 sign/verify with sub-bound payload', () => {
     const createdAt = new Date().toISOString();
     const sig = signPayload(
       privateKey,
-      buildSignedPayload({ sub: 'u', docHash: 'a'.repeat(64), createdAt }),
+      buildSignedPayload({ sub: 'u', signerName: 'Erika', docHash: 'a'.repeat(64), createdAt }),
     );
-    const forged = buildSignedPayload({ sub: 'u', docHash: 'b'.repeat(64), createdAt });
+    const forged = buildSignedPayload({
+      sub: 'u',
+      signerName: 'Erika',
+      docHash: 'b'.repeat(64),
+      createdAt,
+    });
     expect(verifyPayload(publicKey, forged, sig)).toBe(false);
   });
 

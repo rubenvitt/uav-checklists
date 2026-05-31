@@ -32,13 +32,15 @@ export default defineConfig({
       globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       runtimeCaching: [
         {
-          // Signature backend mutations / auth + stored signature: NEVER cached.
-          // These are POST/PUT/DELETE (and an auth-bound GET) — they must always
-          // hit the network. NetworkOnly makes the exclusion explicit, even
-          // though the allowlist below would not match them anyway.
+          // Signature backend (sign/verify/archive + auth-bound stored
+          // signature): NEVER cached. Workbox only caches GET responses anyway,
+          // so the POST/PUT/DELETE mutations already bypass the cache; this
+          // NetworkOnly rule (no method restriction → applies to every method
+          // matching the pattern, including the auth-bound GET /me/signature)
+          // makes the exclusion explicit. The allowlist below never matches
+          // these URLs regardless.
           urlPattern: /\/(sign|verify|archive|me\/signature)(\?.*)?$/i,
           handler: 'NetworkOnly',
-          method: 'GET',
           options: { cacheName: 'sign-api-no-cache' },
         },
         {

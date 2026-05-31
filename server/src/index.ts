@@ -25,7 +25,6 @@ function main(): void {
   });
 
   serve({ fetch: app.fetch, port: config.port }, (info) => {
-    // eslint-disable-next-line no-console
     console.log(
       `[server] signature backend listening on :${info.port}\n` +
         `[server] OIDC issuer: ${config.oidcIssuer}\n` +
