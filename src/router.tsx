@@ -5,6 +5,8 @@ import { useCallback, useRef, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { MissionProvider, useMissionId } from './context/MissionContext'
 import { SegmentProvider } from './context/SegmentContext'
+import { AuthProvider } from './context/AuthContext'
+import AuthCallback from './components/AuthCallback'
 import { getMission, isMissionExpired, updateMissionPhase, canAccessPhase } from './utils/missionStorage'
 import { useMissionSegment } from './hooks/useMissionSegment'
 import { clearMissionEnvironment } from './hooks/useMissionEnvironment'
@@ -175,11 +177,14 @@ export default function AppRouter() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<OverviewLayout />} />
-        <Route path="/mission/:missionId/:phase" element={<MissionLayout />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<OverviewLayout />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/mission/:missionId/:phase" element={<MissionLayout />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

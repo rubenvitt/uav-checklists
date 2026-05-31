@@ -14,8 +14,11 @@ import {
   PiUsers,
   PiWarning,
   PiSignature,
+  PiStamp,
 } from 'react-icons/pi'
 import SignaturePad from '../SignaturePad'
+import StoredSignaturePanel from '../StoredSignaturePanel'
+import { useAuth } from '../../context/AuthContext'
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
 import { useMissionId } from '../../context/MissionContext'
 import { readStorage } from '../../hooks/usePersistedState'
@@ -49,7 +52,7 @@ function useWrapupItems(): { items: WrapupItem[]; noAnmeldungen: boolean } {
   // --- Anmeldungen aus Vorflugkontrolle (segment-scoped) ---
   const segments = getSegments(missionId)
   const anmeldungenChecked: Record<string, boolean> = {}
-  let anmeldungenAdditional: AdditionalNotification[] = []
+  const anmeldungenAdditional: AdditionalNotification[] = []
   for (const seg of segments) {
     const segChecked = readStorage<Record<string, boolean>>(`seg:${seg.id}:anmeldungen:checked`, {}, missionId)
     for (const [k, v] of Object.entries(segChecked)) {
@@ -212,6 +215,13 @@ export default function EinsatzabschlussSection({ open, onToggle, isComplete, on
   const [signatureFk, setSignatureFk] = useMissionPersistedState<string>('signature:fk', '')
   const [signatureEl, setSignatureEl] = useMissionPersistedState<string>('signature:el', '')
   const [expandedNote, setExpandedNote] = useState<string | null>(null)
+
+  // Optional PocketID login: when configured + logged in, the user can reuse a
+  // server-stored personal signature. When logged out this stays inert and the
+  // signature step behaves exactly like Phase 1.
+  const { configured: authConfigured, isAuthenticated } = useAuth()
+  const [storedSignature, setStoredSignature] = useState<string | null>(null)
+  const showStoredSignatures = authConfigured && isAuthenticated
 
   const checkedCount = items.filter(i => checked[i.key]).length
   const totalCount = items.length
@@ -378,20 +388,56 @@ export default function EinsatzabschlussSection({ open, onToggle, isComplete, on
                 <span className="h-1.5 w-1.5 rounded-full bg-good" />
               )}
             </div>
-            <SignaturePad
+            {showStoredSignatures && (
+              <StoredSignaturePanel onStoredSignatureChange={setStoredSignature} />
+            )}
+            <SignatureField
               label="Führungskraft UAS"
               value={signatureFk}
               onChange={setSignatureFk}
+              storedSignature={showStoredSignatures ? storedSignature : null}
             />
-            <SignaturePad
+            <SignatureField
               label="Einsatzleitung"
               value={signatureEl}
               onChange={setSignatureEl}
+              storedSignature={showStoredSignatures ? storedSignature : null}
             />
           </div>
         </div>
       </div>
     </ChecklistSection>
+  )
+}
+
+/* ── Signature field (draw + optional stored-signature insert) ─ */
+
+function SignatureField({
+  label,
+  value,
+  onChange,
+  storedSignature,
+}: {
+  label: string
+  value: string
+  onChange: (dataUrl: string) => void
+  /** Logged-in user's stored PNG (data-URL), or null when unavailable. */
+  storedSignature: string | null
+}) {
+  return (
+    <div className="space-y-1.5">
+      <SignaturePad label={label} value={value} onChange={onChange} />
+      {storedSignature && (
+        <button
+          type="button"
+          onClick={() => onChange(storedSignature)}
+          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-text-muted transition-colors hover:text-good hover:bg-good/10"
+        >
+          <PiStamp className="text-[0.85rem]" />
+          Gespeicherte Signatur einfügen
+        </button>
+      )}
+    </div>
   )
 }
 

@@ -32,6 +32,16 @@ export default defineConfig({
       globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       runtimeCaching: [
         {
+          // Signature backend mutations / auth + stored signature: NEVER cached.
+          // These are POST/PUT/DELETE (and an auth-bound GET) — they must always
+          // hit the network. NetworkOnly makes the exclusion explicit, even
+          // though the allowlist below would not match them anyway.
+          urlPattern: /\/(sign|verify|archive|me\/signature)(\?.*)?$/i,
+          handler: 'NetworkOnly',
+          method: 'GET',
+          options: { cacheName: 'sign-api-no-cache' },
+        },
+        {
           urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/i,
           handler: 'NetworkFirst',
           options: {
