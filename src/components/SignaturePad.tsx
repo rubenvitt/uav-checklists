@@ -63,12 +63,49 @@ function trimToPng(source: HTMLCanvasElement): string {
   return out.toDataURL('image/png')
 }
 
+/**
+ * Draws a stored PNG data-URL onto the pad at its NATURAL aspect ratio, fitted
+ * within the canvas and never upscaled. Passing explicit width/height/offsets
+ * avoids signature_pad's default of stretching the image to the full canvas
+ * (which made restored/inserted signatures appear hugely enlarged).
+ */
+function restoreFitted(pad: SignaturePadLib, canvas: HTMLCanvasElement, dataUrl: string): Promise<void> {
+  return new Promise((resolve) => {
+    const ratio = Math.max(window.devicePixelRatio || 1, 1)
+    // The 2D context is scaled by `ratio`, so we work in CSS pixels here.
+    const cssW = canvas.width / ratio
+    const cssH = canvas.height / ratio
+    const img = new Image()
+    img.onload = () => {
+      const iw = img.naturalWidth || 1
+      const ih = img.naturalHeight || 1
+      const scale = Math.min(cssW / iw, cssH / ih, 1)
+      const w = iw * scale
+      const h = ih * scale
+      void pad.fromDataURL(dataUrl, {
+        ratio: 1,
+        width: w,
+        height: h,
+        xOffset: (cssW - w) / 2,
+        yOffset: (cssH - h) / 2,
+      })
+      resolve()
+    }
+    img.onerror = () => resolve()
+    img.src = dataUrl
+  })
+}
+
 export default function SignaturePad({ value, onChange, label }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const padRef = useRef<SignaturePadLib | null>(null)
   // Keep latest onChange / value without re-instantiating the pad.
   const onChangeRef = useRef(onChange)
   const valueRef = useRef(value)
+  // Tracks what is currently rendered on the canvas, so a value prop that is
+  // merely our own export echoed back does not trigger a redraw (which would
+  // clobber the live drawing).
+  const displayedRef = useRef('')
 
   // Sync mutable refs outside of render (avoids ref-write during render).
   useEffect(() => {
@@ -101,9 +138,10 @@ export default function SignaturePad({ value, onChange, label }: SignaturePadPro
       const ctx = canvas.getContext('2d')
       ctx?.scale(ratio, ratio)
       pad.clear()
+      displayedRef.current = ''
       if (restore) {
-        // ratio:1 because the data-URL is already at device resolution.
-        void pad.fromDataURL(restore, { ratio: 1 })
+        displayedRef.current = restore
+        void restoreFitted(pad, canvas, restore)
       }
     }
 
@@ -114,6 +152,7 @@ export default function SignaturePad({ value, onChange, label }: SignaturePadPro
 
     function handleEnd() {
       const dataUrl = trimToPng(canvas!)
+      displayedRef.current = dataUrl
       valueRef.current = dataUrl
       onChangeRef.current(dataUrl)
     }
@@ -126,12 +165,17 @@ export default function SignaturePad({ value, onChange, label }: SignaturePadPro
     }
   }, [])
 
-  // Restore an externally provided value (e.g. persisted signature on reopen).
+  // Restore an externally provided value (insert stored signature / clear /
+  // persisted value on reopen). Ignores echoes of our own exported value.
   useEffect(() => {
     const pad = padRef.current
-    if (!pad) return
+    const canvas = canvasRef.current
+    if (!pad || !canvas) return
+    if (value === displayedRef.current) return
+    displayedRef.current = value
     if (value) {
-      if (pad.isEmpty()) void pad.fromDataURL(value, { ratio: 1 })
+      pad.clear()
+      void restoreFitted(pad, canvas, value)
     } else if (!pad.isEmpty()) {
       pad.clear()
     }
@@ -139,6 +183,7 @@ export default function SignaturePad({ value, onChange, label }: SignaturePadPro
 
   function handleClear() {
     padRef.current?.clear()
+    displayedRef.current = ''
     valueRef.current = ''
     onChange('')
   }

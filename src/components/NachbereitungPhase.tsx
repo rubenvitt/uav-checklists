@@ -10,7 +10,9 @@ import { generateMissionReport } from '../utils/generateMissionReport'
 import { downloadPdf, sharePdf, canSharePdf } from '../utils/generateReport'
 import { useAutoExpand } from '../hooks/useAutoExpand'
 import { useNachbereitungCompleteness } from '../hooks/useSectionCompleteness'
+import { useAuth } from '../context/AuthContext'
 import type { FlightLogEntry } from '../types/flightLog'
+import DigitalSignaturePanel from './DigitalSignaturePanel'
 import EinsatzabschlussSection from './sections/EinsatzabschlussSection'
 import FlightDisruptionsSection from './sections/FlightDisruptionsSection'
 import MissionResultSection from './sections/MissionResultSection'
@@ -23,9 +25,15 @@ export default function NachbereitungPhase() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { complete } = useMissions()
+  const { configured, isAuthenticated } = useAuth()
+  const showESign = configured && isAuthenticated
   const mission = getMission(missionId)
   const isCompleted = !!mission?.completedAt
   const [confirmComplete, setConfirmComplete] = useState(false)
+
+  // Produces the exact PDF blob that gets signed AND downloaded, so the signed
+  // copy's hash matches the registry entry on later verification.
+  const getReport = () => generateMissionReport(missionId, queryClient)
 
   // Determine if flights were executed
   const entries = readStorage<FlightLogEntry[]>('flightlog:entries', [], missionId)
@@ -87,6 +95,7 @@ export default function NachbereitungPhase() {
             </button>
           )}
         </div>
+        {showESign && <DigitalSignaturePanel getReport={getReport} />}
       </div>
     )
   }
@@ -112,6 +121,8 @@ export default function NachbereitungPhase() {
       <EinsatzabschlussSection open={openState.einsatzabschluss} onToggle={() => toggle('einsatzabschluss')} isComplete={isComplete.einsatzabschluss} onContinue={() => continueToNext('einsatzabschluss')} />
       {hasFlights && <WartungPflegeSection open={openState.wartungpflege} onToggle={() => toggle('wartungpflege')} isComplete={isComplete.wartungpflege} onContinue={() => continueToNext('wartungpflege')} />}
       <MissionResultSection open={openState.missionresult} onToggle={() => toggle('missionresult')} isComplete={isComplete.missionresult} onContinue={() => continueToNext('missionresult')} />
+
+      {showESign && <DigitalSignaturePanel getReport={getReport} />}
 
       {confirmComplete && (
         <div className="flex items-start gap-3 rounded-xl bg-caution-bg p-4">

@@ -1262,7 +1262,10 @@ export function generateReport(data: ReportData) {
   const lineY = y + 20
   const maxSigHeight = 16 // mm — sits in the gap above the line
   function drawSignatureImage(dataUrl: string | undefined, blockX: number) {
-    if (!dataUrl || !dataUrl.startsWith('data:image')) return
+    // Accept ANY data: URL (not only `data:image`). A server-stored signature
+    // can arrive as `data:application/octet-stream` when the response blob lacks
+    // an `image/png` MIME type; jsPDF detects the real format from the bytes.
+    if (!dataUrl || !dataUrl.startsWith('data:')) return
     try {
       const props = doc.getImageProperties(dataUrl)
       if (!props.width || !props.height) return

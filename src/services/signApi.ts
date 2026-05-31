@@ -105,7 +105,12 @@ export async function getStoredSignature(): Promise<string | null> {
     })
     if (res.status === 404) return null
     if (!res.ok) return null
-    const blob = await res.blob()
+    const raw = await res.blob()
+    // Force an image/png MIME so the resulting data-URL is always
+    // `data:image/png;...` — some responses arrive without a usable blob type,
+    // which would otherwise yield `data:application/octet-stream` and be
+    // rejected by the PDF signature embedder.
+    const blob = raw.type === 'image/png' ? raw : raw.slice(0, raw.size, 'image/png')
     return await blobToDataUrl(blob)
   } catch {
     return null
