@@ -1,0 +1,37 @@
+{
+  "name": "uav-signatures-server",
+  "version": "1.0.0",
+  "description": "Hash-Registry signing/verify/archive backend for UAV checklists digital signatures (Phase 3)",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify-chain": "tsx src/scripts/verify-chain.ts"
+  },
+  "keywords": [
+    "uav",
+    "signatures",
+    "hash-registry",
+    "hono"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "better-sqlite3": "^12.10.0",
+    "dotenv": "^16.4.7",
+    "hono": "^4.6.14",
+    "jose": "^5.9.6"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^25.5.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

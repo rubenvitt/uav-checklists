@@ -1,0 +1,32 @@
+# Docker Compose snippet for the UAV signature backend.
+#
+#   docker compose up --build
+#
+# The single named volume `uav-sign-data` persists the SQLite DB, the Ed25519
+# signing key, and the PDF archive across container restarts/upgrades. BACK IT UP.
+services:
+  signatures:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: uav-signatures-server:latest
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      PORT: "8787"
+      # Point these at your PocketID instance:
+      OIDC_ISSUER: "https://id.example.com"
+      # OIDC_JWKS_URL defaults to ${OIDC_ISSUER}/.well-known/jwks.json
+      OIDC_AUDIENCE: "uav-signatures"
+      # Origin of the deployed SPA:
+      CORS_ORIGIN: "https://app.example.com"
+      # Persistent paths (inside the mounted volume):
+      DB_PATH: "/app/data/signatures.db"
+      SIGNING_KEY_PATH: "/app/data/signing-key.pem"
+      ARCHIVE_DIR: "/app/data/archive"
+    volumes:
+      - uav-sign-data:/app/data
+
+volumes:
+  uav-sign-data:

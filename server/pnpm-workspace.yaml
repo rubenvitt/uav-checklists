@@ -1,0 +1,7 @@
+# pnpm 11 build-script permissions.
+# better-sqlite3 is a native module and must run its install/build script
+# to compile (or fetch the prebuilt) better_sqlite3.node binding.
+# esbuild (transitive dep of tsx/vitest) ships its own native binary too.
+allowBuilds:
+  better-sqlite3: true
+  esbuild: true
