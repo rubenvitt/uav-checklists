@@ -533,6 +533,8 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
   const wrapupChecked = readMissionField<Record<string, boolean | string>>(missionId, 'wrapup:checked', {})
   const wrapupNotes = readMissionField<Record<string, string>>(missionId, 'wrapup:notes', {})
   const wrapupFeedback = readMissionField<string>(missionId, 'wrapup:feedback', '')
+  const signatureFk = readMissionField<string>(missionId, 'signature:fk', '')
+  const signatureEl = readMissionField<string>(missionId, 'signature:el', '')
 
   // Build abmeldung items from ALL segments' anmeldungen
   const ABMELDUNG_LABEL_MAP: Record<string, string> = {
@@ -726,6 +728,9 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     missionResult,
     // Multi-segment data (only present when >1 segment)
     segments: segmentReportDataList,
+    // Gezeichnete Unterschriften (Phase 1) — nur im Abschluss-Report
+    signatureFk: signatureFk || undefined,
+    signatureEl: signatureEl || undefined,
   }
 
   return generateReport(data)

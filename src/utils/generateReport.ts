@@ -192,6 +192,10 @@ export interface ReportData {
   wartungPflege?: WartungPflegeData
   missionResult?: MissionResultData
   segments?: SegmentReportData[]
+  /** Gezeichnete Unterschrift Führungskraft UAS (PNG-Data-URL). Nur Mission-Report. */
+  signatureFk?: string
+  /** Gezeichnete Unterschrift Einsatzleitung (PNG-Data-URL). Nur Mission-Report. */
+  signatureEl?: string
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -1253,12 +1257,38 @@ export function generateReport(data: ReportData) {
 
   const sigWidth = (contentWidth - 10) / 2 // Two signature blocks side by side
 
+  // Draws a captured signature image (PNG data-URL) tightly above the given line.
+  // Scales to fit within the block width and a max height, preserving aspect ratio.
+  const lineY = y + 20
+  const maxSigHeight = 16 // mm — sits in the gap above the line
+  function drawSignatureImage(dataUrl: string | undefined, blockX: number) {
+    if (!dataUrl || !dataUrl.startsWith('data:image')) return
+    try {
+      const props = doc.getImageProperties(dataUrl)
+      if (!props.width || !props.height) return
+      const ratio = props.height / props.width
+      let drawW = sigWidth
+      let drawH = drawW * ratio
+      if (drawH > maxSigHeight) {
+        drawH = maxSigHeight
+        drawW = drawH / ratio
+      }
+      // Bottom-align just above the line, horizontally centered in the block.
+      const imgX = blockX + (sigWidth - drawW) / 2
+      const imgY = lineY - 2 - drawH
+      doc.addImage(dataUrl, 'PNG', imgX, imgY, drawW, drawH)
+    } catch {
+      // Invalid image data — fall back to the empty line.
+    }
+  }
+
   // Resolve names from crew data
   const fkName = data.truppstaerke?.members.find(m => m.role === 'Führungskraft')?.name || ''
   const elName = data.einsatzdetails?.einsatzleiter || ''
 
   // Left: Führungskraft UAS
   const fkSignatureLabel = fkName ? `Führungskraft UAS, ${fkName}` : 'Führungskraft UAS'
+  drawSignatureImage(data.signatureFk, margin)
   setDraw(COLORS.textMuted)
   doc.setLineWidth(0.4)
   doc.line(margin, y + 20, margin + sigWidth, y + 20)
@@ -1271,6 +1301,9 @@ export function generateReport(data: ReportData) {
   // Right: Einsatzleitung
   const rightX = margin + sigWidth + 10
   const elSignatureLabel = elName ? `Einsatzleitung, ${elName}` : 'Einsatzleitung'
+  drawSignatureImage(data.signatureEl, rightX)
+  setDraw(COLORS.textMuted)
+  doc.setLineWidth(0.4)
   doc.line(rightX, y + 20, rightX + sigWidth, y + 20)
   doc.setFontSize(FONTS.small)
   doc.setFont('helvetica', 'normal')

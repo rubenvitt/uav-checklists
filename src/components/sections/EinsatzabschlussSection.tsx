@@ -13,7 +13,9 @@ import {
   PiFileText,
   PiUsers,
   PiWarning,
+  PiSignature,
 } from 'react-icons/pi'
+import SignaturePad from '../SignaturePad'
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
 import { useMissionId } from '../../context/MissionContext'
 import { readStorage } from '../../hooks/usePersistedState'
@@ -207,6 +209,8 @@ export default function EinsatzabschlussSection({ open, onToggle, isComplete, on
   const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>('wrapup:checked', {})
   const [notes, setNotes] = useMissionPersistedState<Record<string, string>>('wrapup:notes', {})
   const [feedback, setFeedback] = useMissionPersistedState<string>('wrapup:feedback', '')
+  const [signatureFk, setSignatureFk] = useMissionPersistedState<string>('signature:fk', '')
+  const [signatureEl, setSignatureEl] = useMissionPersistedState<string>('signature:el', '')
   const [expandedNote, setExpandedNote] = useState<string | null>(null)
 
   const checkedCount = items.filter(i => checked[i.key]).length
@@ -358,6 +362,31 @@ export default function EinsatzabschlussSection({ open, onToggle, isComplete, on
               placeholder="Kurzes Feedback zum Einsatz, Verbesserungsvorschläge, Lessons Learned..."
               rows={3}
               className="w-full resize-none rounded-lg bg-surface-alt px-3 py-2.5 text-sm text-text placeholder:text-text-muted/50 outline-none focus:ring-1 focus:ring-text-muted/40"
+            />
+          </div>
+        </div>
+
+        {/* Unterschriften group */}
+        <div>
+          <GroupHeader icon={<PiSignature />} label="Unterschriften" />
+          <div className="px-4 py-3 space-y-4">
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-text-muted/80">
+                Unterschriften für das Abschlussdokument (optional)
+              </p>
+              {(signatureFk.trim() || signatureEl.trim()) && (
+                <span className="h-1.5 w-1.5 rounded-full bg-good" />
+              )}
+            </div>
+            <SignaturePad
+              label="Führungskraft UAS"
+              value={signatureFk}
+              onChange={setSignatureFk}
+            />
+            <SignaturePad
+              label="Einsatzleitung"
+              value={signatureEl}
+              onChange={setSignatureEl}
             />
           </div>
         </div>
