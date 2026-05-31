@@ -5,6 +5,7 @@ import { PiCheckCircle, PiFilePdf, PiWarning, PiInfo, PiShareNetwork } from 'rea
 import { useMissionId } from '../context/MissionContext'
 import { getMission, getSegments } from '../utils/missionStorage'
 import { readStorage } from '../hooks/usePersistedState'
+import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
 import { useMissions } from '../hooks/useMissions'
 import { generateMissionReport } from '../utils/generateMissionReport'
 import { downloadPdf, sharePdf, canSharePdf } from '../utils/generateReport'
@@ -30,6 +31,12 @@ export default function NachbereitungPhase() {
   const mission = getMission(missionId)
   const isCompleted = !!mission?.completedAt
   const [confirmComplete, setConfirmComplete] = useState(false)
+
+  // Both signatures must be present before the mission can be completed.
+  // Same atom EinsatzabschlussSection writes to, so this re-evaluates live.
+  const [signatureFk] = useMissionPersistedState<string>('signature:fk', '')
+  const [signatureEl] = useMissionPersistedState<string>('signature:el', '')
+  const signaturesMissing = !signatureFk.trim() || !signatureEl.trim()
 
   // Produces the exact PDF blob that gets signed AND downloaded, so the signed
   // copy's hash matches the registry entry on later verification.
@@ -124,7 +131,19 @@ export default function NachbereitungPhase() {
 
       {showESign && <DigitalSignaturePanel getReport={getReport} />}
 
-      {confirmComplete && (
+      {signaturesMissing && (
+        <div className="flex items-start gap-3 rounded-xl bg-warning-bg p-4">
+          <PiWarning className="mt-0.5 text-lg text-warning shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-warning">Unterschriften fehlen</p>
+            <p className="mt-0.5 text-xs text-text-muted">
+              Beide Unterschriften (Führungskraft UAS und Einsatzleitung) müssen erfasst sein, bevor der Einsatz abgeschlossen werden kann.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {confirmComplete && !signaturesMissing && (
         <div className="flex items-start gap-3 rounded-xl bg-caution-bg p-4">
           <PiWarning className="mt-0.5 text-lg text-caution shrink-0" />
           <div>
@@ -138,14 +157,17 @@ export default function NachbereitungPhase() {
 
       <button
         onClick={handleComplete}
-        className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors active:scale-[0.99] ${
-          confirmComplete
-            ? 'bg-caution text-white'
-            : 'bg-text text-base'
+        disabled={signaturesMissing}
+        className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+          signaturesMissing
+            ? 'cursor-not-allowed bg-surface text-text-muted opacity-60'
+            : confirmComplete
+              ? 'bg-caution text-white active:scale-[0.99]'
+              : 'bg-text text-base active:scale-[0.99]'
         }`}
       >
         <PiCheckCircle className="text-lg" />
-        {confirmComplete ? 'Bestätigen: Einsatz abschliessen' : 'Einsatz abschliessen'}
+        {confirmComplete && !signaturesMissing ? 'Bestätigen: Einsatz abschliessen' : 'Einsatz abschliessen'}
       </button>
     </div>
   )

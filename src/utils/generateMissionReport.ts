@@ -7,6 +7,7 @@ import type { FlightLogEntry, EventNote } from '../types/flightLog'
 import type { AssessmentResult } from '../types/assessment'
 import { getDroneById } from '../data/drones'
 import { getMission, getSegments, getActiveSegment } from './missionStorage'
+import { getMissionField } from '../stores/missionFormStore'
 import { buildMissionLabel, readManualLocationName } from './missionLabel'
 import { computeAssessment } from './assessment'
 import { generateReport, type ReportData, type SegmentReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type AnmeldungItem, type ChecklistGroupData, type PostFlightInspectionData, type PostFlightInspectionItem, type DisruptionsData, type MissionResultData, type EinsatzabschlussData, type EinsatzabschlussItem, type WartungPflegeData, type WartungPflegeItem } from './generateReport'
@@ -533,8 +534,11 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
   const wrapupChecked = readMissionField<Record<string, boolean | string>>(missionId, 'wrapup:checked', {})
   const wrapupNotes = readMissionField<Record<string, string>>(missionId, 'wrapup:notes', {})
   const wrapupFeedback = readMissionField<string>(missionId, 'wrapup:feedback', '')
-  const signatureFk = readMissionField<string>(missionId, 'signature:fk', '')
-  const signatureEl = readMissionField<string>(missionId, 'signature:el', '')
+  // Read signatures from the SAME store the UI writes to (getMissionAtom hydrates
+  // from localStorage on first access). Avoids store/localStorage desync that made
+  // drawn/inserted signatures show in the UI but go missing in the PDF.
+  const signatureFk = getMissionField<string>(missionId, 'signature:fk', '')
+  const signatureEl = getMissionField<string>(missionId, 'signature:el', '')
 
   // Build abmeldung items from ALL segments' anmeldungen
   const ABMELDUNG_LABEL_MAP: Record<string, string> = {
