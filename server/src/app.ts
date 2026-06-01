@@ -19,12 +19,14 @@ import {
   getSignature,
   insertArchive,
   isArchived,
+  isSignerOf,
   listArchiveMeta,
   putSignature,
   type DB,
   type SigningLogRow,
 } from './db.js';
 import { verifyChainFromDb } from './verifyChain.js';
+import type { UploadScanner } from './antivirus.js';
 
 export interface AppDeps {
   db: DB;
@@ -35,6 +37,13 @@ export interface AppDeps {
   archiveDir?: string;
   /** Group whose members may list/download the archive. */
   adminGroup: string;
+  /**
+   * Optional virus scanner. When set, every uploaded body is scanned before it
+   * is used; an infected upload is rejected (422 `malware_detected`) and a
+   * scanner error fails CLOSED (503 `scanner_unavailable`). When unset, scanning
+   * is skipped entirely (graceful degradation for local/dev).
+   */
+  scanUpload?: UploadScanner;
 }
 
 const MAX_PDF_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -50,6 +59,24 @@ async function readBody(c: { req: { arrayBuffer: () => Promise<ArrayBuffer> } },
     throw new HttpError(413, 'payload_too_large');
   }
   return buf;
+}
+
+/**
+ * Scan an uploaded buffer for malware before it is used. No-op when no scanner
+ * is configured. Infected uploads raise 422; an unreachable/erroring scanner
+ * fails closed with 503 rather than letting unscanned bytes through.
+ */
+async function ensureClean(scan: UploadScanner | undefined, buf: Buffer): Promise<void> {
+  if (!scan) return;
+  let verdict;
+  try {
+    verdict = await scan(buf);
+  } catch {
+    throw new HttpError(503, 'scanner_unavailable');
+  }
+  if (!verdict.clean) {
+    throw new HttpError(422, 'malware_detected');
+  }
 }
 
 class HttpError extends Error {
@@ -86,6 +113,7 @@ export function createApp(deps: AppDeps): Hono {
     let pdf: Buffer;
     try {
       pdf = await readBody(c, MAX_PDF_BYTES);
+      await ensureClean(deps.scanUpload, pdf);
     } catch (e) {
       return errorResponse(c, e);
     }
@@ -150,11 +178,15 @@ export function createApp(deps: AppDeps): Hono {
   /**
    * POST /verify — accepts PDF bytes, re-hashes, looks up the registry, and
    * cryptographically verifies the Ed25519 signature + hash chain.
+   *
+   * PUBLIC: verification requires no authentication — anyone holding a PDF may
+   * check whether it is registered and unaltered. Uploads are still virus-scanned.
    */
-  app.post('/verify', auth, async (c) => {
+  app.post('/verify', async (c) => {
     let pdf: Buffer;
     try {
       pdf = await readBody(c, MAX_PDF_BYTES);
+      await ensureClean(deps.scanUpload, pdf);
     } catch (e) {
       return errorResponse(c, e);
     }
@@ -179,6 +211,7 @@ export function createApp(deps: AppDeps): Hono {
     let pdf: Buffer;
     try {
       pdf = await readBody(c, MAX_PDF_BYTES);
+      await ensureClean(deps.scanUpload, pdf);
     } catch (e) {
       return errorResponse(c, e);
     }
@@ -233,11 +266,18 @@ export function createApp(deps: AppDeps): Hono {
   });
 
   /**
-   * GET /archive/:docHash — admin-only download of an archived PDF.
-   * 404 when the doc hash is not archived.
+   * GET /archive/:docHash — download an archived PDF. An admin may download any
+   * document; a non-admin may download a document THEY signed (so a mission can
+   * fetch its already-signed report from the archive instead of re-signing).
+   * Authorization is checked before existence so a non-signer cannot probe which
+   * hashes are archived. 404 when the doc hash is not archived.
    */
-  app.get('/archive/:docHash', auth, admin, (c) => {
+  app.get('/archive/:docHash', auth, (c) => {
     const docHash = c.req.param('docHash');
+    const user = getUser(c);
+    if (!isAdmin(user, deps.adminGroup) && !isSignerOf(deps.db, docHash, user.sub)) {
+      return c.json({ error: 'forbidden' }, 403);
+    }
     const row = getArchive(deps.db, docHash);
     if (!row) {
       return c.json({ error: 'not_found' }, 404);
@@ -280,6 +320,7 @@ export function createApp(deps: AppDeps): Hono {
     let png: Buffer;
     try {
       png = await readBody(c, MAX_PNG_BYTES);
+      await ensureClean(deps.scanUpload, png);
     } catch (e) {
       return errorResponse(c, e);
     }

@@ -539,6 +539,15 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
   // drawn/inserted signatures show in the UI but go missing in the PDF.
   const signatureFk = getMissionField<string>(missionId, 'signature:fk', '')
   const signatureEl = getMissionField<string>(missionId, 'signature:el', '')
+  // TEMP DEBUG — remove after diagnosis
+  try {
+    const lsFk = localStorage.getItem(`uav-form:${missionId}:signature:fk`)
+    const lsEl = localStorage.getItem(`uav-form:${missionId}:signature:el`)
+    console.log('[SIG-DEBUG]', { missionId,
+      atomFk: signatureFk.length, atomEl: signatureEl.length,
+      lsFk: lsFk ? (JSON.parse(lsFk).value || '').length : 'MISSING',
+      lsEl: lsEl ? (JSON.parse(lsEl).value || '').length : 'MISSING' })
+  } catch (e) { console.log('[SIG-DEBUG] error', e) }
 
   // Build abmeldung items from ALL segments' anmeldungen
   const ABMELDUNG_LABEL_MAP: Record<string, string> = {

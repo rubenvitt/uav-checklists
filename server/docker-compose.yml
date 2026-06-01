@@ -1,9 +1,11 @@
-# Docker Compose snippet for the UAV signature backend.
+# Docker Compose for the UAV signature backend + ClamAV virus scanning.
 #
 #   docker compose up --build
 #
-# The single named volume `uav-sign-data` persists the SQLite DB, the Ed25519
-# signing key, and the PDF archive across container restarts/upgrades. BACK IT UP.
+# The named volume `uav-sign-data` persists the SQLite DB, the Ed25519 signing
+# key, and the PDF archive across restarts/upgrades. BACK IT UP.
+# `uav-clamav-db` caches the ClamAV virus database so it is not re-downloaded on
+# every restart.
 services:
   signatures:
     build:
@@ -25,8 +27,33 @@ services:
       DB_PATH: "/app/data/signatures.db"
       SIGNING_KEY_PATH: "/app/data/signing-key.pem"
       ARCHIVE_DIR: "/app/data/archive"
+      # Virus scanning: clamd reachable over TCP. Uploads are scanned before use;
+      # while clamd is still warming up its DB, uploads fail closed (503).
+      CLAMAV_HOST: "clamav"
+      CLAMAV_PORT: "3310"
     volumes:
       - uav-sign-data:/app/data
+    depends_on:
+      # `service_started` (not `service_healthy`) so the API comes up immediately
+      # rather than blocking on clamd's first-boot virus-DB download; the scanner
+      # fails closed until clamd is ready.
+      clamav:
+        condition: service_started
+
+  clamav:
+    image: clamav/clamav:latest
+    restart: unless-stopped
+    volumes:
+      - uav-clamav-db:/var/lib/clamav
+      - ./clamav/clamd.conf:/etc/clamav/clamd.conf:ro
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      # Generous: freshclam's initial virus-DB download can take several minutes.
+      start_period: 300s
 
 volumes:
   uav-sign-data:
+  uav-clamav-db:

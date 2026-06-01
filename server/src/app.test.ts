@@ -22,16 +22,19 @@ function makeSigningKey(): SigningKeyPair {
 /**
  * Verifier that maps tokens to users:
  *  - "admin-token"     -> in uav-admins
- *  - "user-token"      -> no groups
+ *  - "user-token"      -> non-admin (signs the test documents)
+ *  - "other-token"     -> non-admin, NOT the signer
  * Any other token rejects.
  */
 const ADMIN: AuthenticatedUser = { sub: 'admin-sub', name: 'Admin Adminson', groups: ['uav-admins'] };
 const USER: AuthenticatedUser = { sub: 'user-sub', name: 'Normal Nutzer', groups: ['pilots'] };
+const OTHER: AuthenticatedUser = { sub: 'other-sub', name: 'Andere Person', groups: ['pilots'] };
 
 const fakeVerifier: TokenVerifier = {
   async verify(token: string): Promise<AuthenticatedUser> {
     if (token === 'admin-token') return ADMIN;
     if (token === 'user-token') return USER;
+    if (token === 'other-token') return OTHER;
     throw new Error('invalid');
   },
 };
@@ -161,11 +164,22 @@ describe('admin-gated archive + /me', () => {
     );
   });
 
-  it('non-admin gets 403 on GET /archive/:docHash', async () => {
+  it('lets the signer download the PDF they signed (non-admin)', async () => {
+    const pdf = Buffer.from('%PDF-1.4 mine');
+    const hash = await signAndArchive(pdf);
+
+    // user-token is the signer in signAndArchive — they may fetch it back.
+    const res = await app.request(`/archive/${hash}`, { headers: bearer('user-token') });
+    expect(res.status).toBe(200);
+    const body = Buffer.from(await res.arrayBuffer());
+    expect(body.equals(pdf)).toBe(true);
+  });
+
+  it('forbids a non-admin who did not sign the document', async () => {
     const pdf = Buffer.from('%PDF-1.4 secret');
     const hash = await signAndArchive(pdf);
 
-    const res = await app.request(`/archive/${hash}`, { headers: bearer('user-token') });
+    const res = await app.request(`/archive/${hash}`, { headers: bearer('other-token') });
     expect(res.status).toBe(403);
   });
 

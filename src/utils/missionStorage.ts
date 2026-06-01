@@ -4,6 +4,7 @@ import { readStorage } from '../hooks/usePersistedState'
 const MISSIONS_KEY = 'uav-missions'
 const MISSION_TTL = 56 * 60 * 60 * 1000 // 56h
 const COMPLETED_TTL = 24 * 60 * 60 * 1000 // 24h
+const DELETED_TTL = 30 * 60 * 1000 // 30min — recovery window for soft-deleted missions
 
 export function generateId(): string {
   // crypto.randomUUID() requires a secure context (HTTPS/localhost).
@@ -60,7 +61,31 @@ export function createMission(): Mission {
   return mission
 }
 
+/**
+ * Soft-delete: mark the mission as deleted but keep it (and its form storage)
+ * intact so it can be restored within DELETED_TTL. Permanent removal happens
+ * later via cleanExpiredMissions or purgeMission.
+ */
 export function deleteMission(missionId: string) {
+  const missions = loadMissions()
+  const mission = missions.find((m) => m.id === missionId)
+  if (mission) {
+    mission.deletedAt = Date.now()
+    saveMissions(missions)
+  }
+}
+
+export function restoreMission(missionId: string) {
+  const missions = loadMissions()
+  const mission = missions.find((m) => m.id === missionId)
+  if (mission?.deletedAt) {
+    delete mission.deletedAt
+    saveMissions(missions)
+  }
+}
+
+/** Permanently remove a mission and all of its associated form storage. */
+export function purgeMission(missionId: string) {
   const missions = loadMissions().filter((m) => m.id !== missionId)
   saveMissions(missions)
   clearMissionStorage(missionId)
@@ -89,6 +114,11 @@ export function getMission(missionId: string): Mission | undefined {
 }
 
 export function isMissionExpired(mission: Mission): boolean {
+  // deletedAt takes precedence: a completed-then-deleted mission still uses
+  // the short recovery window, not the 24h completed window.
+  if (mission.deletedAt) {
+    return Date.now() - mission.deletedAt > DELETED_TTL
+  }
   if (mission.completedAt) {
     return Date.now() - mission.completedAt > COMPLETED_TTL
   }
@@ -203,12 +233,13 @@ export function canAccessPhase(missionId: string, phase: MissionPhase): boolean 
 }
 
 export function getRemainingTime(mission: Mission): string {
-  const ttl = mission.completedAt ? COMPLETED_TTL : MISSION_TTL
-  const base = mission.completedAt ?? mission.createdAt
+  // deletedAt first — see isMissionExpired.
+  const ttl = mission.deletedAt ? DELETED_TTL : mission.completedAt ? COMPLETED_TTL : MISSION_TTL
+  const base = mission.deletedAt ?? mission.completedAt ?? mission.createdAt
   const elapsed = Date.now() - base
   const remaining = ttl - elapsed
   if (remaining <= 0) return 'Abgelaufen'
   const hours = Math.floor(remaining / (60 * 60 * 1000))
   const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000))
-  return `${hours}h ${minutes}m`
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
 }

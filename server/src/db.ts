@@ -188,6 +188,18 @@ export function findByDocHash(db: DB, docHash: string): SigningLogRow | undefine
     .get(docHash) as SigningLogRow | undefined;
 }
 
+/**
+ * Whether the given user (sub) appears as a signer of this document hash.
+ * Used to authorize a signer (not just an admin) to download their own
+ * archived PDF.
+ */
+export function isSignerOf(db: DB, docHash: string, sub: string): boolean {
+  const row = db
+    .prepare('SELECT 1 AS one FROM signing_log WHERE doc_hash = ? AND sub = ? LIMIT 1')
+    .get(docHash, sub) as { one: number } | undefined;
+  return row !== undefined;
+}
+
 /** All signing-log rows in append order (for chain verification / audit). */
 export function allSigningLog(db: DB): SigningLogRow[] {
   return db

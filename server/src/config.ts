@@ -42,6 +42,10 @@ export interface ServerConfig {
   archiveDir: string;
   /** Allowed CORS origin for the SPA (e.g. https://app.example.com). */
   corsOrigin: string;
+  /** clamd host (TCP) for upload virus scanning. `null` disables scanning. */
+  clamavHost: string | null;
+  /** clamd TCP port. Defaults to 3310. */
+  clamavPort: number;
 }
 
 export function loadConfig(): ServerConfig {
@@ -60,5 +64,7 @@ export function loadConfig(): ServerConfig {
     signingKeyPath: optional('SIGNING_KEY_PATH', './data/signing-key.pem'),
     archiveDir: optional('ARCHIVE_DIR', './data/archive'),
     corsOrigin: optional('CORS_ORIGIN', 'http://localhost:5173'),
+    clamavHost: (process.env.CLAMAV_HOST ?? '').trim() || null,
+    clamavPort: Number(optional('CLAMAV_PORT', '3310')),
   };
 }

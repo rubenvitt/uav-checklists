@@ -1,16 +1,16 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import {
   PiSealCheck,
   PiFilePdf,
   PiArchive,
-  PiShieldCheck,
-  PiUploadSimple,
+  PiDownloadSimple,
   PiWarningCircle,
   PiCircleNotch,
   PiCheckCircle,
 } from 'react-icons/pi'
-import { signPdf, verifyPdf, archivePdf, type SignReceipt, type VerifyResult } from '../services/signApi'
+import { signPdf, archivePdf, downloadArchive, type SignReceipt } from '../services/signApi'
 import { downloadPdf } from '../utils/generateReport'
+import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
 
 interface DigitalSignaturePanelProps {
   /** Produces the final mission PDF (blob + filename), or undefined if unavailable. */
@@ -22,6 +22,20 @@ type SignState =
   | { status: 'working' }
   | { status: 'signed'; blob: Blob; filename: string; receipt: SignReceipt; archived: boolean }
   | { status: 'error'; message: string }
+
+/**
+ * A mission's document that was sealed AND archived. Persisted per mission so a
+ * later visit can offer "download from archive" instead of re-signing. The PDF
+ * itself is not persisted — regenerating it would yield a different timestamp
+ * (and thus a different hash), so the archive holds the canonical copy.
+ */
+interface ArchivedReceipt {
+  docHash: string
+  signerName?: string
+  createdAt: string
+  filename: string
+  archivedAt: string
+}
 
 function shortHash(h: string): string {
   return h.length > 18 ? `${h.slice(0, 10)}…${h.slice(-8)}` : h
@@ -37,16 +51,24 @@ function formatTs(iso: string): string {
 
 /**
  * Phase 3 e-signature UI: cryptographically seal the finished mission PDF
- * (hash registry), download the sealed copy, optionally archive it, and verify
- * an uploaded PDF. Rendered only when logged in (the caller gates on auth).
+ * (hash registry), download the sealed copy, and optionally archive it.
+ * Rendered only when logged in (the caller gates on auth). Verifying an uploaded
+ * PDF lives on the overview page ({@link SignatureVerifyPanel}) and needs no login.
+ *
+ * Once a mission's document has been archived, the seal/sign action is replaced
+ * by "download from archive" (the backend authorizes the original signer) so the
+ * same document is never signed twice.
  */
 export default function DigitalSignaturePanel({ getReport }: DigitalSignaturePanelProps) {
   const [sign, setSign] = useState<SignState>({ status: 'idle' })
   const [archiving, setArchiving] = useState(false)
-  const [verify, setVerify] = useState<{ status: 'idle' | 'checking'; result?: VerifyResult | null; filename?: string }>({
+  const [archivedReceipt, setArchivedReceipt] = useMissionPersistedState<ArchivedReceipt | null>(
+    'esign:archived',
+    null,
+  )
+  const [download, setDownload] = useState<{ status: 'idle' | 'working'; error?: string }>({
     status: 'idle',
   })
-  const fileRef = useRef<HTMLInputElement>(null)
 
   async function handleSign() {
     const report = getReport()
@@ -71,15 +93,37 @@ export default function DigitalSignaturePanel({ getReport }: DigitalSignaturePan
   async function handleArchive() {
     if (sign.status !== 'signed') return
     setArchiving(true)
-    const res = await archivePdf(sign.blob)
+    const res = await archivePdf(sign.blob, sign.filename)
     setArchiving(false)
-    if (res?.archived) setSign({ ...sign, archived: true })
+    if (res?.archived) {
+      setSign({ ...sign, archived: true })
+      // Persist the mission→archive link so a later visit downloads the archived
+      // copy instead of re-signing. The doc hash binds it to that exact PDF.
+      setArchivedReceipt({
+        docHash: sign.receipt.docHash,
+        signerName: sign.receipt.signer.name,
+        createdAt: sign.receipt.createdAt,
+        filename: sign.filename,
+        archivedAt: res.archivedAt ?? new Date().toISOString(),
+      })
+    }
   }
 
-  async function handleVerifyFile(file: File) {
-    setVerify({ status: 'checking', filename: file.name })
-    const result = await verifyPdf(file)
-    setVerify({ status: 'idle', result, filename: file.name })
+  async function handleArchiveDownload() {
+    if (!archivedReceipt) return
+    setDownload({ status: 'working' })
+    const ok = await downloadArchive(archivedReceipt.docHash, archivedReceipt.filename)
+    setDownload(
+      ok
+        ? { status: 'idle' }
+        : { status: 'idle', error: 'Download aus dem Archiv fehlgeschlagen. Angemeldet und berechtigt?' },
+    )
+  }
+
+  function handleResign() {
+    setArchivedReceipt(null)
+    setSign({ status: 'idle' })
+    setDownload({ status: 'idle' })
   }
 
   return (
@@ -93,98 +137,97 @@ export default function DigitalSignaturePanel({ getReport }: DigitalSignaturePan
         unverändert; die Signatur wird im Register hinterlegt und kann später geprüft werden.
       </p>
 
-      {/* Signieren */}
-      <div className="space-y-2">
-        <button
-          onClick={handleSign}
-          disabled={sign.status === 'working'}
-          className="flex items-center gap-2 rounded-lg bg-text px-3 py-2 text-sm font-medium text-base transition-colors active:scale-[0.99] disabled:opacity-50"
-        >
-          {sign.status === 'working' ? <PiCircleNotch className="animate-spin" /> : <PiSealCheck />}
-          Dokument signieren
-        </button>
-
-        {sign.status === 'error' && (
-          <p className="flex items-center gap-1.5 text-xs text-warning">
-            <PiWarningCircle className="shrink-0" /> {sign.message}
-          </p>
-        )}
-
-        {sign.status === 'signed' && (
+      {archivedReceipt ? (
+        /* Already sealed & archived: offer the canonical archived copy instead
+           of signing the (now differently-timestamped) document again. */
+        <div className="space-y-2">
           <div className="rounded-lg bg-good-bg p-3 space-y-2 text-xs">
             <p className="flex items-center gap-1.5 font-medium text-good">
-              <PiCheckCircle className="shrink-0" />
-              Signiert von {sign.receipt.signer.name || sign.receipt.signer.sub}
+              <PiArchive className="shrink-0" />
+              Bereits signiert &amp; im Archiv abgelegt
             </p>
-            <p className="text-text-muted">am {formatTs(sign.receipt.createdAt)}</p>
-            <p className="text-text-muted/70 break-all">Dokument-Hash: {shortHash(sign.receipt.docHash)}</p>
+            <p className="text-text-muted">
+              Signiert von {archivedReceipt.signerName || '—'} am {formatTs(archivedReceipt.createdAt)}
+            </p>
+            <p className="text-text-muted/70 break-all">Dokument-Hash: {shortHash(archivedReceipt.docHash)}</p>
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <button
-                onClick={handleDownloadSigned}
-                className="flex items-center gap-1.5 rounded-md bg-surface-alt px-2.5 py-1.5 text-text transition-colors hover:bg-surface"
+                onClick={handleArchiveDownload}
+                disabled={download.status === 'working'}
+                className="flex items-center gap-1.5 rounded-md bg-text px-2.5 py-1.5 font-medium text-base transition-colors active:scale-[0.99] disabled:opacity-50"
               >
-                <PiFilePdf /> Signiertes PDF herunterladen
+                {download.status === 'working' ? (
+                  <PiCircleNotch className="animate-spin" />
+                ) : (
+                  <PiDownloadSimple />
+                )}
+                Aus Archiv herunterladen
               </button>
-              {!sign.archived ? (
-                <button
-                  onClick={handleArchive}
-                  disabled={archiving}
-                  className="flex items-center gap-1.5 rounded-md bg-surface-alt px-2.5 py-1.5 text-text transition-colors hover:bg-surface disabled:opacity-50"
-                >
-                  {archiving ? <PiCircleNotch className="animate-spin" /> : <PiArchive />} Ins Archiv ablegen
-                </button>
-              ) : (
-                <span className="flex items-center gap-1.5 text-good">
-                  <PiCheckCircle /> Im Archiv abgelegt
-                </span>
-              )}
             </div>
+            {download.error && (
+              <p className="flex items-center gap-1.5 text-warning">
+                <PiWarningCircle className="shrink-0" /> {download.error}
+              </p>
+            )}
           </div>
-        )}
-      </div>
+          <button
+            onClick={handleResign}
+            className="text-xs text-text-muted/70 underline underline-offset-2 transition-colors hover:text-text-muted"
+          >
+            Dokument hat sich geändert? Neu signieren
+          </button>
+        </div>
+      ) : (
+        /* Signieren */
+        <div className="space-y-2">
+          <button
+            onClick={handleSign}
+            disabled={sign.status === 'working'}
+            className="flex items-center gap-2 rounded-lg bg-text px-3 py-2 text-sm font-medium text-base transition-colors active:scale-[0.99] disabled:opacity-50"
+          >
+            {sign.status === 'working' ? <PiCircleNotch className="animate-spin" /> : <PiSealCheck />}
+            Dokument signieren
+          </button>
 
-      {/* Verifizieren */}
-      <div className="space-y-2 border-t border-text-muted/10 pt-3">
-        <p className="text-xs font-medium text-text-muted">Signatur eines PDFs prüfen</p>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="application/pdf"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0]
-            if (f) void handleVerifyFile(f)
-            e.target.value = ''
-          }}
-        />
-        <button
-          onClick={() => fileRef.current?.click()}
-          disabled={verify.status === 'checking'}
-          className="flex items-center gap-2 rounded-lg bg-surface-alt px-3 py-2 text-sm text-text transition-colors hover:bg-surface disabled:opacity-50"
-        >
-          {verify.status === 'checking' ? <PiCircleNotch className="animate-spin" /> : <PiUploadSimple />}
-          PDF hochladen &amp; prüfen
-        </button>
-
-        {verify.status === 'idle' && verify.result && (
-          verify.result.valid ? (
-            <div className="rounded-lg bg-good-bg p-3 text-xs space-y-1">
-              <p className="flex items-center gap-1.5 font-medium text-good">
-                <PiShieldCheck className="shrink-0" /> Gültige Signatur
-              </p>
-              <p className="text-text-muted">
-                Signiert von {verify.result.signer?.name || verify.result.signer?.sub} am{' '}
-                {verify.result.createdAt ? formatTs(verify.result.createdAt) : '—'}
-              </p>
-            </div>
-          ) : (
+          {sign.status === 'error' && (
             <p className="flex items-center gap-1.5 text-xs text-warning">
-              <PiWarningCircle className="shrink-0" /> Ungültig oder nicht im Register
-              {verify.filename ? ` (${verify.filename})` : ''}
+              <PiWarningCircle className="shrink-0" /> {sign.message}
             </p>
-          )
-        )}
-      </div>
+          )}
+
+          {sign.status === 'signed' && (
+            <div className="rounded-lg bg-good-bg p-3 space-y-2 text-xs">
+              <p className="flex items-center gap-1.5 font-medium text-good">
+                <PiCheckCircle className="shrink-0" />
+                Signiert von {sign.receipt.signer.name || sign.receipt.signer.sub}
+              </p>
+              <p className="text-text-muted">am {formatTs(sign.receipt.createdAt)}</p>
+              <p className="text-text-muted/70 break-all">Dokument-Hash: {shortHash(sign.receipt.docHash)}</p>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  onClick={handleDownloadSigned}
+                  className="flex items-center gap-1.5 rounded-md bg-surface-alt px-2.5 py-1.5 text-text transition-colors hover:bg-surface"
+                >
+                  <PiFilePdf /> Signiertes PDF herunterladen
+                </button>
+                {!sign.archived ? (
+                  <button
+                    onClick={handleArchive}
+                    disabled={archiving}
+                    className="flex items-center gap-1.5 rounded-md bg-surface-alt px-2.5 py-1.5 text-text transition-colors hover:bg-surface disabled:opacity-50"
+                  >
+                    {archiving ? <PiCircleNotch className="animate-spin" /> : <PiArchive />} Ins Archiv ablegen
+                  </button>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-good">
+                    <PiCheckCircle /> Im Archiv abgelegt
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

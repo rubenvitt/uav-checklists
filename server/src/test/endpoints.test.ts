@@ -164,6 +164,77 @@ describe('POST /archive gating', () => {
   });
 });
 
+describe('GET /archive listing + GET /archive/:docHash download authorization', () => {
+  /** Sign + archive a fresh PDF as the default user; returns its doc hash. */
+  async function signAndArchive(marker: string): Promise<string> {
+    const pdf = fakePdf(marker);
+    const signRes = await authed('/sign', pdf);
+    const { docHash } = (await signRes.json()) as { docHash: string };
+    await authed('/archive', pdf);
+    return docHash;
+  }
+
+  it('lets the signer download the PDF they signed', async () => {
+    const docHash = await signAndArchive('signer-download');
+    const res = await app.request(`/archive/${docHash}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('application/pdf');
+    const bytes = Buffer.from(await res.arrayBuffer());
+    expect(bytes.equals(fakePdf('signer-download'))).toBe(true);
+  });
+
+  it('forbids a different non-admin user who did not sign it', async () => {
+    const docHash = await signAndArchive('stranger-blocked');
+    const strangerToken = await jwks.mintToken({ sub: 'someone-else', name: 'Stranger' });
+    const res = await app.request(`/archive/${docHash}`, {
+      headers: { Authorization: `Bearer ${strangerToken}` },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it('lets an admin download any archived PDF', async () => {
+    const docHash = await signAndArchive('admin-download');
+    const adminToken = await jwks.mintToken({
+      sub: 'admin-user',
+      name: 'Admin',
+      groups: ['uav-admins'],
+    });
+    const res = await app.request(`/archive/${docHash}`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 403 (not 404) for a non-signer probing an unknown hash', async () => {
+    // Authorization is checked before existence, so a stranger cannot learn
+    // which document hashes are archived.
+    const res = await app.request(`/archive/${'a'.repeat(64)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it('keeps the archive listing admin-only', async () => {
+    const nonAdmin = await app.request('/archive', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(nonAdmin.status).toBe(403);
+
+    const adminToken = await jwks.mintToken({
+      sub: 'admin-user',
+      name: 'Admin',
+      groups: ['uav-admins'],
+    });
+    const asAdmin = await app.request('/archive', {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+    expect(asAdmin.status).toBe(200);
+    expect(Array.isArray(await asAdmin.json())).toBe(true);
+  });
+});
+
 describe('GET/PUT/DELETE /me/signature', () => {
   const PNG = Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),

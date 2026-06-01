@@ -207,13 +207,20 @@ export async function verifyPdf(pdf: Blob): Promise<VerifyResult | null> {
   }
 }
 
-/** `POST /archive` — archive a registered PDF. (Phase 3.) */
-export async function archivePdf(pdf: Blob): Promise<ArchiveResult | null> {
+/**
+ * `POST /archive` — archive a registered PDF. (Phase 3.) The optional filename
+ * is passed via `X-Filename` so the archived entry (and later downloads) keep
+ * the original, human-readable report name.
+ */
+export async function archivePdf(pdf: Blob, filename?: string): Promise<ArchiveResult | null> {
   if (!BASE_URL) return null
   try {
     const res = await fetch(`${BASE_URL}/archive`, {
       method: 'POST',
-      headers: authHeaders({ 'Content-Type': 'application/pdf' }),
+      headers: authHeaders({
+        'Content-Type': 'application/pdf',
+        ...(filename ? { 'X-Filename': filename } : {}),
+      }),
       body: pdf,
     })
     if (!res.ok) return null
@@ -283,20 +290,24 @@ export async function listArchive(): Promise<ArchiveEntry[] | null> {
 }
 
 /**
- * `GET /archive/:docHash` — admin-only download of an archived PDF. Streams the
- * blob to a browser download via {@link downloadPdf}. No-op when unconfigured,
- * not permitted, not found, or on error.
+ * `GET /archive/:docHash` — download an archived PDF. The backend authorizes
+ * admins (any document) and the original signer (their own documents). Streams
+ * the blob to a browser download via {@link downloadPdf}.
+ *
+ * Returns `true` when the download started, `false` when unconfigured, not
+ * permitted (403), not found (404), or on error — so callers can show feedback.
  */
-export async function downloadArchive(docHash: string, filename?: string): Promise<void> {
-  if (!BASE_URL) return
+export async function downloadArchive(docHash: string, filename?: string): Promise<boolean> {
+  if (!BASE_URL) return false
   try {
     const res = await fetch(`${BASE_URL}/archive/${encodeURIComponent(docHash)}`, {
       headers: authHeaders(),
     })
-    if (!res.ok) return
+    if (!res.ok) return false
     const blob = await res.blob()
     downloadPdf(blob, filename ?? `${docHash}.pdf`)
+    return true
   } catch {
-    // Download failed — surface nothing; the panel keeps its current state.
+    return false
   }
 }

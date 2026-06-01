@@ -12,6 +12,8 @@ export interface Mission {
   id: string
   createdAt: number
   completedAt?: number
+  /** Set when soft-deleted; mission stays recoverable until DELETED_TTL elapses. */
+  deletedAt?: number
   label: string
   phase: MissionPhase
   segments: MissionSegment[]

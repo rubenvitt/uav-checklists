@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { PiPlus, PiTrash, PiClock, PiMapTrifold, PiFilePdf, PiCheckCircle, PiShareNetwork, PiArchive, PiCaretDown } from 'react-icons/pi'
+import { PiPlus, PiTrash, PiClock, PiMapTrifold, PiFilePdf, PiCheckCircle, PiShareNetwork, PiArchive, PiCaretDown, PiArrowCounterClockwise } from 'react-icons/pi'
 import { useAuth } from '../context/AuthContext'
+import { isSignApiConfigured } from '../services/signApi'
 import ArchivePanel from './ArchivePanel'
+import SignatureVerifyPanel from './SignatureVerifyPanel'
 import { useMissions } from '../hooks/useMissions'
 import { useMissionDisplayLabel } from '../hooks/useMissionDisplayLabel'
 import { getRemainingTime } from '../utils/missionStorage'
@@ -28,14 +30,19 @@ const PHASE_COLORS: Record<MissionPhase, string> = {
 export default function MissionOverview() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { missions, create, remove, clean } = useMissions()
+  const { missions, create, remove, restore, purge, clean } = useMissions()
   const { configured, isAuthenticated, isAdmin } = useAuth()
-  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [confirmPurge, setConfirmPurge] = useState<string | null>(null)
   const [archiveOpen, setArchiveOpen] = useState(false)
+  const [trashOpen, setTrashOpen] = useState(false)
 
   // The archive viewer is admin-only and degrades gracefully: hidden for
   // non-admins, logged-out users, and when the backend/OIDC is unconfigured.
   const showArchive = configured && isAuthenticated && isAdmin
+
+  // Public signature verification: shown whenever a backend is configured at
+  // all (no login or health ping required) — and only here, on the main page.
+  const showVerify = isSignApiConfigured()
 
   useEffect(() => {
     clean()
@@ -46,24 +53,29 @@ export default function MissionOverview() {
     navigate(`/mission/${mission.id}/einsatzdaten`)
   }
 
-  const handleDelete = (missionId: string) => {
-    if (confirmDelete === missionId) {
-      remove(missionId)
-      setConfirmDelete(null)
+  // Permanently removing a recoverable mission is the only destructive action
+  // left, so it keeps a click-twice confirmation.
+  const handlePurge = (missionId: string) => {
+    if (confirmPurge === missionId) {
+      purge(missionId)
+      setConfirmPurge(null)
     } else {
-      setConfirmDelete(missionId)
+      setConfirmPurge(missionId)
     }
   }
 
-  // Dismiss confirm state when clicking elsewhere
+  // Dismiss confirm state automatically
   useEffect(() => {
-    if (confirmDelete === null) return
-    const timer = setTimeout(() => setConfirmDelete(null), 3000)
+    if (confirmPurge === null) return
+    const timer = setTimeout(() => setConfirmPurge(null), 3000)
     return () => clearTimeout(timer)
-  }, [confirmDelete])
+  }, [confirmPurge])
 
-  const activeMissions = missions.filter((m) => !m.completedAt)
-  const completedMissions = missions.filter((m) => !!m.completedAt)
+  const activeMissions = missions.filter((m) => !m.completedAt && !m.deletedAt)
+  const completedMissions = missions.filter((m) => !!m.completedAt && !m.deletedAt)
+  const deletedMissions = missions
+    .filter((m) => !!m.deletedAt)
+    .sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0))
 
   return (
     <div className="space-y-6">
@@ -115,9 +127,8 @@ export default function MissionOverview() {
           <MissionCard
             key={mission.id}
             mission={mission}
-            isConfirmingDelete={confirmDelete === mission.id}
             onNavigate={() => navigate(`/mission/${mission.id}/${mission.phase}`)}
-            onDelete={() => handleDelete(mission.id)}
+            onDelete={() => remove(mission.id)}
             onDownloadPdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) downloadPdf(r.blob, r.filename) }}
             onSharePdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) sharePdf(r.blob, r.filename).catch(() => {}) }}
           />
@@ -133,22 +144,58 @@ export default function MissionOverview() {
             <MissionCard
               key={mission.id}
               mission={mission}
-              isConfirmingDelete={confirmDelete === mission.id}
               onNavigate={() => navigate(`/mission/${mission.id}/nachbereitung`)}
-              onDelete={() => handleDelete(mission.id)}
+              onDelete={() => remove(mission.id)}
               onDownloadPdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) downloadPdf(r.blob, r.filename) }}
             onSharePdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) sharePdf(r.blob, r.filename).catch(() => {}) }}
             />
           ))}
         </div>
       )}
+
+      {deletedMissions.length > 0 && (
+        <div className="space-y-3">
+          <button
+            onClick={() => setTrashOpen((v) => !v)}
+            className="flex w-full items-center justify-between gap-2 rounded-lg bg-surface px-4 py-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-alt hover:text-text active:scale-[0.99]"
+            aria-expanded={trashOpen}
+          >
+            <span className="flex items-center gap-2">
+              <PiTrash />
+              Kürzlich gelöscht ({deletedMissions.length})
+            </span>
+            <PiCaretDown className={`transition-transform ${trashOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {trashOpen && (
+            <>
+              <p className="text-xs text-text-muted">
+                Gelöschte Einsätze bleiben 30 Minuten wiederherstellbar.
+              </p>
+              {deletedMissions.map((mission) => (
+                <DeletedMissionCard
+                  key={mission.id}
+                  mission={mission}
+                  isConfirmingPurge={confirmPurge === mission.id}
+                  onRestore={() => restore(mission.id)}
+                  onPurge={() => handlePurge(mission.id)}
+                />
+              ))}
+            </>
+          )}
+        </div>
+      )}
+
+      {showVerify && (
+        <div className="border-t border-text-muted/10 pt-2">
+          <SignatureVerifyPanel />
+        </div>
+      )}
     </div>
   )
 }
 
-function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onDownloadPdf, onSharePdf }: {
+function MissionCard({ mission, onNavigate, onDelete, onDownloadPdf, onSharePdf }: {
   mission: Mission
-  isConfirmingDelete: boolean
   onNavigate: () => void
   onDelete: () => void
   onDownloadPdf: () => void
@@ -222,13 +269,57 @@ function MissionCard({ mission, isConfirmingDelete, onNavigate, onDelete, onDown
               e.stopPropagation()
               onDelete()
             }}
+            className={`${iconBtnClass} hover:bg-warning-bg hover:text-warning`}
+            aria-label="Einsatz löschen"
+            title="Einsatz löschen (30 Min. wiederherstellbar)"
+          >
+            <PiTrash />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DeletedMissionCard({ mission, isConfirmingPurge, onRestore, onPurge }: {
+  mission: Mission
+  isConfirmingPurge: boolean
+  onRestore: () => void
+  onPurge: () => void
+}) {
+  const displayLabel = useMissionDisplayLabel(mission.id, mission.createdAt)
+  const iconBtnClass = 'rounded-lg p-2 text-text-muted transition-colors'
+
+  return (
+    <div className="w-full rounded-xl bg-surface/60 p-4 opacity-75">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-text-muted line-through">
+            {displayLabel}
+          </p>
+          <span className="mt-2 flex items-center gap-1 text-xs text-text-muted">
+            <PiClock />
+            Endgültig gelöscht in {getRemainingTime(mission)}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onRestore}
+            className={`${iconBtnClass} hover:bg-good-bg hover:text-good`}
+            aria-label="Einsatz wiederherstellen"
+            title="Wiederherstellen"
+          >
+            <PiArrowCounterClockwise />
+          </button>
+          <button
+            onClick={onPurge}
             className={`${iconBtnClass} ${
-              isConfirmingDelete
+              isConfirmingPurge
                 ? 'bg-warning-bg text-warning'
                 : 'hover:bg-warning-bg hover:text-warning'
             }`}
-            aria-label={isConfirmingDelete ? 'Nochmal klicken zum Löschen' : 'Einsatz löschen'}
-            title={isConfirmingDelete ? 'Nochmal klicken zum Löschen' : 'Einsatz löschen'}
+            aria-label={isConfirmingPurge ? 'Nochmal klicken zum endgültigen Löschen' : 'Endgültig löschen'}
+            title={isConfirmingPurge ? 'Nochmal klicken zum endgültigen Löschen' : 'Endgültig löschen'}
           >
             <PiTrash />
           </button>

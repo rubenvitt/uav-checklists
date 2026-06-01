@@ -64,6 +64,8 @@ and `1` (with the first broken row) when it is tampered.
 | `DB_PATH` | no | `./data/signatures.db` | SQLite file |
 | `SIGNING_KEY_PATH` | no | `./data/signing-key.pem` | Ed25519 PKCS#8 PEM (auto-generated if missing) |
 | `ARCHIVE_DIR` | no | `./data/archive` | On-disk archive directory |
+| `CLAMAV_HOST` | no | — (disabled) | clamd host (TCP) for upload virus scanning |
+| `CLAMAV_PORT` | no | `3310` | clamd TCP port |
 
 The **signing key** is generated and persisted on first boot if absent (a
 warning is logged). Treat it as a secret and back it up — losing it makes every
@@ -71,15 +73,16 @@ existing signature unverifiable.
 
 ## Endpoints
 
-All endpoints except `/health` require a valid PocketID **Bearer** access token
-(`Authorization: Bearer <token>`). The token is validated against the issuer's
-JWKS (signature, `iss`, `aud`, `exp`); `sub` and display `name` are extracted.
+All endpoints except `/health` and `/verify` require a valid PocketID **Bearer**
+access token (`Authorization: Bearer <token>`). The token is validated against
+the issuer's JWKS (signature, `iss`, `aud`, `exp`); `sub` and display `name` are
+extracted.
 
 | Method | Path | Auth | Body | Response |
 |---|---|---|---|---|
 | `GET` | `/health` | no | — | `{ status: "ok", publicKey }` (Ed25519 SPKI PEM) |
 | `POST` | `/sign` | yes | PDF bytes | `201` receipt `{ id, signer:{sub,name}, createdAt, docHash, signature }` |
-| `POST` | `/verify` | yes | PDF bytes | `{ valid:true, signer, createdAt, docHash }` or `{ valid:false }` |
+| `POST` | `/verify` | **no** | PDF bytes | `{ valid:true, signer, createdAt, docHash }` or `{ valid:false }` |
 | `POST` | `/archive` | yes | PDF bytes | `201 { archived:true, id, docHash, archivedAt }`; `422` if not registered |
 | `GET` | `/me/signature` | yes | — | `image/png` bytes, or `404` |
 | `PUT` | `/me/signature` | yes | PNG bytes | `{ updatedAt }`; `415` if not a PNG |
@@ -87,6 +90,20 @@ JWKS (signature, `iss`, `aud`, `exp`); `sub` and display `name` are extracted.
 
 PDF / PNG bytes are sent as the raw request body (`Content-Type: application/pdf`
 resp. `image/png`).
+
+`/verify` is **public** so anyone holding a PDF can check whether it is
+registered and unaltered — no login required. The SPA shows this checker on its
+main page whenever a backend URL is configured.
+
+### Virus scanning
+
+When `CLAMAV_HOST` is set, every upload (`/sign`, `/verify`, `/archive`,
+`PUT /me/signature`) is streamed to clamd (INSTREAM) before use. Infected
+uploads are rejected with `422 malware_detected`; if the scanner is unreachable
+the request **fails closed** with `503 scanner_unavailable`. With `CLAMAV_HOST`
+unset, scanning is skipped entirely (local/dev). clamd's stream/file size limits
+(see `clamav/clamd.conf`) are kept above the 25 MB request-body cap so large
+uploads are never silently passed unscanned.
 
 ### Data model (SQLite)
 
@@ -123,9 +140,13 @@ backend only consumes the resulting **access token**. Register accordingly:
 docker compose up --build
 ```
 
-`docker-compose.yml` mounts a single named volume `uav-sign-data` at `/app/data`
-for the SQLite DB, signing key, and archive. Set `OIDC_ISSUER`, `OIDC_AUDIENCE`
-and `CORS_ORIGIN` in the compose `environment` block (or via an env file).
+`docker-compose.yml` runs two services: the API (volume `uav-sign-data` at
+`/app/data` for the SQLite DB, signing key, and archive) and a `clamav` service
+for virus scanning (DB cached in `uav-clamav-db`, config in `clamav/clamd.conf`).
+Set `OIDC_ISSUER`, `OIDC_AUDIENCE` and `CORS_ORIGIN` in the compose `environment`
+block (or via an env file). The API depends on clamav with `service_started`, so
+it comes up immediately and uploads fail closed (`503`) until clamd has finished
+downloading its virus DB on first boot (can take a few minutes).
 
 ## Tests
 

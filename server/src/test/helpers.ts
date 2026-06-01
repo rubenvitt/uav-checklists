@@ -10,6 +10,7 @@ export interface TestJwksContext {
   mintToken(claims: {
     sub: string;
     name?: string;
+    groups?: string[];
     issuer?: string;
     audience?: string;
     expiresIn?: string;
@@ -33,11 +34,12 @@ export async function createTestJwks(): Promise<TestJwksContext> {
   async function mintToken(claims: {
     sub: string;
     name?: string;
+    groups?: string[];
     issuer?: string;
     audience?: string;
     expiresIn?: string;
   }): Promise<string> {
-    const jwt = new SignJWT({ name: claims.name ?? 'Test User' })
+    const jwt = new SignJWT({ name: claims.name ?? 'Test User', groups: claims.groups ?? [] })
       .setProtectedHeader({ alg: 'RS256', kid: 'test-key-1' })
       .setSubject(claims.sub)
       .setIssuer(claims.issuer ?? TEST_ISSUER)
