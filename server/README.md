@@ -136,17 +136,50 @@ backend only consumes the resulting **access token**. Register accordingly:
 
 ## Docker
 
+### Local build (development)
+
 ```bash
 docker compose up --build
 ```
 
-`docker-compose.yml` runs two services: the API (volume `uav-sign-data` at
-`/app/data` for the SQLite DB, signing key, and archive) and a `clamav` service
-for virus scanning (DB cached in `uav-clamav-db`, config in `clamav/clamd.conf`).
-Set `OIDC_ISSUER`, `OIDC_AUDIENCE` and `CORS_ORIGIN` in the compose `environment`
-block (or via an env file). The API depends on clamav with `service_started`, so
-it comes up immediately and uploads fail closed (`503`) until clamd has finished
-downloading its virus DB on first boot (can take a few minutes).
+`docker-compose.yml` builds the image from source and runs two services: the API
+(volume `uav-sign-data` at `/app/data` for the SQLite DB, signing key, and
+archive) and a `clamav` service for virus scanning (DB cached in `uav-clamav-db`,
+config in `clamav/clamd.conf`). Set `OIDC_ISSUER`, `OIDC_AUDIENCE` and
+`CORS_ORIGIN` in the compose `environment` block (or via an env file). The API
+depends on clamav with `service_started`, so it comes up immediately and uploads
+fail closed (`503`) until clamd has finished downloading its virus DB on first
+boot (can take a few minutes).
+
+### Deploy (prebuilt image from GHCR)
+
+CI builds a multi-arch image (`linux/amd64`, `linux/arm64`) on every push to
+`main` and on `v*` tags, and pushes it to the GitHub Container Registry:
+
+```
+ghcr.io/rubenvitt/uav-checklists-server:latest   # main
+ghcr.io/rubenvitt/uav-checklists-server:1.0.0     # from a v1.0.0 git tag
+```
+
+`docker-compose.deploy.yml` pulls that image — no source checkout or local build
+is needed on the host. On the target machine you only need three things:
+
+```bash
+# 1. Configuration
+cp .env.example .env && $EDITOR .env        # set OIDC_ISSUER, OIDC_AUDIENCE, CORS_ORIGIN
+
+# 2. The clamd config (the only repo file the deploy compose mounts besides .env)
+mkdir -p clamav
+curl -fsSL -o clamav/clamd.conf \
+  https://raw.githubusercontent.com/rubenvitt/uav-checklists/main/server/clamav/clamd.conf
+
+# 3. Start (pin a version with IMAGE_TAG=1.0.0 instead of latest in production)
+docker compose -f docker-compose.deploy.yml up -d
+```
+
+The persistence and clamav paths (`DB_PATH`, `SIGNING_KEY_PATH`, `ARCHIVE_DIR`,
+`CLAMAV_HOST`, `CLAMAV_PORT`) are set by the compose file; everything else comes
+from `.env`. The workflow lives in `.github/workflows/server-docker.yml`.
 
 ## Tests
 

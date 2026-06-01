@@ -1,0 +1,73 @@
+name: Build & push server image
+
+# Builds the UAV signature backend (server/) and pushes a multi-arch image to
+# the GitHub Container Registry (GHCR). The published image can be deployed with
+# server/docker-compose.deploy.yml (no source checkout required on the host).
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths:
+      - "server/**"
+      - ".github/workflows/server-docker.yml"
+  pull_request:
+    paths:
+      - "server/**"
+      - ".github/workflows/server-docker.yml"
+  workflow_dispatch:
+
+env:
+  # ghcr.io/<owner>/<repo>-server, e.g. ghcr.io/rubenvitt/uav-checklists-server
+  IMAGE_NAME: ghcr.io/${{ github.repository }}-server
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Only log in / push for real branches & tags — not for PRs from forks.
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          file: ./server/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          # Don't push on PRs (build-only smoke test); push on branch/tag builds.
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
