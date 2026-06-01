@@ -4,6 +4,8 @@ import {
   loadMissions,
   createMission as createMissionStorage,
   deleteMission as deleteMissionStorage,
+  restoreMission as restoreMissionStorage,
+  purgeMission as purgeMissionStorage,
   updateMissionPhase as updateMissionPhaseStorage,
   completeMission as completeMissionStorage,
   cleanExpiredMissions,
@@ -49,6 +51,16 @@ export function useMissions() {
     refresh()
   }, [])
 
+  const restore = useCallback((missionId: string) => {
+    restoreMissionStorage(missionId)
+    refresh()
+  }, [])
+
+  const purge = useCallback((missionId: string) => {
+    purgeMissionStorage(missionId)
+    refresh()
+  }, [])
+
   const updatePhase = useCallback((missionId: string, phase: MissionPhase) => {
     updateMissionPhaseStorage(missionId, phase)
     refresh()
@@ -64,5 +76,5 @@ export function useMissions() {
     refresh()
   }, [])
 
-  return { missions, create, remove, updatePhase, complete, clean }
+  return { missions, create, remove, restore, purge, updatePhase, complete, clean }
 }

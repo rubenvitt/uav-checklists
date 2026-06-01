@@ -50,8 +50,15 @@ export function setMissionField(missionId: string, key: string, value: unknown) 
   const atom = getMissionAtom(missionId)
   atom.set((prev) => ({ ...prev, [key]: value }))
 
+  // The atom (above) is the source of truth. Persist to localStorage best-effort:
+  // a write failure (e.g. quota exceeded by a large inserted signature) must not
+  // silently desync the store from storage.
   const entry: StoredEntry<unknown> = { value, timestamp: Date.now() }
-  localStorage.setItem(`${PREFIX}${missionId}:${key}`, JSON.stringify(entry))
+  try {
+    localStorage.setItem(`${PREFIX}${missionId}:${key}`, JSON.stringify(entry))
+  } catch (err) {
+    console.warn(`[missionFormStore] localStorage write failed for "${key}":`, err)
+  }
 }
 
 export function getMissionField<T>(missionId: string, key: string, fallback: T): T {

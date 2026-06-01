@@ -1,10 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router'
-import { PiShieldCheck, PiChatDots } from 'react-icons/pi'
-import * as Sentry from '@sentry/react'
+import { PiShieldCheck } from 'react-icons/pi'
 import { useCallback, useRef, useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { MissionProvider, useMissionId } from './context/MissionContext'
 import { SegmentProvider } from './context/SegmentContext'
+import { AuthProvider } from './context/AuthContext'
+import AuthCallback from './components/AuthCallback'
 import { getMission, isMissionExpired, updateMissionPhase, canAccessPhase } from './utils/missionStorage'
 import { useMissionSegment } from './hooks/useMissionSegment'
 import { clearMissionEnvironment } from './hooks/useMissionEnvironment'
@@ -20,32 +21,11 @@ import VorflugkontrollePhase from './components/VorflugkontrollePhase'
 import FluegePhase from './components/FluegePhase'
 import NachbereitungPhase from './components/NachbereitungPhase'
 
-function openFeedback() {
-  const isDark = document.documentElement.classList.contains('dark')
-  const feedback = Sentry.getFeedback()
-  feedback?.createForm({ colorScheme: isDark ? 'dark' : 'light' }).then(form => {
-    form.appendToDom()
-    form.open()
-    const shadow = document.querySelector('#sentry-feedback')?.shadowRoot
-    if (shadow && !shadow.querySelector('#feedback-backdrop')) {
-      const style = document.createElement('style')
-      style.id = 'feedback-backdrop'
-      style.textContent = '@media (max-width: 640px) { .dialog { -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.15); } }'
-      shadow.appendChild(style)
-    }
-  })
-}
-
 function AppFooter() {
   return (
     <footer className="flex items-center justify-center gap-1.5 py-6 text-[11px] text-text-muted/40">
       <PiShieldCheck className="text-sm" />
       Alle Daten bleiben lokal auf deinem Gerät.
-      <span className="mx-1">·</span>
-      <button onClick={openFeedback} className="inline-flex items-center gap-1 hover:text-text-muted transition-colors">
-        <PiChatDots className="text-sm" />
-        Feedback
-      </button>
     </footer>
   )
 }
@@ -74,7 +54,8 @@ function MissionLayout() {
   if (!missionId || !phase) return <Navigate to="/" replace />
 
   const mission = getMission(missionId)
-  if (!mission || isMissionExpired(mission)) return <Navigate to="/" replace />
+  // Soft-deleted missions are not navigable — only restorable from the overview.
+  if (!mission || mission.deletedAt || isMissionExpired(mission)) return <Navigate to="/" replace />
 
   const validPhases: MissionPhase[] = ['einsatzdaten', 'vorflugkontrolle', 'fluege', 'nachbereitung']
   if (!validPhases.includes(phase as MissionPhase)) return <Navigate to="/" replace />
@@ -175,11 +156,14 @@ export default function AppRouter() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<OverviewLayout />} />
-        <Route path="/mission/:missionId/:phase" element={<MissionLayout />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<OverviewLayout />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/mission/:missionId/:phase" element={<MissionLayout />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }

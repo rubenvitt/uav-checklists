@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router'
-import { PiMonitor, PiSun, PiMoon, PiArrowsClockwise, PiFilePdf, PiArrowLeft, PiShareNetwork } from 'react-icons/pi'
+import { PiMonitor, PiSun, PiMoon, PiArrowsClockwise, PiFilePdf, PiArrowLeft, PiShareNetwork, PiSignIn, PiSignOut, PiUserCircle } from 'react-icons/pi'
 import type { ThemeSetting } from '../hooks/useTheme'
+import { useAuth } from '../context/AuthContext'
 
 interface OverviewHeaderProps {
   mode: 'overview'
@@ -39,6 +40,47 @@ const themeLabel: Record<ThemeSetting, string> = {
 
 const iconBtnClass = 'rounded-lg bg-surface p-2.5 text-lg text-text-muted transition-colors hover:bg-surface-alt hover:text-text active:scale-95'
 
+/**
+ * Optional PocketID login affordance. Renders nothing unless the signature
+ * backend AND OIDC client are configured (graceful degradation), so the
+ * public no-backend deployment is unchanged.
+ */
+function LoginAffordance() {
+  const { configured, isAuthenticated, displayName, login, logout } = useAuth()
+
+  if (!configured) return null
+
+  if (isAuthenticated) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="flex items-center gap-1.5 max-w-[10rem] truncate text-sm text-text-muted" title={displayName}>
+          <PiUserCircle className="shrink-0" />
+          <span className="truncate">{displayName}</span>
+        </span>
+        <button
+          onClick={logout}
+          className={iconBtnClass}
+          aria-label="Abmelden"
+          title="Abmelden"
+        >
+          <PiSignOut />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <button
+      onClick={login}
+      className="flex items-center gap-1.5 rounded-lg bg-surface px-3 py-2 text-sm text-text-muted transition-colors hover:bg-surface-alt hover:text-text active:scale-95"
+      title="Anmelden"
+    >
+      <PiSignIn />
+      Anmelden
+    </button>
+  )
+}
+
 export default function Header(props: HeaderProps) {
   const navigate = useNavigate()
 
@@ -46,14 +88,17 @@ export default function Header(props: HeaderProps) {
     return (
       <header className="flex items-center justify-between py-4">
         <h1 className="text-2xl font-bold text-text">UAV Einsatzverwaltung</h1>
-        <button
-          onClick={props.onCycleTheme}
-          className={iconBtnClass}
-          aria-label={themeLabel[props.themeSetting]}
-          title={themeLabel[props.themeSetting]}
-        >
-          {themeIcon[props.themeSetting]}
-        </button>
+        <div className="flex items-center gap-2">
+          <LoginAffordance />
+          <button
+            onClick={props.onCycleTheme}
+            className={iconBtnClass}
+            aria-label={themeLabel[props.themeSetting]}
+            title={themeLabel[props.themeSetting]}
+          >
+            {themeIcon[props.themeSetting]}
+          </button>
+        </div>
       </header>
     )
   }

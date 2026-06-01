@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   PiCheck,
   PiChecks,
@@ -13,7 +14,18 @@ import {
   PiFileText,
   PiUsers,
   PiWarning,
+  PiSignature,
+  PiStamp,
+  PiFilePdf,
+  PiPenNib,
+  PiKeyboard,
 } from 'react-icons/pi'
+import SignaturePad from '../SignaturePad'
+import { renderTypedSignature } from '../../utils/renderTypedSignature'
+import StoredSignaturePanel from '../StoredSignaturePanel'
+import PdfPreviewModal from '../PdfPreviewModal'
+import { generateMissionReport } from '../../utils/generateMissionReport'
+import { useAuth } from '../../context/AuthContext'
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
 import { useMissionId } from '../../context/MissionContext'
 import { readStorage } from '../../hooks/usePersistedState'
@@ -47,7 +59,7 @@ function useWrapupItems(): { items: WrapupItem[]; noAnmeldungen: boolean } {
   // --- Anmeldungen aus Vorflugkontrolle (segment-scoped) ---
   const segments = getSegments(missionId)
   const anmeldungenChecked: Record<string, boolean> = {}
-  let anmeldungenAdditional: AdditionalNotification[] = []
+  const anmeldungenAdditional: AdditionalNotification[] = []
   for (const seg of segments) {
     const segChecked = readStorage<Record<string, boolean>>(`seg:${seg.id}:anmeldungen:checked`, {}, missionId)
     for (const [k, v] of Object.entries(segChecked)) {
@@ -204,10 +216,43 @@ const GROUPS = [
 
 export default function EinsatzabschlussSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean }) {
   const { items, noAnmeldungen } = useWrapupItems()
+  const missionId = useMissionId()
+  const queryClient = useQueryClient()
   const [checked, setChecked] = useMissionPersistedState<Record<string, boolean>>('wrapup:checked', {})
   const [notes, setNotes] = useMissionPersistedState<Record<string, string>>('wrapup:notes', {})
   const [feedback, setFeedback] = useMissionPersistedState<string>('wrapup:feedback', '')
+  const [signatureFk, setSignatureFk] = useMissionPersistedState<string>('signature:fk', '')
+  const [signatureEl, setSignatureEl] = useMissionPersistedState<string>('signature:el', '')
   const [expandedNote, setExpandedNote] = useState<string | null>(null)
+
+  // Prefill the typed-signature name from the SAME crew data the PDF prints
+  // below the signature line (Führungskraft / Einsatzleitung), so the
+  // handwriting name above the line matches the printed name below by default.
+  const prefillFk = readStorage<string>('crew_fk', '', missionId)
+  const prefillEl = readStorage<string>('einsatzleiter', '', missionId)
+
+  // Vorschau des Abschlussdokuments vor dem Unterschreiben. Zeigt den Inhalt
+  // (die gezeichneten Unterschriften kommen erst danach) — wer nach dem
+  // Zeichnen erneut prüft, sieht sie dann mit drin.
+  const [preview, setPreview] = useState<{ blob: Blob; filename: string } | null>(null)
+  const [previewError, setPreviewError] = useState(false)
+
+  function handlePreview() {
+    const result = generateMissionReport(missionId, queryClient)
+    if (result) {
+      setPreviewError(false)
+      setPreview(result)
+    } else {
+      setPreviewError(true)
+    }
+  }
+
+  // Optional PocketID login: when configured + logged in, the user can reuse a
+  // server-stored personal signature. When logged out this stays inert and the
+  // signature step behaves exactly like Phase 1.
+  const { configured: authConfigured, isAuthenticated } = useAuth()
+  const [storedSignature, setStoredSignature] = useState<string | null>(null)
+  const showStoredSignatures = authConfigured && isAuthenticated
 
   const checkedCount = items.filter(i => checked[i.key]).length
   const totalCount = items.length
@@ -258,6 +303,7 @@ export default function EinsatzabschlussSection({ open, onToggle, isComplete, on
   }))
 
   return (
+    <>
     <ChecklistSection
       title="Einsatzabschluss"
       icon={<PiClipboardText />}
@@ -361,8 +407,208 @@ export default function EinsatzabschlussSection({ open, onToggle, isComplete, on
             />
           </div>
         </div>
+
+        {/* Unterschriften group */}
+        <div>
+          <GroupHeader icon={<PiSignature />} label="Unterschriften" />
+          <div className="px-4 py-3 space-y-4">
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-text-muted/80">
+                Unterschriften für das Abschlussdokument (optional)
+              </p>
+              {(signatureFk.trim() || signatureEl.trim()) && (
+                <span className="h-1.5 w-1.5 rounded-full bg-good" />
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <button
+                type="button"
+                onClick={handlePreview}
+                className="flex items-center gap-2 rounded-lg bg-surface-alt px-3 py-2 text-sm text-text transition-colors hover:bg-surface active:scale-[0.99]"
+              >
+                <PiFilePdf className="text-base text-text-muted" />
+                Dokument prüfen
+              </button>
+              <p className="text-[0.7rem] text-text-muted/70">
+                Bitte vor dem Unterschreiben das Abschlussdokument prüfen.
+              </p>
+              {previewError && (
+                <p className="flex items-center gap-1.5 text-xs text-warning">
+                  <PiWarning className="shrink-0" /> Das PDF konnte nicht erzeugt werden.
+                </p>
+              )}
+            </div>
+            {showStoredSignatures && (
+              <StoredSignaturePanel onStoredSignatureChange={setStoredSignature} />
+            )}
+            <SignatureField
+              label="Führungskraft UAS"
+              storageKey="signature:fk"
+              prefillName={prefillFk}
+              value={signatureFk}
+              onChange={setSignatureFk}
+              storedSignature={showStoredSignatures ? storedSignature : null}
+            />
+            <SignatureField
+              label="Einsatzleitung"
+              storageKey="signature:el"
+              prefillName={prefillEl}
+              value={signatureEl}
+              onChange={setSignatureEl}
+              storedSignature={showStoredSignatures ? storedSignature : null}
+            />
+          </div>
+        </div>
       </div>
     </ChecklistSection>
+    {preview && (
+      <PdfPreviewModal blob={preview.blob} filename={preview.filename} onClose={() => setPreview(null)} />
+    )}
+    </>
+  )
+}
+
+/* ── Signature field (draw OR type → handwriting, switchable) ─── */
+
+type SignatureMode = 'draw' | 'type'
+
+/**
+ * One signature block. The user can either DRAW (touch/pen) or TYPE a name that
+ * is rendered in a handwriting font. Both modes produce a trimmed PNG data-URL
+ * written to `value`/`onChange` (the key the report pipeline reads), so the PDF
+ * needs no changes.
+ *
+ * The output PNG (`value`) doubles as the draw-mode canvas value — so a legacy
+ * drawn signature shows up untouched and no migration is needed. The typed
+ * NAME is persisted separately (`${storageKey}:typed`) so it stays editable
+ * (it cannot be recovered from the PNG). Mode changes are event-driven (no
+ * effect): switching to Tippen renders the name to the output, switching to
+ * Zeichnen clears it so the pad starts empty.
+ */
+function SignatureField({
+  label,
+  storageKey,
+  prefillName,
+  value,
+  onChange,
+  storedSignature,
+}: {
+  label: string
+  /** Base mission-storage key (e.g. `signature:fk`); output PNG lives here. */
+  storageKey: string
+  /** Crew-data name used to prefill the typed-signature input. */
+  prefillName: string
+  /** Current output PNG (data-URL) — what the PDF embeds and the pad shows. */
+  value: string
+  onChange: (dataUrl: string) => void
+  /** Logged-in user's stored PNG (data-URL), or null when unavailable. */
+  storedSignature: string | null
+}) {
+  const [mode, setMode] = useMissionPersistedState<SignatureMode>(`${storageKey}:mode`, 'draw')
+  const [typed, setTyped] = useMissionPersistedState<string>(`${storageKey}:typed`, prefillName)
+
+  async function selectMode(next: SignatureMode) {
+    if (next === mode) return
+    // Switching to Zeichnen starts from an empty pad (an existing typed PNG is
+    // not carried into the canvas); switching to Tippen renders the name.
+    onChange(next === 'type' ? await renderTypedSignature(typed) : '')
+    setMode(next)
+  }
+
+  async function handleTypedChange(name: string) {
+    setTyped(name)
+    onChange(await renderTypedSignature(name))
+  }
+
+  return (
+    <div className="space-y-2">
+      {/* Header: role label + draw/type toggle */}
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-text-muted">{label}</p>
+        <div className="flex rounded-lg bg-surface-alt p-0.5 text-xs">
+          <ModeButton active={mode === 'draw'} onClick={() => void selectMode('draw')} icon={<PiPenNib />} label="Zeichnen" />
+          <ModeButton active={mode === 'type'} onClick={() => void selectMode('type')} icon={<PiKeyboard />} label="Tippen" />
+        </div>
+      </div>
+
+      {mode === 'draw' ? (
+        <div className="space-y-1.5">
+          <SignaturePad label="" value={value} onChange={onChange} />
+          {storedSignature && (
+            <button
+              type="button"
+              onClick={() => onChange(storedSignature)}
+              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-text-muted transition-colors hover:text-good hover:bg-good/10"
+            >
+              <PiStamp className="text-[0.85rem]" />
+              Gespeicherte Signatur einfügen
+            </button>
+          )}
+        </div>
+      ) : (
+        <TypedSignature value={typed} onChange={handleTypedChange} />
+      )}
+    </div>
+  )
+}
+
+function ModeButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean
+  onClick: () => void
+  icon: React.ReactNode
+  label: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-1 rounded-md px-2 py-1 transition-colors ${
+        active ? 'bg-surface text-text shadow-sm' : 'text-text-muted hover:text-text'
+      }`}
+    >
+      {icon}
+      {label}
+    </button>
+  )
+}
+
+/**
+ * Typed-name signature: a text input plus a live preview in the same handwriting
+ * font (Caveat) that {@link renderTypedSignature} uses, on the white "paper"
+ * background that matches the draw pad and the PDF.
+ */
+function TypedSignature({ value, onChange }: { value: string; onChange: (name: string) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <input
+        type="text"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder="Name eingeben"
+        autoComplete="name"
+        className="w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text placeholder:text-text-muted/50 outline-none focus:ring-1 focus:ring-text-muted/40"
+      />
+      <div className="flex h-32 items-center justify-center overflow-hidden rounded-lg border border-text-muted/20 bg-white px-3">
+        {value.trim() ? (
+          <span
+            className="truncate text-5xl leading-none text-gray-900"
+            style={{ fontFamily: '"Caveat", cursive' }}
+          >
+            {value}
+          </span>
+        ) : (
+          <span className="text-sm text-gray-400">Vorschau</span>
+        )}
+      </div>
+      <p className="text-[0.7rem] text-text-muted/70">
+        Der Name wird in Schreibschrift als Unterschrift gesetzt
+      </p>
+    </div>
   )
 }
 

@@ -1,0 +1,129 @@
+import {
+  createHash,
+  createPrivateKey,
+  createPublicKey,
+  generateKeyPairSync,
+  sign as nodeSign,
+  verify as nodeVerify,
+  type KeyObject,
+} from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
+
+/** Genesis value for the first entry's `prev_entry_hash` (fixed, explicit). */
+export const GENESIS_PREV_HASH = '0'.repeat(64);
+
+/** SHA-256 of a buffer, returned as lowercase hex. */
+export function sha256Hex(data: Uint8Array): string {
+  return createHash('sha256').update(data).digest('hex');
+}
+
+/**
+ * Canonical byte payload that the server's Ed25519 key signs.
+ *
+ * The `sub` (authenticated user id) AND the displayed `signerName` are INSIDE
+ * the signed bytes, so "who signed" is cryptographically bound to the document
+ * hash and timestamp — neither can be forged by editing unsigned metadata or a
+ * log row.
+ *
+ * Format: length-prefixed, newline-joined hex/utf8 fields to keep it
+ * unambiguous and reproducible across sign and verify.
+ */
+export function buildSignedPayload(fields: {
+  sub: string;
+  signerName: string;
+  docHash: string;
+  createdAt: string;
+}): Buffer {
+  const canonical = [
+    `v1`,
+    `sub:${fields.sub}`,
+    `signerName:${fields.signerName}`,
+    `docHash:${fields.docHash}`,
+    `createdAt:${fields.createdAt}`,
+  ].join('\n');
+  return Buffer.from(canonical, 'utf8');
+}
+
+/**
+ * Hash-chain entry hash.
+ *
+ * entry_hash = SHA256(prev_entry_hash ‖ id ‖ sub ‖ created_at ‖ doc_hash ‖ signature)
+ *
+ * Fields are joined with a single space separator. All variable-length fields
+ * are constrained: the hashes are 64-char hex, id is a UUID, signature is
+ * base64, created_at is ISO-8601, and sub is an opaque OIDC identifier — none
+ * contain spaces, so the concatenation is unambiguous. The same encoding is
+ * reproduced byte-for-byte by `verifyChain()`.
+ */
+export function computeEntryHash(fields: {
+  prevEntryHash: string;
+  id: string;
+  sub: string;
+  createdAt: string;
+  docHash: string;
+  signature: string;
+}): string {
+  const SEP = '\u0000';
+  const material = [
+    fields.prevEntryHash,
+    fields.id,
+    fields.sub,
+    fields.createdAt,
+    fields.docHash,
+    fields.signature,
+  ].join(SEP);
+  return createHash('sha256').update(material, 'utf8').digest('hex');
+}
+
+export interface SigningKeyPair {
+  privateKey: KeyObject;
+  publicKey: KeyObject;
+  /** SPKI PEM of the public key — safe to expose / publish for verification. */
+  publicKeyPem: string;
+}
+
+/**
+ * Load the Ed25519 signing keypair from a PKCS#8 PEM file. If the file does not
+ * exist, generate a fresh keypair, persist it, and log a warning (first boot).
+ */
+export function loadOrCreateSigningKey(path: string): SigningKeyPair {
+  let privateKey: KeyObject;
+  if (existsSync(path)) {
+    const pem = readFileSync(path, 'utf8');
+    privateKey = createPrivateKey(pem);
+  } else {
+    const generated = generateKeyPairSync('ed25519');
+    privateKey = generated.privateKey;
+    const pem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, pem, { mode: 0o600 });
+    console.warn(
+      `[crypto] No signing key found at ${path}. Generated a new Ed25519 keypair and persisted it. ` +
+        `Back up this file: losing it makes existing signatures unverifiable.`,
+    );
+  }
+  const publicKey = createPublicKey(privateKey);
+  const publicKeyPem = publicKey.export({ type: 'spki', format: 'pem' }).toString();
+  return { privateKey, publicKey, publicKeyPem };
+}
+
+/** Sign the canonical payload with Ed25519. Returns base64. */
+export function signPayload(privateKey: KeyObject, payload: Buffer): string {
+  // For Ed25519 the algorithm argument MUST be null.
+  const signature = nodeSign(null, payload, privateKey);
+  return signature.toString('base64');
+}
+
+/** Verify a base64 Ed25519 signature over the canonical payload. */
+export function verifyPayload(
+  publicKey: KeyObject,
+  payload: Buffer,
+  signatureB64: string,
+): boolean {
+  try {
+    return nodeVerify(null, payload, publicKey, Buffer.from(signatureB64, 'base64'));
+  } catch {
+    return false;
+  }
+}

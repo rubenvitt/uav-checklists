@@ -1,4 +1,3 @@
-import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -32,6 +31,18 @@ export default defineConfig({
       globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       runtimeCaching: [
         {
+          // Signature backend (sign/verify/archive + auth-bound stored
+          // signature): NEVER cached. Workbox only caches GET responses anyway,
+          // so the POST/PUT/DELETE mutations already bypass the cache; this
+          // NetworkOnly rule (no method restriction → applies to every method
+          // matching the pattern, including the auth-bound GET /me/signature)
+          // makes the exclusion explicit. The allowlist below never matches
+          // these URLs regardless.
+          urlPattern: /\/(sign|verify|archive|me\/signature)(\?.*)?$/i,
+          handler: 'NetworkOnly',
+          options: { cacheName: 'sign-api-no-cache' },
+        },
+        {
           urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/i,
           handler: 'NetworkFirst',
           options: {
@@ -57,13 +68,13 @@ export default defineConfig({
         },
       ],
     },
-  }), sentryVitePlugin({
-    org: "rubeen",
-    project: "uav-management",
-    url: "https://sentry.rubeen.dev/"
   })],
 
-  build: {
-    sourcemap: true
-  }
+  // Fixed dev port so the OIDC redirect URI stays stable across restarts
+  // (port 5173 is used by a coexisting project). strictPort fails fast instead
+  // of silently drifting to another port and breaking the registered callback.
+  server: {
+    port: 5174,
+    strictPort: true,
+  },
 })
