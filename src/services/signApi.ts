@@ -269,6 +269,14 @@ export interface ArchiveEntry {
   filename: string | null
 }
 
+/** A soft-deleted ("recycle bin") archive entry, as returned by `GET /archive/deleted`. */
+export interface DeletedArchiveEntry extends ArchiveEntry {
+  /** ISO timestamp when the entry was soft-deleted. */
+  deletedAt: string
+  /** Reason from the audit log, or null when none was given. */
+  reason: string | null
+}
+
 /**
  * `GET /archive` — admin-only listing of archived documents, newest first.
  *
@@ -286,6 +294,76 @@ export async function listArchive(): Promise<ArchiveEntry[] | null> {
     return (await res.json()) as ArchiveEntry[]
   } catch {
     return null
+  }
+}
+
+/**
+ * `GET /archive/deleted` — admin-only listing of soft-deleted documents
+ * (the "recycle bin"), most recently deleted first. Returns `null` on error /
+ * not permitted, `[]` when the bin is empty (mirrors {@link listArchive}).
+ */
+export async function listDeletedArchive(): Promise<DeletedArchiveEntry[] | null> {
+  if (!BASE_URL) return null
+  try {
+    const res = await fetch(`${BASE_URL}/archive/deleted`, {
+      headers: authHeaders(),
+    })
+    if (!res.ok) return null
+    return (await res.json()) as DeletedArchiveEntry[]
+  } catch {
+    return null
+  }
+}
+
+/**
+ * `DELETE /archive/:docHash` — admin-only soft-delete (move to the recycle
+ * bin). The optional `reason` is recorded in the signed audit log. The signing
+ * registry is untouched, so a held PDF still verifies. Returns `true` on
+ * success, `false` when unconfigured, not permitted, not found, or on error.
+ */
+export async function deleteArchive(docHash: string, reason?: string): Promise<boolean> {
+  if (!BASE_URL) return false
+  try {
+    const res = await fetch(`${BASE_URL}/archive/${encodeURIComponent(docHash)}`, {
+      method: 'DELETE',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(reason && reason.trim() !== '' ? { reason } : {}),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+/** `POST /archive/:docHash/restore` — admin-only restore from the recycle bin. */
+export async function restoreArchive(docHash: string): Promise<boolean> {
+  if (!BASE_URL) return false
+  try {
+    const res = await fetch(`${BASE_URL}/archive/${encodeURIComponent(docHash)}/restore`, {
+      method: 'POST',
+      headers: authHeaders(),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+/**
+ * `DELETE /archive/:docHash/permanent` — admin-only permanent purge of a
+ * soft-deleted entry (removes the DB row + on-disk PDF). The signing registry
+ * is left intact. Returns `true` on success.
+ */
+export async function purgeArchive(docHash: string): Promise<boolean> {
+  if (!BASE_URL) return false
+  try {
+    const res = await fetch(`${BASE_URL}/archive/${encodeURIComponent(docHash)}/permanent`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    })
+    return res.ok
+  } catch {
+    return false
   }
 }
 
