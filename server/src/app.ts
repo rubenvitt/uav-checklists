@@ -3,8 +3,10 @@ import { cors } from 'hono/cors';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { adminOnly, authMiddleware, getUser, isAdmin, type TokenVerifier } from './auth.js';
+import { rmSync } from 'node:fs';
+import { adminOnly, authMiddleware, getUser, isAdmin, type AuthenticatedUser, type TokenVerifier } from './auth.js';
 import {
+  buildAuditPayload,
   buildSignedPayload,
   sha256Hex,
   signPayload,
@@ -12,6 +14,7 @@ import {
   type SigningKeyPair,
 } from './crypto.js';
 import {
+  appendAuditLog,
   appendSigningLog,
   deleteSignature,
   findByDocHash,
@@ -20,8 +23,15 @@ import {
   insertArchive,
   isArchived,
   isSignerOf,
+  isSoftDeleted,
+  latestDeleteReason,
   listArchiveMeta,
+  listDeletedArchiveMeta,
+  purgeArchive,
   putSignature,
+  restoreArchive,
+  softDeleteArchive,
+  type AuditAction,
   type DB,
   type SigningLogRow,
 } from './db.js';
@@ -266,6 +276,27 @@ export function createApp(deps: AppDeps): Hono {
   });
 
   /**
+   * GET /archive/deleted — admin-only listing of soft-deleted ("recycle bin")
+   * documents, most recently deleted first. Static segment registered BEFORE
+   * `/archive/:docHash` so it is not captured by the param route. Includes the
+   * deletion timestamp; the deletion reason lives in the audit log.
+   */
+  app.get('/archive/deleted', auth, admin, (c) => {
+    const rows = listDeletedArchiveMeta(deps.db);
+    return c.json(
+      rows.map((r) => ({
+        docHash: r.doc_hash,
+        signer: r.signer_name,
+        signedAt: r.signed_at,
+        archivedAt: r.archived_at,
+        filename: r.filename,
+        deletedAt: r.deleted_at,
+        reason: latestDeleteReason(deps.db, r.doc_hash),
+      })),
+    );
+  });
+
+  /**
    * GET /archive/:docHash — download an archived PDF. An admin may download any
    * document; a non-admin may download a document THEY signed (so a mission can
    * fetch its already-signed report from the archive instead of re-signing).
@@ -278,14 +309,100 @@ export function createApp(deps: AppDeps): Hono {
     if (!isAdmin(user, deps.adminGroup) && !isSignerOf(deps.db, docHash, user.sub)) {
       return c.json({ error: 'forbidden' }, 403);
     }
+    // A soft-deleted ("recycle bin") entry is not downloadable — it must be
+    // restored first. Treated as not-found so the bin stays hidden from the
+    // signer path too.
     const row = getArchive(deps.db, docHash);
-    if (!row) {
+    if (!row || isSoftDeleted(deps.db, docHash)) {
       return c.json({ error: 'not_found' }, 404);
     }
     const filename = sanitizeFilename(row.filename ?? `${docHash}.pdf`);
     c.header('Content-Type', 'application/pdf');
     c.header('Content-Disposition', contentDisposition(filename));
     return c.body(toArrayBuffer(row.pdf));
+  });
+
+  /**
+   * Append a signed, hash-chained audit entry for an admin action. The server's
+   * Ed25519 key signs a canonical payload binding action + document + acting
+   * admin + reason, so the record is tamper-evident. SEPARATE from the
+   * document-signing log — deletions never touch signing_log.
+   */
+  function recordAudit(action: AuditAction, docHash: string, user: AuthenticatedUser, reason: string | null): void {
+    const createdAt = new Date().toISOString();
+    const payload = buildAuditPayload({
+      action,
+      docHash,
+      adminSub: user.sub,
+      adminName: user.name,
+      reason,
+      createdAt,
+    });
+    const signature = signPayload(deps.signingKey.privateKey, payload);
+    appendAuditLog(deps.db, {
+      id: randomUUID(),
+      action,
+      docHash,
+      adminSub: user.sub,
+      adminName: user.name,
+      reason,
+      createdAt,
+      signature,
+    });
+  }
+
+  /**
+   * DELETE /archive/:docHash — admin-only soft-delete (move to the recycle bin).
+   * The document stays recoverable until an admin purges it; nothing auto-expires.
+   * An optional `{ reason }` JSON body is recorded (signed) in the audit log.
+   * The signing registry is NOT touched, so a held PDF still verifies as
+   * registered. 404 when no ACTIVE entry with that hash exists.
+   */
+  app.delete('/archive/:docHash', auth, admin, async (c) => {
+    const docHash = c.req.param('docHash');
+    const reason = await readReason(c);
+    const deletedAt = new Date().toISOString();
+    if (!softDeleteArchive(deps.db, docHash, deletedAt)) {
+      return c.json({ error: 'not_found' }, 404);
+    }
+    recordAudit('archive_delete', docHash, getUser(c), reason);
+    return c.json({ deleted: true, docHash, deletedAt });
+  });
+
+  /**
+   * POST /archive/:docHash/restore — admin-only restore from the recycle bin.
+   * 404 when no soft-deleted entry with that hash exists.
+   */
+  app.post('/archive/:docHash/restore', auth, admin, (c) => {
+    const docHash = c.req.param('docHash');
+    if (!restoreArchive(deps.db, docHash)) {
+      return c.json({ error: 'not_found' }, 404);
+    }
+    recordAudit('archive_restore', docHash, getUser(c), null);
+    return c.json({ restored: true, docHash });
+  });
+
+  /**
+   * DELETE /archive/:docHash/permanent — admin-only permanent purge. Operates
+   * ONLY on a soft-deleted entry (so an active document can never be erased in a
+   * single step): 409 when the entry is still active, 404 when unknown. Removes
+   * the DB row + the on-disk PDF; signing_log is left intact.
+   */
+  app.delete('/archive/:docHash/permanent', auth, admin, (c) => {
+    const docHash = c.req.param('docHash');
+    if (!isSoftDeleted(deps.db, docHash)) {
+      // Distinguish "still active, soft-delete it first" (409) from "unknown" (404).
+      return isArchived(deps.db, docHash)
+        ? c.json({ error: 'not_deleted' }, 409)
+        : c.json({ error: 'not_found' }, 404);
+    }
+    purgeArchive(deps.db, docHash);
+    if (deps.archiveDir) {
+      // force: do not throw if the file is already gone.
+      rmSync(join(deps.archiveDir, `${docHash}.pdf`), { force: true });
+    }
+    recordAudit('archive_purge', docHash, getUser(c), null);
+    return c.json({ purged: true, docHash });
   });
 
   /**
@@ -352,6 +469,39 @@ function isPng(buf: Buffer): boolean {
 
 function toArrayBuffer(buf: Buffer): ArrayBuffer {
   return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+}
+
+/**
+ * Read an optional `{ reason }` from a JSON request body, sanitized to a single
+ * line. Returns null when no body, no reason, or an empty result — so the value
+ * stored in the (signed) audit log stays unambiguous for the newline-joined
+ * canonical payload.
+ */
+async function readReason(c: { req: { json: () => Promise<unknown> } }): Promise<string | null> {
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return null; // no / invalid body — reason is optional
+  }
+  if (!body || typeof body !== 'object') return null;
+  const raw = (body as Record<string, unknown>).reason;
+  if (typeof raw !== 'string') return null;
+  return sanitizeReason(raw);
+}
+
+/**
+ * Collapse a free-text reason to a single trimmed line (control characters and
+ * newlines become spaces), capped at 500 chars. Returns null when empty.
+ */
+function sanitizeReason(raw: string): string | null {
+  const cleaned = raw
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\x00-\x1f\x7f]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 500);
+  return cleaned === '' ? null : cleaned;
 }
 
 /**
