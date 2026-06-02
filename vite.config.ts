@@ -1,14 +1,13 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import react, { reactCompilerPreset } from '@vitejs/plugin-react'
+import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { devtools } from '@tanstack/devtools-vite'
 
 export default defineConfig({
-  plugins: [devtools(), react({
-    babel: {
-      plugins: [['babel-plugin-react-compiler']],
-    },
+  plugins: [devtools(), react(), babel({
+    presets: [reactCompilerPreset()],
   }), tailwindcss(), VitePWA({
     registerType: 'autoUpdate',
     includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
