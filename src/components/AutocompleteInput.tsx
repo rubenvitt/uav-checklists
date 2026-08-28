@@ -1,4 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useId } from 'react'
+import { PiX } from 'react-icons/pi'
+
+const MAX_VISIBLE = 8
 
 interface AutocompleteInputProps {
   label: string
@@ -6,24 +9,39 @@ interface AutocompleteInputProps {
   onChange: (value: string) => void
   suggestions: string[]
   placeholder?: string
+  /** Highlights label and input (e.g. empty required field) */
+  warning?: boolean
+  onBlur?: () => void
+  /** When set, each suggestion gets a remove button */
+  onRemoveSuggestion?: (suggestion: string) => void
+  /** Wrapper class; defaults to the section row padding */
+  className?: string
 }
 
-export default function AutocompleteInput({ label, value, onChange, suggestions, placeholder }: AutocompleteInputProps) {
+export default function AutocompleteInput({
+  label,
+  value,
+  onChange,
+  suggestions,
+  placeholder,
+  warning = false,
+  onBlur,
+  onRemoveSuggestion,
+  className = 'px-4 py-3',
+}: AutocompleteInputProps) {
+  const id = useId()
   const [focused, setFocused] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
 
-  const filtered = focused
-    ? value.trim()
-      ? suggestions.filter((s) => s.toLowerCase().includes(value.toLowerCase()) && s !== value)
-      : suggestions
-    : []
-
-  // Reset active index when filtered list changes
-  useEffect(() => {
-    setActiveIndex(-1)
-  }, [filtered.length, value])
+  const filtered = (
+    focused
+      ? value.trim()
+        ? suggestions.filter((s) => s.toLowerCase().includes(value.toLowerCase()) && s !== value)
+        : suggestions
+      : []
+  ).slice(0, MAX_VISIBLE)
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -68,36 +86,51 @@ export default function AutocompleteInput({ label, value, onChange, suggestions,
   }
 
   return (
-    <div className="px-4 py-3">
-      <label className="mb-1 block text-xs text-text-muted">{label}</label>
+    <div className={className}>
+      <label htmlFor={`${id}-input`} className={`mb-1 block text-xs ${warning ? 'text-caution' : 'text-text-muted'}`}>
+        {label}
+      </label>
       <div ref={wrapperRef} className="relative">
         <input
+          id={`${id}-input`}
           type="text"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setFocused(true)}
+          onChange={(e) => {
+            setActiveIndex(-1)
+            onChange(e.target.value)
+          }}
+          onFocus={() => {
+            setActiveIndex(-1)
+            setFocused(true)
+          }}
+          onBlur={onBlur}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           role="combobox"
           aria-expanded={filtered.length > 0}
-          aria-activedescendant={activeIndex >= 0 ? `${label}-option-${activeIndex}` : undefined}
+          aria-controls={`${id}-listbox`}
+          aria-activedescendant={activeIndex >= 0 ? `${id}-option-${activeIndex}` : undefined}
           aria-autocomplete="list"
-          className="w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted"
+          className={`w-full rounded-lg px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted ${
+            warning ? 'bg-caution-bg/30' : 'bg-surface-alt'
+          }`}
           data-1p-ignore
           autoComplete="off"
         />
         {filtered.length > 0 && (
           <ul
             ref={listRef}
+            id={`${id}-listbox`}
             role="listbox"
             className="absolute left-0 right-0 z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-surface-alt bg-surface shadow-lg"
           >
             {filtered.map((s, i) => (
               <li
                 key={s}
-                id={`${label}-option-${i}`}
+                id={`${id}-option-${i}`}
                 role="option"
                 aria-selected={i === activeIndex}
+                className={`flex items-center transition-colors ${i === activeIndex ? 'bg-surface-alt' : ''}`}
               >
                 <button
                   type="button"
@@ -108,12 +141,25 @@ export default function AutocompleteInput({ label, value, onChange, suggestions,
                     setFocused(false)
                   }}
                   onMouseEnter={() => setActiveIndex(i)}
-                  className={`w-full px-3 py-2 text-left text-sm text-text transition-colors ${
-                    i === activeIndex ? 'bg-surface-alt' : ''
-                  }`}
+                  className="min-w-0 flex-1 truncate px-3 py-2 text-left text-sm text-text"
                 >
                   {s}
                 </button>
+                {onRemoveSuggestion && (
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    aria-label={`${s} aus Vorschlägen entfernen`}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      onRemoveSuggestion(s)
+                    }}
+                    className="shrink-0 p-2 text-text-muted hover:text-warning transition-colors"
+                  >
+                    <PiX />
+                  </button>
+                )}
               </li>
             ))}
           </ul>

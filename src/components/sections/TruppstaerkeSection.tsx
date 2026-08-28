@@ -1,6 +1,8 @@
 import { PiUsersThree, PiPlus, PiX } from 'react-icons/pi'
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
+import { useCrewRoster } from '../../hooks/useCrewRoster'
 import ChecklistSection from '../ChecklistSection'
+import AutocompleteInput from '../AutocompleteInput'
 
 type CrewRole = 'fernpilot' | 'luftraumbeobachter' | 'bildauswerter'
 
@@ -30,6 +32,7 @@ export default function TruppstaerkeSection({ open, onToggle, isComplete, onCont
   const [lrb, setLrb] = useMissionPersistedState('crew_lrb', '')
   const [ba, setBa] = useMissionPersistedState('crew_ba', '')
   const [additional, setAdditional] = useMissionPersistedState<AdditionalMember[]>('crew_additional', [])
+  const { roster, add: rememberName, remove: forgetName } = useCrewRoster()
 
   const names: Record<string, string> = { fk, fp, lrb, ba }
   const setters: Record<string, (v: string) => void> = { fk: setFk, fp: setFp, lrb: setLrb, ba: setBa }
@@ -68,43 +71,32 @@ export default function TruppstaerkeSection({ open, onToggle, isComplete, onCont
             const showWarning = isEmpty && critical
 
             return (
-              <div key={key} className="px-4 py-3">
-                <label
-                  className={`mb-1 block text-xs ${
-                    showWarning ? 'text-caution' : 'text-text-muted'
-                  }`}
-                >
-                  {label}
-                </label>
-                <input
-                  type="text"
-                  value={names[key]}
-                  onChange={(e) => setters[key](e.target.value)}
-                  placeholder="Name eingeben..."
-                  className={`w-full rounded-lg px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted ${
-                    showWarning ? 'bg-caution-bg/30' : 'bg-surface-alt'
-                  }`}
-                  data-1p-ignore
-                  autoComplete="off"
-                />
-              </div>
+              <AutocompleteInput
+                key={key}
+                label={label}
+                value={names[key]}
+                onChange={setters[key]}
+                onBlur={() => rememberName(names[key])}
+                suggestions={roster}
+                onRemoveSuggestion={forgetName}
+                placeholder="Name eingeben..."
+                warning={showWarning}
+              />
             )
           })}
 
           {additional.map((member, i) => (
             <div key={i} className="flex items-center gap-2 px-4 py-3">
-              <div className="flex-1">
-                <label className="mb-1 block text-xs text-text-muted">{ROLE_LABELS[member.role]}</label>
-                <input
-                  type="text"
-                  value={member.name}
-                  onChange={(e) => updateMemberName(i, e.target.value)}
-                  placeholder="Name eingeben..."
-                  className="w-full rounded-lg bg-surface-alt px-3 py-2 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted"
-                  data-1p-ignore
-                  autoComplete="off"
-                />
-              </div>
+              <AutocompleteInput
+                label={ROLE_LABELS[member.role]}
+                value={member.name}
+                onChange={(name) => updateMemberName(i, name)}
+                onBlur={() => rememberName(member.name)}
+                suggestions={roster}
+                onRemoveSuggestion={forgetName}
+                placeholder="Name eingeben..."
+                className="flex-1"
+              />
               <button
                 type="button"
                 onClick={() => removeMember(i)}
