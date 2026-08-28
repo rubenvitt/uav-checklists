@@ -58,49 +58,22 @@ function tryLoadManualLocation(key: string): ManualLocation | null {
   return null
 }
 
-export function useGeolocation(missionId?: string, segmentId?: string | null, isFirstSegment?: boolean): GeolocationState {
-  const allowLegacyFallback = isFirstSegment !== false
+type LocationState = Omit<GeolocationState, 'setManualLocation' | 'clearManualLocation'>
+
+/** Initial state for a segment: saved manual location if present, otherwise "loading GPS". */
+function initialStateFor(missionId?: string, segmentId?: string | null, allowLegacyFallback: boolean = true): LocationState {
   const saved = loadManualLocation(missionId, segmentId, allowLegacyFallback)
-
-  const [state, setState] = useState<
-    Omit<GeolocationState, 'setManualLocation' | 'clearManualLocation'>
-  >(() =>
-    saved
-      ? {
-          latitude: saved.latitude,
-          longitude: saved.longitude,
-          error: null,
-          loading: false,
-          isManual: true,
-          manualName: saved.name,
-          needsManualLocation: false,
-        }
-      : {
-          latitude: null,
-          longitude: null,
-          error: null,
-          loading: true,
-          isManual: false,
-          manualName: null,
-          needsManualLocation: false,
-        }
-  )
-
-  // Re-initialize state when segmentId changes (e.g. after relocation)
-  useEffect(() => {
-    const current = loadManualLocation(missionId, segmentId, allowLegacyFallback)
-    if (current) {
-      setState({
-        latitude: current.latitude,
-        longitude: current.longitude,
+  return saved
+    ? {
+        latitude: saved.latitude,
+        longitude: saved.longitude,
         error: null,
         loading: false,
         isManual: true,
-        manualName: current.name,
+        manualName: saved.name,
         needsManualLocation: false,
-      })
-    } else {
-      setState({
+      }
+    : {
         latitude: null,
         longitude: null,
         error: null,
@@ -108,23 +81,37 @@ export function useGeolocation(missionId?: string, segmentId?: string | null, is
         isManual: false,
         manualName: null,
         needsManualLocation: false,
-      })
-    }
-  }, [missionId, segmentId, allowLegacyFallback])
+      }
+}
+
+export function useGeolocation(missionId?: string, segmentId?: string | null, isFirstSegment?: boolean): GeolocationState {
+  const allowLegacyFallback = isFirstSegment !== false
+
+  const [state, setState] = useState<LocationState>(() =>
+    initialStateFor(missionId, segmentId, allowLegacyFallback),
+  )
+
+  // Re-initialize state when the segment changes (e.g. after relocation).
+  // Adjusted during render instead of in an effect, so the fresh state is used in the same pass.
+  const scopeKey = `${missionId ?? ''}|${segmentId ?? ''}|${allowLegacyFallback}`
+  const [prevScopeKey, setPrevScopeKey] = useState(scopeKey)
+  if (scopeKey !== prevScopeKey) {
+    setPrevScopeKey(scopeKey)
+    setState(initialStateFor(missionId, segmentId, allowLegacyFallback))
+  }
+
+  // Without a Geolocation API there is nothing to load — derive "needs manual location" instead of
+  // setting state in the effect.
+  const hasGeolocationApi = typeof navigator !== 'undefined' && !!navigator.geolocation
+  const effectiveState: LocationState =
+    state.loading && !state.isManual && !hasGeolocationApi
+      ? { ...state, error: null, loading: false, needsManualLocation: true }
+      : state
 
   // GPS fallback — only runs when loading and no manual location
   useEffect(() => {
     if (!state.loading || state.isManual) return
-
-    if (!navigator.geolocation) {
-      setState((prev) => ({
-        ...prev,
-        error: null,
-        loading: false,
-        needsManualLocation: true,
-      }))
-      return
-    }
+    if (!navigator.geolocation) return
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -208,5 +195,5 @@ export function useGeolocation(missionId?: string, segmentId?: string | null, is
     }
   }, [missionId, segmentId])
 
-  return { ...state, setManualLocation, clearManualLocation }
+  return { ...effectiveState, setManualLocation, clearManualLocation }
 }

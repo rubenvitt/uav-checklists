@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router'
-import { useMissionId } from '../context/MissionContext'
+import { useMissionId } from '../context/useMissionId'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { useReverseGeocode } from '../hooks/useReverseGeocode'
 import { useMissionWeather, useMissionKIndex, useMissionNearby } from '../hooks/useMissionEnvironment'

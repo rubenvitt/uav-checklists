@@ -45,17 +45,20 @@ export default function LocationBar({
     }
   }, [editing, needsManualLocation])
 
-  useEffect(() => {
-    if (!query.trim() || query.trim().length < 2) {
+  function handleQueryChange(next: string) {
+    setQuery(next)
+    // Vorschläge sofort leeren, wenn die Eingabe zu kurz ist oder eindeutig Koordinaten enthält
+    const trimmed = next.trim()
+    if (trimmed.length < 2 || (trimmed.length >= 5 && parseCoordinates(next))) {
       setSuggestions([])
-      return
     }
+  }
+
+  useEffect(() => {
+    if (!query.trim() || query.trim().length < 2) return
 
     // Skip geocoding API call when coordinates are clearly detected
-    if (coordinateMatch) {
-      setSuggestions([])
-      return
-    }
+    if (coordinateMatch) return
 
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
@@ -167,7 +170,7 @@ export default function LocationBar({
                 ref={inputRef}
                 type="text"
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => handleQueryChange(e.target.value)}
                 placeholder="Ort, Adresse oder Koordinaten…"
                 className="flex-1 bg-transparent text-sm text-text outline-none placeholder:text-text-muted/50"
                 data-1p-ignore

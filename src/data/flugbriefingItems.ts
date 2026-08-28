@@ -1,0 +1,18 @@
+export const FLUGBRIEFING_ITEMS = [
+  { key: 'aufgaben', label: 'Verteilung der Aufgaben klar' },
+  { key: 'landeplatz', label: 'Start- und Landeplatz' },
+  { key: 'notfallplan', label: 'Notfallplan' },
+  { key: 'fluggebiete', label: 'Flug- und Suchgebiete' },
+  { key: 'notam', label: 'NOTAM' },
+  { key: 'geozonen', label: 'Geo-Zonen' },
+  { key: 'wetter', label: 'Wetter' },
+  { key: 'stoerquellen', label: 'Störquellen' },
+  { key: 'kommunikation', label: 'Kommunikation klar' },
+  { key: 'vorflugkontrolle', label: 'Vorflugkontrolle abgeschlossen' },
+  { key: 'stromversorgung', label: 'Externe Stromversorgung' },
+  { key: 'benachbarte', label: 'Benachbarte Kräfte informiert' },
+  { key: 'risikobewertung', label: 'Risikobewertung' },
+  { key: 'gefahren', label: 'Gefahren besprochen' },
+  { key: 'naturschutz', label: 'Naturschutz berücksichtigt' },
+  { key: 'fragen', label: 'Fragen und Bedenken geklärt' },
+] as const

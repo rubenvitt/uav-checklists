@@ -1,7 +1,7 @@
 import { PiWarning, PiCheck, PiLightningSlash, PiCloudRain, PiWrench, PiRadio, PiNavigationArrow, PiAirplaneTilt, PiNotePencil, PiInfo, PiAirplaneLanding, PiClock } from 'react-icons/pi'
 import type { ReactNode } from 'react'
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
-import { useMissionId } from '../../context/MissionContext'
+import { useMissionId } from '../../context/useMissionId'
 import { readStorage } from '../../hooks/usePersistedState'
 import { getSegments } from '../../utils/missionStorage'
 import type { FlightLogEntry, EventNote } from '../../types/flightLog'

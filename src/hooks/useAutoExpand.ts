@@ -50,6 +50,29 @@ function computeInitialState(
   return result
 }
 
+/**
+ * Close locked sections and register unknown section IDs (closed).
+ * Returns `prev` unchanged if nothing needed adjusting.
+ */
+function reconcileOpenState(
+  prev: Record<string, boolean>,
+  sections: SectionConfig[],
+): Record<string, boolean> {
+  let changed = false
+  const next = { ...prev }
+  for (const s of sections) {
+    if (s.locked && next[s.id]) {
+      next[s.id] = false
+      changed = true
+    }
+    if (!(s.id in next)) {
+      next[s.id] = false
+      changed = true
+    }
+  }
+  return changed ? next : prev
+}
+
 export function useAutoExpand(sections: SectionConfig[], phaseKey: string): {
   openState: Record<string, boolean>
   toggle: (sectionId: string) => void
@@ -59,13 +82,26 @@ export function useAutoExpand(sections: SectionConfig[], phaseKey: string): {
 } {
   const [visited, setVisited] = useMissionPersistedState<boolean>(`autoexpand:visited:${phaseKey}`, false)
   const isFirstVisit = !visited
+  // Latest sections for continueToNext — synced after commit, read only in the handler
   const sectionsRef = useRef(sections)
-  sectionsRef.current = sections
+  useEffect(() => {
+    sectionsRef.current = sections
+  }, [sections])
 
   // openState is real state — sections only close via explicit user action
   const [openState, setOpenState] = useState<Record<string, boolean>>(() =>
     computeInitialState(sections, isFirstVisit),
   )
+
+  // Keep locked sections closed & init new section IDs.
+  // Adjust state during render when `sections` changes (instead of a setState-in-effect),
+  // so the corrected state is available in the same render pass.
+  const [prevSections, setPrevSections] = useState(sections)
+  if (sections !== prevSections) {
+    setPrevSections(sections)
+    const next = reconcileOpenState(openState, sections)
+    if (next !== openState) setOpenState(next)
+  }
 
   // Mark as visited on mount
   const mountedRef = useRef(false)
@@ -75,25 +111,6 @@ export function useAutoExpand(sections: SectionConfig[], phaseKey: string): {
       if (!visited) setVisited(true)
     }
   }, [visited, setVisited])
-
-  // Keep locked sections closed & init new section IDs
-  useEffect(() => {
-    setOpenState(prev => {
-      let changed = false
-      const next = { ...prev }
-      for (const s of sections) {
-        if (s.locked && next[s.id]) {
-          next[s.id] = false
-          changed = true
-        }
-        if (!(s.id in next)) {
-          next[s.id] = false
-          changed = true
-        }
-      }
-      return changed ? next : prev
-    })
-  }, [sections])
 
   const toggle = (sectionId: string) => {
     setOpenState(prev => ({ ...prev, [sectionId]: !prev[sectionId] }))

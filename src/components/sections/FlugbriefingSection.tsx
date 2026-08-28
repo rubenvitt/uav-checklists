@@ -3,25 +3,7 @@ import { useSegmentPersistedState } from '../../hooks/useSegmentPersistedState'
 import type { MetricStatus } from '../../types/assessment'
 import { getChecklistAnswer, getNextChecklistAnswer, isAnswered, type ChecklistState } from '../../utils/checklistState'
 import ChecklistSection from '../ChecklistSection'
-
-export const FLUGBRIEFING_ITEMS = [
-  { key: 'aufgaben', label: 'Verteilung der Aufgaben klar' },
-  { key: 'landeplatz', label: 'Start- und Landeplatz' },
-  { key: 'notfallplan', label: 'Notfallplan' },
-  { key: 'fluggebiete', label: 'Flug- und Suchgebiete' },
-  { key: 'notam', label: 'NOTAM' },
-  { key: 'geozonen', label: 'Geo-Zonen' },
-  { key: 'wetter', label: 'Wetter' },
-  { key: 'stoerquellen', label: 'Störquellen' },
-  { key: 'kommunikation', label: 'Kommunikation klar' },
-  { key: 'vorflugkontrolle', label: 'Vorflugkontrolle abgeschlossen' },
-  { key: 'stromversorgung', label: 'Externe Stromversorgung' },
-  { key: 'benachbarte', label: 'Benachbarte Kräfte informiert' },
-  { key: 'risikobewertung', label: 'Risikobewertung' },
-  { key: 'gefahren', label: 'Gefahren besprochen' },
-  { key: 'naturschutz', label: 'Naturschutz berücksichtigt' },
-  { key: 'fragen', label: 'Fragen und Bedenken geklärt' },
-] as const
+import { FLUGBRIEFING_ITEMS } from '../../data/flugbriefingItems'
 
 export default function FlugbriefingSection({ open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean } = {}) {
   const [checked, setChecked] = useSegmentPersistedState<ChecklistState>('flugbriefing:checked', {})

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren, PiNotePencil, PiClock, PiPencilSimple, PiCheckCircle, PiArrowRight, PiSkipForward, PiMapPinArea } from 'react-icons/pi'
 import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
-import { useMissionId } from '../context/MissionContext'
+import { useMissionId } from '../context/useMissionId'
 import { useMissionSegment } from '../hooks/useMissionSegment'
 import type { FlightLogEntry, LandingStatus, EventNote } from '../types/flightLog'
 import ProceduresButton from './procedures/ProceduresButton'
@@ -69,7 +69,8 @@ function migrateEntries(raw: FlightLogEntry[]): FlightLogEntry[] {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const legacy = e as any
     const status: LandingStatus = legacy.landungOk === false ? 'auffaellig' : 'ok'
-    const { landungOk: _, ...rest } = legacy
+    const rest = { ...legacy }
+    delete rest.landungOk
     return { ...rest, landungStatus: status }
   })
 }
@@ -885,9 +886,14 @@ function NameAutocomplete({
       : suggestions.filter((s) => s !== value)
     : []
 
-  useEffect(() => {
+  // Auswahl zurücksetzen, sobald sich Vorschlagsliste oder Eingabewert ändern
+  // („adjust state during render" statt setState im Effect)
+  const resetKey = `${filtered.length}\u0000${value}`
+  const [prevResetKey, setPrevResetKey] = useState(resetKey)
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey)
     setActiveIndex(-1)
-  }, [filtered.length, value])
+  }
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {

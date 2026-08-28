@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { PiMonitor, PiSun, PiMoon, PiArrowsClockwise, PiFilePdf, PiArrowLeft, PiShareNetwork, PiSignIn, PiSignOut, PiUserCircle } from 'react-icons/pi'
 import type { ThemeSetting } from '../hooks/useTheme'
-import { useAuth } from '../context/AuthContext'
+import { useAuth } from '../context/useAuth'
 
 interface OverviewHeaderProps {
   mode: 'overview'

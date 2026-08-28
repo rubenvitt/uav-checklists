@@ -5,12 +5,7 @@ import { useSegmentPersistedState } from '../../hooks/useSegmentPersistedState'
 import type { MetricStatus } from '../../types/assessment'
 import { getChecklistAnswer, getNextChecklistAnswer, isAnswered, type ChecklistState } from '../../utils/checklistState'
 import ChecklistSection from '../ChecklistSection'
-
-interface CheckItem {
-  key: string
-  label: string
-  hint?: string
-}
+import { AUFSTIEGSORT_ITEMS, UAV_ITEMS, RC_ITEMS, type CheckItem } from '../../data/technischeKontrolleItems'
 
 function useQuickChecklist(storageKey: string, items: readonly CheckItem[], segmentScoped: boolean = false) {
   const [checkedMission, setCheckedMission] = useMissionPersistedState<ChecklistState>(storageKey, {})
@@ -108,41 +103,6 @@ function QuickChecklistContent({
     </div>
   )
 }
-
-export const AUFSTIEGSORT_ITEMS: CheckItem[] = [
-  { key: 'flaeche', label: 'Ebene Fläche (min. 1×1 m) für Landeplatz' },
-  { key: 'homepoint', label: 'Homepoint nach Norden ausgerichtet' },
-  { key: 'hindernisse', label: 'Keine Hindernisse im Radius von mind. 3 m' },
-  { key: 'absperrung', label: 'Geeignete Absperrung vorhanden' },
-  { key: 'beleuchtung', label: 'Bei Dunkelheit ausreichend beleuchtet' },
-  { key: 'aufsteller', label: 'Ggf. Aufsteller „UAV-Einsatz" aufgestellt' },
-]
-
-export const UAV_ITEMS: CheckItem[] = [
-  { key: 'gehaeuse', label: 'Gehäuse intakt' },
-  { key: 'klappmechanismus', label: 'Klappmechanismus intakt und stabil' },
-  { key: 'schrauben', label: 'Schraubenverbindungen fest' },
-  { key: 'rotoren', label: 'Rotoren ohne Beschädigungen' },
-  { key: 'anbauteile', label: 'Anbauteile intakt und fest eingerastet' },
-  { key: 'rotorlauf', label: 'Rotoren laufen gleichmäßig' },
-  { key: 'beleuchtung', label: 'Beleuchtung intakt und eingeschaltet' },
-  { key: 'kabel', label: 'Kabelsteckverbindungen fest' },
-  { key: 'akkus', label: 'Akkus intakt und aufgeladen' },
-  { key: 'sensoren', label: 'Sensoren intakt' },
-]
-
-export const RC_ITEMS: CheckItem[] = [
-  { key: 'akkus', label: 'Akkus geladen' },
-  { key: 'verbindung_uav', label: 'RC-Verbindung zum UAV hergestellt' },
-  { key: 'anbauteile', label: 'Kontrolle über Anbauteile' },
-  { key: 'antennen', label: 'Antennen ausgerichtet' },
-  { key: 'absprache', label: 'Absprache: wer bedient das UAV' },
-  { key: 'gps', label: 'GPS-Verbindung hergestellt' },
-  { key: 'bild', label: 'Bildwiedergabe auf beiden RC' },
-  { key: 'rechner', label: 'Verbindung zum Rechner' },
-  { key: 'ground_control', label: 'Ground Control / Funkverbindung zum L-ATM' },
-  { key: 'display', label: 'Displayeinstellungen dem Wetter angepasst' },
-]
 
 function CheckSection({ title, icon, storageKey, items, segmentScoped, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: { title: string; icon: ReactNode; storageKey: string; items: readonly CheckItem[]; segmentScoped?: boolean; open?: boolean; onToggle?: () => void; isComplete?: boolean; onContinue?: () => void; continueLabel?: string; isPhaseComplete?: boolean }) {
   const checklist = useQuickChecklist(storageKey, items, segmentScoped)

@@ -24,8 +24,11 @@ function getStyleForShape(shapeType: ShapeType) {
 export function useGeomanDrawing({ map, mapData, setMapData, activeShape, onDrawEnd }: UseGeomanDrawingOptions) {
   const layersRef = useRef<Map<string, L.Layer>>(new Map())
   const initializedRef = useRef(false)
+  // Latest activeShape for the pm:create handler — synced after commit, read only in the event handler
   const activeShapeRef = useRef(activeShape)
-  activeShapeRef.current = activeShape
+  useEffect(() => {
+    activeShapeRef.current = activeShape
+  }, [activeShape])
 
   // Initialize geoman controls
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { useStore } from '@tanstack/react-store'
-import { useState, useCallback, useRef } from 'react'
+import { createAtom } from '@tanstack/store'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { getMissionAtom, setMissionField, getMissionField, clearMissionFieldsByPrefix } from '../stores/missionFormStore'
 
 const PREFIX = 'uav-form:'
@@ -38,36 +39,45 @@ export function readStorage<T>(key: string, fallback: T, missionId?: string): T 
  * non-mission-scoped calls fall back to local useState + localStorage.
  */
 export function usePersistedState<T>(key: string, initialValue: T, missionId?: string): [T, (v: T | ((prev: T) => T)) => void] {
-  if (missionId) {
-    return useMissionScopedPersistedState<T>(key, initialValue, missionId)
-  }
-  return useLocalPersistedState<T>(key, initialValue)
+  // Both variants are called unconditionally (rules-of-hooks); the inactive one is inert:
+  // the mission variant subscribes to an empty atom, the local variant skips localStorage reads.
+  const missionScoped = useMissionScopedPersistedState<T>(key, initialValue, missionId)
+  const local = useLocalPersistedState<T>(key, initialValue, !missionId)
+  return missionId ? missionScoped : local
 }
 
 // --- Mission-scoped: TanStack Store backed ---
 
-function useMissionScopedPersistedState<T>(key: string, initialValue: T, missionId: string): [T, (v: T | ((prev: T) => T)) => void] {
-  const atom = getMissionAtom(missionId)
+// Inert atom used when no missionId is given, so the hook order stays stable
+const EMPTY_ATOM = createAtom<Record<string, unknown>>({})
+
+function useMissionScopedPersistedState<T>(key: string, initialValue: T, missionId: string | undefined): [T, (v: T | ((prev: T) => T)) => void] {
+  const atom = missionId ? getMissionAtom(missionId) : EMPTY_ATOM
 
   const value = useStore(atom, (s: Record<string, unknown>) => {
     const v = s[key]
     return (v === undefined ? initialValue : v) as T
   })
 
+  // Latest key/missionId for the stable setter — synced after commit, read only in the setter
   const keyRef = useRef(key)
   const missionIdRef = useRef(missionId)
-  keyRef.current = key
-  missionIdRef.current = missionId
+  useEffect(() => {
+    keyRef.current = key
+    missionIdRef.current = missionId
+  }, [key, missionId])
 
   const setValue = useCallback(
     (valueOrUpdater: T | ((prev: T) => T)) => {
-      const currentAtom = getMissionAtom(missionIdRef.current)
+      const currentMissionId = missionIdRef.current
+      if (!currentMissionId) return
+      const currentAtom = getMissionAtom(currentMissionId)
       const prev = currentAtom.get()[keyRef.current]
       const prevValue = prev === undefined ? initialValue : (prev as T)
       const next = typeof valueOrUpdater === 'function'
         ? (valueOrUpdater as (prev: T) => T)(prevValue)
         : valueOrUpdater
-      setMissionField(missionIdRef.current, keyRef.current, next)
+      setMissionField(currentMissionId, keyRef.current, next)
     },
     [initialValue],
   )
@@ -77,10 +87,12 @@ function useMissionScopedPersistedState<T>(key: string, initialValue: T, mission
 
 // --- Non-mission-scoped: local state + localStorage ---
 
-function useLocalPersistedState<T>(key: string, initialValue: T): [T, (v: T | ((prev: T) => T)) => void] {
-  const [state, setState] = useState<T>(() => readStorage(key, initialValue))
+function useLocalPersistedState<T>(key: string, initialValue: T, enabled: boolean): [T, (v: T | ((prev: T) => T)) => void] {
+  const [state, setState] = useState<T>(() => (enabled ? readStorage(key, initialValue) : initialValue))
   const keyRef = useRef(key)
-  keyRef.current = key
+  useEffect(() => {
+    keyRef.current = key
+  }, [key])
 
   const setPersistedState = useCallback(
     (valueOrUpdater: T | ((prev: T) => T)) => {
