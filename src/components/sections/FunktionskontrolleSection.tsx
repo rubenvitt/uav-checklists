@@ -2,6 +2,7 @@ import { PiCheck, PiRocket, PiShieldCheck } from 'react-icons/pi'
 import { useSegmentPersistedState } from '../../hooks/useSegmentPersistedState'
 import type { MetricStatus } from '../../types/assessment'
 import ChecklistSection from '../ChecklistSection'
+import { FUNKTIONS_ITEMS } from '../../data/funktionskontrolleItems'
 
 type FlightDecision = {
   status: 'granted' | 'denied'
@@ -18,20 +19,6 @@ interface FunktionskontrolleSectionProps {
   noGoRecommended?: boolean
   noGoReasons?: string[]
 }
-
-// ---------------------------------------------------------------------------
-// Functional test items (3m hover)
-// ---------------------------------------------------------------------------
-
-export const FUNKTIONS_ITEMS: Array<{ key: string; label: string; hint?: string }> = [
-  {
-    key: 'flugfunktionen',
-    label: 'Flugfunktionen gegeben',
-    hint: 'Steigen, Sinken, Vor, Rück, Links, Rechts, Gieren',
-  },
-  { key: 'beleuchtung', label: 'Beleuchtung funktioniert' },
-  { key: 'bilduebertragung', label: 'Bildübertragung funktioniert' },
-]
 
 // ---------------------------------------------------------------------------
 // Component

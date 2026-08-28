@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { PiCaretDown, PiArrowRight, PiWarningCircle, PiInfo, PiUserCircle } from 'react-icons/pi'
 import type { Procedure, ProcedureCategory } from '../../data/procedures'
 import { getProcedureById } from '../../data/procedures'
@@ -53,9 +53,12 @@ export default function ProcedureCard({
   const accent = CATEGORY_ACCENT[procedure.category]
 
   // Open card when defaultOpen becomes true (for cross-reference navigation)
-  useEffect(() => {
+  // „adjust state during render" statt setState im Effect
+  const [prevDefaultOpen, setPrevDefaultOpen] = useState(defaultOpen)
+  if (defaultOpen !== prevDefaultOpen) {
+    setPrevDefaultOpen(defaultOpen)
     if (defaultOpen) setOpen(true)
-  }, [defaultOpen])
+  }
 
   return (
     <div

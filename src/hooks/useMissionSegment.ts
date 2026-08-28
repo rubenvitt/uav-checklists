@@ -1,5 +1,5 @@
 import { useSyncExternalStore, useCallback } from 'react'
-import { useMissionId } from '../context/MissionContext'
+import { useMissionId } from '../context/useMissionId'
 import type { MissionSegment } from '../types/mission'
 import {
   ensureDefaultSegment,
@@ -25,7 +25,7 @@ function subscribe(listener: () => void) {
 }
 
 // Snapshot keyed by missionId
-let snapshotCache: Record<string, { segments: MissionSegment[]; activeSegmentId: string | null }> = {}
+const snapshotCache: Record<string, { segments: MissionSegment[]; activeSegmentId: string | null }> = {}
 
 function getSnapshotForMission(missionId: string) {
   if (!snapshotCache[missionId]) {

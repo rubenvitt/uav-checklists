@@ -1,10 +1,10 @@
 import { useStore } from '@tanstack/react-store'
-import { useMissionId } from '../context/MissionContext'
-import { useSegmentId } from '../context/SegmentContext'
+import { useMissionId } from '../context/useMissionId'
+import { useSegmentId } from '../context/useSegmentId'
 import { getMissionAtom } from '../stores/missionFormStore'
 import type { SectionConfig } from './useAutoExpand'
-import { AUFSTIEGSORT_ITEMS, UAV_ITEMS, RC_ITEMS } from '../components/sections/TechnischeKontrolleSections'
-import { FLUGBRIEFING_ITEMS } from '../components/sections/FlugbriefingSection'
+import { AUFSTIEGSORT_ITEMS, UAV_ITEMS, RC_ITEMS } from '../data/technischeKontrolleItems'
+import { FLUGBRIEFING_ITEMS } from '../data/flugbriefingItems'
 import { isAnswered } from '../utils/checklistState'
 
 // Helper: check if all items in a checklist are checked

@@ -1,4 +1,4 @@
-import { useSegmentId } from '../context/SegmentContext'
+import { useSegmentId } from '../context/useSegmentId'
 import { useMissionPersistedState } from './useMissionPersistedState'
 
 export function useSegmentPersistedState<T>(key: string, initialValue: T): [T, (v: T | ((prev: T) => T)) => void] {

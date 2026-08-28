@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { User } from 'oidc-client-ts'
 import {
   getUserManager,
@@ -10,28 +10,7 @@ import {
 } from '../services/auth'
 import { fetchMe, pingHealth, setAccessTokenProvider } from '../services/signApi'
 
-interface AuthState {
-  /**
-   * Whether login is offered at all: backend + OIDC vars configured AND the
-   * backend `/health` ping succeeded. A configured-but-unreachable backend
-   * keeps the login UI hidden (spec: "leer oder unerreichbar → UI erscheint
-   * nicht").
-   */
-  configured: boolean
-  user: User | null
-  isAuthenticated: boolean
-  displayName: string
-  /**
-   * Whether the current user is an admin. Sourced from the backend `GET /me`
-   * (authoritative) once logged in; falls back to the OIDC `groups` claim when
-   * `/me` is unavailable. `false` when logged out or unconfigured.
-   */
-  isAdmin: boolean
-  login: () => void
-  logout: () => void
-}
-
-const AuthContext = createContext<AuthState | null>(null)
+import { AuthContext, type AuthState } from './authContextValue'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const authConfigured = isAuthConfigured()
@@ -118,21 +97,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return <AuthContext value={value}>{children}</AuthContext>
-}
-
-export function useAuth(): AuthState {
-  const ctx = useContext(AuthContext)
-  if (!ctx) {
-    // Safe default so consumers never crash when the provider is absent.
-    return {
-      configured: false,
-      user: null,
-      isAuthenticated: false,
-      displayName: '',
-      isAdmin: false,
-      login: () => {},
-      logout: () => {},
-    }
-  }
-  return ctx
 }
