@@ -21,11 +21,11 @@ importers:
         specifier: ^5.102.3
         version: 5.102.7
       '@tanstack/react-query':
-        specifier: ^5.100.14
-        version: 5.102.7(react@19.2.8)
+        specifier: ^5.102.8
+        version: 5.102.8(react@19.2.8)
       '@tanstack/react-query-persist-client':
         specifier: ^5.100.14
-        version: 5.102.7(@tanstack/react-query@5.102.7(react@19.2.8))(react@19.2.8)
+        version: 5.102.7(@tanstack/react-query@5.102.8(react@19.2.8))(react@19.2.8)
       '@tanstack/react-store':
         specifier: ^0.11.0
         version: 0.11.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -83,7 +83,7 @@ importers:
         version: 0.10.12(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(csstype@3.2.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(solid-js@1.9.15)
       '@tanstack/react-query-devtools':
         specifier: ^5.100.14
-        version: 5.102.7(@tanstack/react-query@5.102.7(react@19.2.8))(react@19.2.8)
+        version: 5.102.7(@tanstack/react-query@5.102.8(react@19.2.8))(react@19.2.8)
       '@types/babel__core':
         specifier: ^7.20.5
         version: 7.20.5
@@ -1543,6 +1543,9 @@ packages:
   '@tanstack/query-core@5.102.7':
     resolution: {integrity: sha512-4TH8KQrCLoNs9Zvl1LW1iaZ9cZx3dGTgfZ1BnLrcRxMNnX/toe/dGbfvF/DkvbzRyfLfpMKZkembz3o0rnugtw==}
 
+  '@tanstack/query-core@5.102.8':
+    resolution: {integrity: sha512-ZNjkJ33CqvPNec/6lZBnHqLc3EVGPZ9ySLhYahU9TcuRFdmwXewuj0c4hwSWcGHqEUwcSrKeZ+oGcvPBqXcQcg==}
+
   '@tanstack/query-devtools@5.102.7':
     resolution: {integrity: sha512-9LOvdYuNzIVummhlES1rTxGf6Z/xq042VZ3mfmerI+g974csn1+K5Y7LyPgSNvtkuGPQa7UaEotKv8tzadjnrg==}
 
@@ -1573,8 +1576,8 @@ packages:
       '@tanstack/react-query': ^5.102.7
       react: ^18 || ^19
 
-  '@tanstack/react-query@5.102.7':
-    resolution: {integrity: sha512-bbd8T4jDIj9aPbNn11SsjNH8apKY4zspkrw63JRsNDXjpW5SRF7X0ipi7yrGd8DCs8QhYfhQJKqEj1YLru1DbQ==}
+  '@tanstack/react-query@5.102.8':
+    resolution: {integrity: sha512-TYBea4OuXWD7MhaSHq069TWbFe7rcwWN6kzT7JF0OKi1K6c1gTv2IzD6A6ExJsCMozdkqBWeuIUZmu4KQg0O5A==}
     peerDependencies:
       react: ^18 || ^19
 
@@ -4695,6 +4698,8 @@ snapshots:
 
   '@tanstack/query-core@5.102.7': {}
 
+  '@tanstack/query-core@5.102.8': {}
+
   '@tanstack/query-devtools@5.102.7': {}
 
   '@tanstack/query-persist-client-core@5.102.7':
@@ -4719,21 +4724,21 @@ snapshots:
       - solid-js
       - utf-8-validate
 
-  '@tanstack/react-query-devtools@5.102.7(@tanstack/react-query@5.102.7(react@19.2.8))(react@19.2.8)':
+  '@tanstack/react-query-devtools@5.102.7(@tanstack/react-query@5.102.8(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@tanstack/query-devtools': 5.102.7
-      '@tanstack/react-query': 5.102.7(react@19.2.8)
+      '@tanstack/react-query': 5.102.8(react@19.2.8)
       react: 19.2.8
 
-  '@tanstack/react-query-persist-client@5.102.7(@tanstack/react-query@5.102.7(react@19.2.8))(react@19.2.8)':
+  '@tanstack/react-query-persist-client@5.102.7(@tanstack/react-query@5.102.8(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@tanstack/query-persist-client-core': 5.102.7
-      '@tanstack/react-query': 5.102.7(react@19.2.8)
+      '@tanstack/react-query': 5.102.8(react@19.2.8)
       react: 19.2.8
 
-  '@tanstack/react-query@5.102.7(react@19.2.8)':
+  '@tanstack/react-query@5.102.8(react@19.2.8)':
     dependencies:
-      '@tanstack/query-core': 5.102.7
+      '@tanstack/query-core': 5.102.8
       react: 19.2.8
 
   '@tanstack/react-store@0.11.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':

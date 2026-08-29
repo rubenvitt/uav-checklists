@@ -13,7 +13,7 @@
     "@fontsource/caveat": "^5.2.8",
     "@geoman-io/leaflet-geoman-free": "^2.19.3",
     "@tanstack/query-sync-storage-persister": "^5.102.3",
-    "@tanstack/react-query": "^5.100.14",
+    "@tanstack/react-query": "^5.102.8",
     "@tanstack/react-query-persist-client": "^5.100.14",
     "@tanstack/react-store": "^0.11.0",
     "@tanstack/store": "^0.11.0",
