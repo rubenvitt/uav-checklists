@@ -24,7 +24,7 @@
     "@hono/node-server": "^2.0.10",
     "better-sqlite3": "^12.10.0",
     "dotenv": "^17.4.2",
-    "hono": "^4.13.5",
+    "hono": "^4.13.8",
     "jose": "^6.2.3"
   },
   "devDependencies": {
@@ -33,6 +33,6 @@
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "vite": "^8.0.16",
-    "vitest": "^4.1.7"
+    "vitest": "^5.0.1"
   }
 }
