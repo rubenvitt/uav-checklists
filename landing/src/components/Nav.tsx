@@ -48,8 +48,13 @@ export default function Nav() {
       <nav className="mx-auto flex h-16 max-w-[84rem] items-center gap-3 px-5 sm:gap-6 sm:px-8">
         <a href="#top" className="flex shrink-0 items-center gap-2.5 text-ink">
           <Mark />
-          <span className="display text-[0.95rem] leading-none tracking-tight sm:text-[1.05rem]">
-            UAV&nbsp;Einsatzverwaltung
+          <span className="leading-none">
+            <span className="display block text-[1.05rem] tracking-tight sm:text-[1.15rem]">
+              {site.name}
+            </span>
+            <span className="mt-1 hidden font-mono text-[0.6rem] tracking-[0.12em] text-muted uppercase xl:block">
+              {site.tagline}
+            </span>
           </span>
         </a>
 
