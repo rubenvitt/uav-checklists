@@ -45,7 +45,12 @@ export default function Footer() {
             <div>
               <div className="flex items-center gap-2.5 text-paper">
                 <Mark />
-                <span className="display text-base leading-none">UAV Einsatzverwaltung</span>
+                <span className="leading-none">
+                  <span className="display block text-base">{site.name}</span>
+                  <span className="mt-1 block font-mono text-[0.6rem] tracking-[0.12em] text-paper-3/50 uppercase">
+                    {site.tagline}
+                  </span>
+                </span>
               </div>
               <p className="mt-5 max-w-[52ch] text-sm leading-relaxed text-paper-3/60">
                 Ein Werkzeug für die Einsatzdokumentation von Drohnenflügen im Katastrophenschutz.

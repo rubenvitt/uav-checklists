@@ -6,9 +6,14 @@
  * Repository stehen — die Seite funktioniert unverändert.
  */
 export const site = {
-  name: 'UAV Einsatzverwaltung',
-  /** URL der gehosteten Anwendung. Vor dem Deployment anpassen. */
-  appUrl: 'https://uav.example.org',
+  name: 'Flugmappe',
+  /** Untertitel, der den Namen überall dort erklärt, wo er allein steht. */
+  tagline: 'Einsatzdokumentation für UAV-Trupps',
+  /**
+   * URL der gehosteten Anwendung. Zeigt auf die Cloudflare-Pages-Instanz; bei
+   * einer eigenen Domain hier eintragen.
+   */
+  appUrl: 'https://uav-checklists.pages.dev',
   repoUrl: 'https://github.com/rubenvitt/uav-checklists',
   issuesUrl: 'https://github.com/rubenvitt/uav-checklists/issues',
   /** Fassung, auf die sich die Beschreibungen dieser Seite beziehen. */

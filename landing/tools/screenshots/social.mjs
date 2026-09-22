@@ -44,7 +44,7 @@ p{font-size:22px;line-height:1.45;color:#3c4956;max-width:52ch;margin-top:24px}
 <div class="grid"></div>
 <div class="wrap">
   <div>
-    <div class="top">${mark}<span class="brand">UAV Einsatzverwaltung</span></div>
+    <div class="top">${mark}<span class="brand">Flugmappe</span></div>
     <h1>Das Einsatztagebuch<br>für den Trupp,<br><span class="sig">nicht fürs Büro.</span></h1>
     <p>Vorflugkontrolle, Wetter- und SORA-Bewertung, Flugtagebuch und PDF-Bericht — offline nutzbar, ohne Konto, ohne Server.</p>
   </div>

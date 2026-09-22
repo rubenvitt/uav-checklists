@@ -1,7 +1,11 @@
-# Landingpage — UAV Einsatzverwaltung
+# Flugmappe — Landingpage
 
-Eigenständige, statische Website, die die UAV-Einsatzverwaltung für andere
-Bereitschaften und Interessierte vorstellt.
+Eigenständige, statische Website, die **Flugmappe** — die Einsatzdokumentation
+für UAV-Trupps — anderen Bereitschaften und Interessierten vorstellt.
+
+„Flugmappe" ist der Produktname nach außen; das Repository heißt weiterhin
+`uav-checklists`, weil daran Cloudflare-Projekt, Container-Abbilder und
+bestehende Links hängen.
 
 Sie ist **vollständig vom PWA-Build getrennt**: eigenes `package.json`, eigene
 Abhängigkeiten, eigene Lockfile, eigener Vite-Build. Die App im
@@ -26,12 +30,13 @@ Wurzelprojekts (dort läuft eine Vite-8-Beta) hier nicht greifen.
 
 | Stelle | Was |
 |---|---|
-| `src/site.config.ts` → `appUrl` | URL der gehosteten PWA — steht derzeit auf einem Platzhalter |
+| `src/site.config.ts` → `appUrl` | URL der gehosteten PWA; zeigt auf `uav-checklists.pages.dev`, bei eigener Domain anpassen |
 | `src/site.config.ts` → `revision` | Stand, auf den sich die Texte beziehen |
-| `index.html` → `<link rel="canonical">` | endgültige Adresse dieser Seite |
+| `index.html` → `<link rel="canonical">` | steht auf `https://flugmappe.de/` — anpassen, falls die Seite woanders liegt |
 
-Die Meta-Beschreibung und das Vorschaubild (`public/og-image.png`) sind bereits
-gesetzt.
+Titel, Meta-Beschreibung und Vorschaubild (`public/og-image.png`) sind gesetzt.
+Der Produktname steht an einer Stelle: `site.name` in `src/site.config.ts`,
+zusammen mit `site.tagline`. Beides wird in Kopf- und Fußzeile verwendet.
 
 ## Ausliefern
 
