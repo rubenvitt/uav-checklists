@@ -108,6 +108,24 @@ pnpm lint
 pnpm preview
 ```
 
+## Landingpage
+
+Im Verzeichnis [`landing/`](landing/) liegt eine eigenständige, statische
+Website, die das Projekt für andere Bereitschaften und Interessierte vorstellt.
+Sie ist vollständig vom PWA-Build getrennt (eigenes `package.json`, eigene
+Lockfile, eigener Vite-Build) und lässt sich unabhängig auf einer anderen Domain
+ausliefern:
+
+```bash
+cd landing
+pnpm install
+pnpm dev      # http://localhost:5180
+pnpm build    # statischer Build nach landing/dist/
+```
+
+Details, Screenshot-Werkzeuge und die vor dem Deployment anzupassenden Stellen
+stehen in [`landing/README.md`](landing/README.md).
+
 ## Projektstruktur
 
 ```

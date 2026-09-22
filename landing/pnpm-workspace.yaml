@@ -1,0 +1,6 @@
+# Eigenständiges Projekt: verhindert, dass Overrides aus dem Wurzel-Workspace
+# (z. B. die Vite-8-Beta der PWA) in diese Landingpage hineinwirken.
+packages: []
+
+onlyBuiltDependencies:
+  - esbuild

@@ -82,3 +82,14 @@ Each mission progresses through phases reflected in the URL (`/mission/:missionI
 - Collapsible sections use `ChecklistSection` component with lock/status badge support
 - Drone specs are a static registry in `src/data/drones.ts` — typed as `DroneId` union
 - No backend — all persistence is localStorage, all API calls are to public third-party services
+
+## Landing page (`landing/`)
+
+`landing/` is a **separate, standalone static site** (own `package.json`,
+own lockfile, own `pnpm-workspace.yaml`, own Vite build) that markets the tool
+to other Katastrophenschutz units. It is deployed independently on a different
+domain and must never be imported by — or import from — the PWA in `src/`.
+Its own commands: `cd landing && pnpm install && pnpm dev|build`.
+Screenshots under `landing/public/screenshots/` are regenerated with the
+scripts in `landing/tools/screenshots/` against a running `pnpm dev`.
+See `landing/README.md`.

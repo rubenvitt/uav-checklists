@@ -1,0 +1,137 @@
+@import "tailwindcss";
+
+/* Schriften werden selbst ausgeliefert — kein Abruf von Google Fonts, damit
+   die Seite ohne Drittanbieter-Request auskommt. */
+@import "@fontsource-variable/archivo/wdth.css";
+@import "@fontsource-variable/ibm-plex-sans";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+
+@theme {
+  /* Papier & Tinte — die Seite ist als Einsatzunterlage gedacht, nicht als
+     Produktseite: warmes Papierweiß, Tiefschwarzblau, ein Signalton. */
+  --color-paper: #f4f2ed;
+  --color-paper-2: #ebe7de;
+  --color-paper-3: #ded9cd;
+  --color-ink: #10161c;
+  --color-ink-2: #1c262f;
+  --color-ink-3: #3c4956;
+  --color-muted: #6b7681;
+  --color-line: #d2ccbe;
+  --color-line-dark: #2c3742;
+
+  --color-signal: #d9451f;
+  --color-signal-2: #e98a1e;
+  --color-verify: #2f7a4f;
+
+  --font-display: "Archivo Variable", "Archivo", system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --text-hero: clamp(2.6rem, 7.2vw, 5.4rem);
+  --text-section: clamp(1.9rem, 4vw, 3.1rem);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: var(--color-ink);
+    color: var(--color-paper);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  /* Anzeigetext: leicht schmallaufende Archivo, eng gesetzt. */
+  .display {
+    font-family: var(--font-display);
+    font-variation-settings: "wdth" 92;
+    font-weight: 700;
+    letter-spacing: -0.028em;
+    line-height: 0.96;
+  }
+
+  /* Mono-Mikrotypografie für Kennungen, Nummern und Messwerte. */
+  .label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .rule {
+    border-top: 1px solid var(--color-line);
+  }
+
+  /* Millimeterpapier-Raster als Hintergrund einzelner Flächen. */
+  .grid-paper {
+    background-image:
+      linear-gradient(to right, color-mix(in oklab, var(--color-line) 55%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in oklab, var(--color-line) 55%, transparent) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  .grid-paper-dark {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+
+  .link-underline {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    text-decoration-color: color-mix(in oklab, currentColor 35%, transparent);
+    transition: text-decoration-color 150ms ease;
+  }
+
+  .link-underline:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+/* Einblenden beim Scrollen — deaktiviert, wenn reduzierte Bewegung gewünscht ist. */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 620ms cubic-bezier(0.2, 0.7, 0.3, 1), transform 620ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.reveal[data-shown="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
