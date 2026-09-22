@@ -1,6 +1,6 @@
-# UAV Einsatzverwaltung
+# Flugmappe
 
-Progressive Web App zur Verwaltung von UAV-Einsätzen (Drohnenflüge) mit Vorflugchecklisten, Wetterbewertung, SORA-Risikoklassifizierung und PDF-Berichterstellung. Entwickelt für den realen Einsatzbetrieb deutschsprachiger Drohnenpiloten — alle Daten bleiben lokal im Browser.
+**Flugmappe** ist eine Progressive Web App zur Verwaltung von UAV-Einsätzen (Drohnenflüge) mit Vorflugchecklisten, Wetterbewertung, SORA-Risikoklassifizierung und PDF-Berichterstellung. Entwickelt für den realen Einsatzbetrieb deutschsprachiger Drohnenpiloten — alle Daten bleiben lokal im Browser.
 
 ## Features
 

@@ -9,11 +9,8 @@ export const site = {
   name: 'Flugmappe',
   /** Untertitel, der den Namen überall dort erklärt, wo er allein steht. */
   tagline: 'Einsatzdokumentation für UAV-Trupps',
-  /**
-   * URL der gehosteten Anwendung. Zeigt auf die Cloudflare-Pages-Instanz; bei
-   * einer eigenen Domain hier eintragen.
-   */
-  appUrl: 'https://uav-checklists.pages.dev',
+  /** URL der gehosteten Anwendung — zum Ausprobieren und für den Einsatz. */
+  appUrl: 'https://app.flugmappe.de',
   repoUrl: 'https://github.com/rubenvitt/uav-checklists',
   issuesUrl: 'https://github.com/rubenvitt/uav-checklists/issues',
   /** Fassung, auf die sich die Beschreibungen dieser Seite beziehen. */

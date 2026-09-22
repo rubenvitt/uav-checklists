@@ -87,7 +87,7 @@ export default function Header(props: HeaderProps) {
   if (props.mode === 'overview') {
     return (
       <header className="flex items-center justify-between py-4">
-        <h1 className="text-2xl font-bold text-text">UAV Einsatzverwaltung</h1>
+        <h1 className="text-2xl font-bold text-text">Flugmappe</h1>
         <div className="flex items-center gap-2">
           <LoginAffordance />
           <button
