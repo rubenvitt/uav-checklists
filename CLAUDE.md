@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-German-language PWA for UAV (drone) preflight checklists and mission management. Used for real-world drone flight operations — all data stays local in the browser (localStorage). The UI language is German throughout.
+**Flugmappe** — German-language PWA for UAV (drone) preflight checklists and mission management. Used for real-world drone flight operations — all data stays local in the browser (localStorage). The UI language is German throughout.
 
 ## Commands
 

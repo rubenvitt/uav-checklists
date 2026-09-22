@@ -12,9 +12,9 @@ export default defineConfig({
     registerType: 'autoUpdate',
     includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
     manifest: {
-      name: 'UAV Einsatzverwaltung',
-      short_name: 'UAV Einsatz',
-      description: 'Einsatzverwaltung für Drohnenflüge',
+      name: 'Flugmappe',
+      short_name: 'Flugmappe',
+      description: 'Einsatzdokumentation für UAV-Trupps',
       theme_color: '#0f172a',
       background_color: '#0f172a',
       display: 'standalone',

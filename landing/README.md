@@ -30,7 +30,7 @@ Wurzelprojekts (dort läuft eine Vite-8-Beta) hier nicht greifen.
 
 | Stelle | Was |
 |---|---|
-| `src/site.config.ts` → `appUrl` | URL der gehosteten PWA; zeigt auf `uav-checklists.pages.dev`, bei eigener Domain anpassen |
+| `src/site.config.ts` → `appUrl` | URL der gehosteten PWA; zeigt auf `app.flugmappe.de` |
 | `src/site.config.ts` → `revision` | Stand, auf den sich die Texte beziehen |
 | `index.html` → `<link rel="canonical">` | steht auf `https://flugmappe.de/` — anpassen, falls die Seite woanders liegt |
 

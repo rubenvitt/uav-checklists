@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Eigenständige Landingpage für die UAV-Einsatzverwaltung — getrennt vom PWA-Build, separat hostbar.",
+  "description": "Eigenständige Landingpage für Flugmappe — getrennt vom PWA-Build, separat hostbar.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

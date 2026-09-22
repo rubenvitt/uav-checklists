@@ -58,7 +58,7 @@ export default function Hero() {
           <div className="relative lg:pl-10">
             <PhoneFrame
               src="./screenshots/flugbuch.webp"
-              alt="Flugtagebuch der UAV-Einsatzverwaltung mit drei protokollierten Flügen und zwei Ereignissen"
+              alt="Flugtagebuch in der Flugmappe mit drei protokollierten Flügen und zwei Ereignissen"
               className="mx-auto max-w-[17rem] sm:max-w-[18rem]"
               priority
             />
