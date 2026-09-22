@@ -114,15 +114,10 @@ export default function Install() {
         <div className="mt-16">
           <span className="label text-muted">Variante B — auf den Homescreen</span>
           <ul className="mt-6 grid border-t border-l border-line md:grid-cols-3">
-            {platforms.map((p, i) => {
+            {platforms.map((p) => {
               const Icon = p.icon
               return (
-                <Reveal
-                  as="li"
-                  key={p.name}
-                  delay={i * 70}
-                  className="border-r border-b border-line p-7"
-                >
+                <li key={p.name} className="border-r border-b border-line p-7">
                   <div className="flex items-center gap-3">
                     <Icon className="size-5 text-signal" />
                     <h4 className="display text-lg">{p.name}</h4>
@@ -135,7 +130,7 @@ export default function Install() {
                       </li>
                     ))}
                   </ol>
-                </Reveal>
+                </li>
               )
             })}
           </ul>

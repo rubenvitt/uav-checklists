@@ -18,8 +18,8 @@ const shots = [
   },
   {
     file: 'vorhersage',
-    alt: '24-Stunden-Vorhersage mit Temperatur, Wind, Böen, Feuchte, Sicht, Druck und Taupunkt',
-    caption: '24-Stunden-Vorhersage — jede Stunde bereits bewertet.',
+    alt: 'Wind nach Höhe und 24-Stunden-Vorhersage mit Temperatur, Wind, Böen, Feuchte, Sicht, Druck und Taupunkt',
+    caption: 'Wind nach Höhe und 24-Stunden-Vorhersage — jede Stunde bewertet.',
   },
   {
     file: 'technik',

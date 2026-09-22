@@ -1,5 +1,5 @@
 import { TbCloudOff, TbDatabaseOff, TbEyeOff, TbTrash } from 'react-icons/tb'
-import { Reveal, SectionHead } from './primitives'
+import { SectionHead } from './primitives'
 
 const pillars = [
   {
@@ -57,14 +57,14 @@ export default function Privacy() {
         />
 
         <ul className="grid gap-px border border-line-dark bg-line-dark sm:grid-cols-2 lg:grid-cols-4">
-          {pillars.map((p, i) => {
+          {pillars.map((p) => {
             const Icon = p.icon
             return (
-              <Reveal as="li" key={p.title} delay={i * 70} className="bg-ink p-7">
+              <li key={p.title} className="bg-ink p-7">
                 <Icon className="size-6 text-signal-2" />
                 <h3 className="display mt-5 text-lg text-paper">{p.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-paper-3/65">{p.body}</p>
-              </Reveal>
+              </li>
             )
           })}
         </ul>

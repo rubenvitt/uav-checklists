@@ -19,6 +19,16 @@ export function Reveal({
   useEffect(() => {
     const el = ref.current
     if (!el) return
+
+    // Beim Einhängen bereits sichtbare (oder schon überscrollte) Elemente sofort
+    // zeigen. Ohne diese Prüfung bleibt ein Block unsichtbar, wenn der Observer
+    // beim schnellen Scrollen oder beim Laden mit Anker keinen Eintrag liefert.
+    const rect = el.getBoundingClientRect()
+    if (rect.top < window.innerHeight * 0.95) {
+      setShown(true)
+      return
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -26,10 +36,20 @@ export function Reveal({
           observer.disconnect()
         }
       },
-      { rootMargin: '0px 0px -12% 0px', threshold: 0.05 },
+      { rootMargin: '0px 0px -8% 0px', threshold: 0 },
     )
     observer.observe(el)
-    return () => observer.disconnect()
+
+    // Rückfallebene: Sollte der Observer nie auslösen (etwa weil das Element in
+    // einem Container ohne Layout sitzt), wird der Inhalt trotzdem sichtbar.
+    const fallback = window.setTimeout(() => {
+      if (el.getBoundingClientRect().top < window.innerHeight) setShown(true)
+    }, 1200)
+
+    return () => {
+      observer.disconnect()
+      window.clearTimeout(fallback)
+    }
   }, [])
 
   return (
