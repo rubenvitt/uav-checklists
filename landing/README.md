@@ -44,6 +44,21 @@ Die Seite ist eine einzelne HTML-Datei mit Ankern; eine SPA-Rewrite-Regel ist
 **nicht** nötig. `base` steht in `vite.config.ts` auf `'./'`, die Seite
 funktioniert also auch in einem Unterverzeichnis.
 
+### Cloudflare Pages
+
+Die PWA wird bereits über Cloudflare Pages ausgeliefert. Die Landingpage kann
+als **zweites Pages-Projekt** aus demselben Repository laufen — dann bleiben
+beide Auslieferungen getrennt und blockieren sich nicht gegenseitig:
+
+| Einstellung | Wert |
+|---|---|
+| Root directory | `landing` |
+| Build command | `pnpm install && pnpm build` |
+| Build output directory | `landing/dist` |
+
+Wichtig ist das Root directory: Ohne es würde Cloudflare den PWA-Build
+ausführen. Eine SPA-Weiterleitung wird hier nicht gebraucht.
+
 ## Datenschutz
 
 Die Seite lädt nichts von fremden Servern nach und setzt keine Cookies:
