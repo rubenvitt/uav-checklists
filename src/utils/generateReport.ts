@@ -1,6 +1,8 @@
 import { jsPDF } from 'jspdf'
 import type { ArcClass } from '../components/ArcDetermination'
 import type { DroneSpec } from '../types/drone'
+import type { PayloadSpec } from '../types/payload'
+import { computeWeightSummary, formatPayloadList, formatWeight, type WeightSummary } from '../data/payloads'
 import type { NearbyCategory } from '../services/overpassApi'
 import type { AssessmentResult, MetricStatus } from '../types/assessment'
 import type { FlightLogEntry, EventNote } from '../types/flightLog'
@@ -182,6 +184,8 @@ export interface ReportData {
   mapImage?: string
   location: string
   drone: DroneSpec
+  /** Aktuell montierte Nutzlast (Payload). Fehlt bei Reports ohne Payload-Auswahl. */
+  payloads?: PayloadSpec[]
   maxAltitude: number
   categories: NearbyCategory[]
   manualChecks: Record<string, boolean>
@@ -447,6 +451,23 @@ export function generateReport(data: ReportData) {
     doc.text(key, margin, y)
     setColor(COLORS.text)
     doc.text(sanitizeForPdf(value), margin + 60, y)
+    y += 5.5
+  }
+
+  function drawWeightLine(key: string, weight: WeightSummary) {
+    if (!weight.overweight) {
+      drawKeyValue(key, formatWeight(weight.totalWeight))
+      return
+    }
+    checkPageBreak(8)
+    doc.setFontSize(FONTS.body)
+    doc.setFont('helvetica', 'normal')
+    setColor(COLORS.textMuted)
+    doc.text(key, margin, y)
+    setColor(COLORS.text)
+    const valueStr = formatWeight(weight.totalWeight)
+    doc.text(valueStr, margin + 60, y)
+    drawInlineBadge(margin + 62 + doc.getTextWidth(valueStr), y, 'Max. Nutzlast \u00fcberschritten', 'warning')
     y += 5.5
   }
 
@@ -793,6 +814,11 @@ export function generateReport(data: ReportData) {
 
       drawKeyValue('Fernpilot', flight.fernpilot || '\u2014')
       drawKeyValue('Luftraumbeobachter', flight.lrb || '\u2014')
+      if (flight.payloads) {
+        const flightWeight = computeWeightSummary(data.drone, flight.payloads)
+        drawKeyValue('Nutzlast', formatPayloadList(flight.payloads))
+        drawWeightLine('Abfluggewicht', flightWeight)
+      }
 
       // Landing status as badge
       if (flight.blockOn) {
@@ -1074,7 +1100,16 @@ export function generateReport(data: ReportData) {
   drawKeyValue('Drohne', data.drone.name)
   drawKeyValue('Max. Flugh\u00f6he', `${data.maxAltitude} m`)
   drawKeyValue('IP-Schutzklasse', data.drone.ipRating ?? 'Keine')
-  drawKeyValue('Gewicht', `${data.drone.weight} g`)
+  if (data.payloads) {
+    const ids = data.payloads.map((p) => p.id)
+    const weight = computeWeightSummary(data.drone, ids)
+    drawKeyValue('Nutzlast', formatPayloadList(ids))
+    drawKeyValue('Leergewicht', formatWeight(weight.emptyWeight))
+    drawKeyValue('Nutzlastgewicht', `${formatWeight(weight.payloadWeight)} (max. ${formatWeight(weight.maxPayload)})`)
+    drawWeightLine('Gesamtgewicht', weight)
+  } else {
+    drawKeyValue('Gewicht', formatWeight(data.drone.weight))
+  }
 
   // In multi-segment mode, render global tech checks (UAV, RC) here
   if (isMultiSegment) {

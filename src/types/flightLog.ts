@@ -1,3 +1,5 @@
+import type { PayloadId } from './payload'
+
 export type LandingStatus = 'ok' | 'auffaellig' | 'notfall'
 
 export interface FlightLogEntry {
@@ -9,6 +11,8 @@ export interface FlightLogEntry {
   landungStatus: LandingStatus // default 'ok'
   bemerkung: string // optional remarks
   segmentId?: string
+  /** Während dieses Flugs montierte Nutzlast; fehlt bei Einträgen vor Einführung der Payload-Auswahl */
+  payloads?: PayloadId[]
 }
 
 export interface EventNote {

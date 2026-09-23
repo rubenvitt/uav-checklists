@@ -11,6 +11,8 @@ export const drones: DroneSpec[] = [
     ipRating: 'IP55',
     maxAltitude: 7000,
     weight: 6470,
+    payloadSlots: 3,
+    maxPayload: 2730,
   },
   {
     id: 'matrice-200',
@@ -22,6 +24,8 @@ export const drones: DroneSpec[] = [
     ipRating: 'IP43',
     maxAltitude: 3000,
     weight: 3800,
+    payloadSlots: 1,
+    maxPayload: 2000,
   },
 ]
 
