@@ -26,11 +26,11 @@ export default function Hero() {
             </div>
 
             <h1 className="display mt-7 text-[length:var(--text-hero)]">
-              Das Einsatztagebuch
+              Die Flugmappe
               <br />
-              für den Trupp,
+              hat alles
               <br />
-              <span className="text-signal">nicht fürs Büro.</span>
+              <span className="text-signal">auf dem Schirm.</span>
             </h1>
 
             <p className="mt-8 max-w-[56ch] text-lg leading-relaxed text-ink-3 sm:text-xl">

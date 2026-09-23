@@ -45,7 +45,7 @@ p{font-size:22px;line-height:1.45;color:#3c4956;max-width:52ch;margin-top:24px}
 <div class="wrap">
   <div>
     <div class="top">${mark}<span class="brand">Flugmappe</span></div>
-    <h1>Das Einsatztagebuch<br>für den Trupp,<br><span class="sig">nicht fürs Büro.</span></h1>
+    <h1>Die Flugmappe<br>hat alles<br><span class="sig">auf dem Schirm.</span></h1>
     <p>Vorflugkontrolle, Wetter- und SORA-Bewertung, Flugtagebuch und PDF-Bericht — offline nutzbar, ohne Konto, ohne Server.</p>
   </div>
   <div class="meta"><span class="dot">◆</span><span>Katastrophenschutz</span><span>/</span><span>Progressive Web App</span><span>/</span><span>Quelloffen</span></div>
