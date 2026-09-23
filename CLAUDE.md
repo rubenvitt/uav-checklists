@@ -84,6 +84,7 @@ Each mission progresses through phases reflected in the URL (`/mission/:missionI
 - Collapsible sections use `ChecklistSection` component with lock/status badge support
 - Drone specs are a static registry in `src/data/drones.ts` — typed as `DroneId` union
 - Payloads (Kameras/Scheinwerfer) are a static registry in `src/data/payloads.ts` (`PayloadId` union, compatible drones, weight). Slot rules come from `DroneSpec.payloadSlots`/`maxPayload`. The currently mounted payload is mission-scoped (`selectedPayloads`); each `FlightLogEntry.payloads` snapshots it at takeoff
+- SORA-Anhänge (Boden-/Luftrisiko, TMPR, OSO, PDRA/STS-BOS) are static reference data in `src/data/sora.ts`, taken from EGRED 2 (Anlage III) and the STS-BOS — both based on **SORA 2.0**, which stays valid for BOS regardless of SORA 2.5. Keep the wording and values aligned with those documents and cite the source (`SoraCitation`) for every block; don't paraphrase or "update" them to SORA 2.5 without a new EGRED/STS-BOS release. Shown in `RiskClassSection` via `SoraAnnexes` and summarised (TMPR + OSO robustness per SAIL) in the PDF report
 - No backend — all persistence is localStorage, all API calls are to public third-party services
 
 ## Landing page (`landing/`)

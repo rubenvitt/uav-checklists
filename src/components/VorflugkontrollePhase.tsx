@@ -314,6 +314,7 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
         grc: soraData.grc,
         arc: soraData.arc,
         sail: soraData.sail,
+        flightType: readStorage<'vlos' | 'bvlos' | null>(`${segPrefix}grc:flightType`, null, missionId),
         assessment,
         metarStation: weather.metarStation,
         traffic: traffic.snapshot && trafficAssessment ? { snapshot: traffic.snapshot, assessment: trafficAssessment } : null,

@@ -10,6 +10,7 @@ import type { MetarStationInfo } from '../types/weather'
 import type { FlightTrafficSnapshot, TrafficAssessment } from '../types/traffic'
 import { EMERGENCY_LABELS, aircraftLabel, formatSnapshotTime } from './trafficAssessment'
 import { TRAFFIC_LOW_LEVEL_M } from '../data/thresholds'
+import { OSO_CITATION, OSO_ROBUSTNESS_LABELS, SAIL_ROMAN, SORA_VERSION, TMPR_TABLE_CITATION, describeTmpr, formatCitation, getTmpr, groupOsosByRobustness } from '../data/sora'
 
 // ── Design System ──────────────────────────────────────────────────────────
 
@@ -166,6 +167,8 @@ export interface SegmentReportData {
   grc: number | null
   arc: ArcClass | null
   sail: number | null
+  /** Betriebsart aus der GRC-Bestimmung (für TMPR) */
+  flightType?: 'vlos' | 'bvlos' | null
   anmeldungen?: AnmeldungItem[]
   mapImage?: string
   flugfreigabe?: string | null
@@ -192,6 +195,8 @@ export interface ReportData {
   grc: number | null
   arc: ArcClass | null
   sail: number | null
+  /** Betriebsart aus der GRC-Bestimmung (für TMPR) */
+  flightType?: 'vlos' | 'bvlos' | null
   assessment: AssessmentResult | null
   metarStation?: MetarStationInfo | null
   traffic?: TrafficReportData | null
@@ -620,7 +625,7 @@ export function generateReport(data: ReportData) {
     y += noteLines.length * 4 + 1
   }
 
-  function drawSora(grc: number | null, arc: ArcClass | null, sail: number | null) {
+  function drawSora(grc: number | null, arc: ArcClass | null, sail: number | null, flightType?: 'vlos' | 'bvlos' | null) {
     if (grc !== null) {
       drawKeyValue('Ground Risk Class (GRC)', String(grc))
     } else {
@@ -634,11 +639,37 @@ export function generateReport(data: ReportData) {
     }
 
     if (sail !== null) {
-      const sailLabels = ['I', 'II', 'III', 'IV']
-      drawKeyValue('SAIL', `SAIL ${sailLabels[sail - 1]}`)
+      drawKeyValue('SAIL', `SAIL ${SAIL_ROMAN[sail - 1]}`)
     } else {
       drawKeyValue('SAIL', 'Nicht bestimmt')
     }
+
+    drawKeyValue('Taktische Minderung (TMPR)', describeTmpr(getTmpr(flightType ?? null, arc)))
+
+    if (sail === null) return
+
+    drawGroupTitle(`Sichere Betriebsschritte (OSO) \u2013 SAIL ${SAIL_ROMAN[sail - 1]}`)
+    for (const group of groupOsosByRobustness(sail)) {
+      checkPageBreak(6)
+      doc.setFontSize(FONTS.body)
+      doc.setFont('helvetica', 'normal')
+      setColor(COLORS.textMuted)
+      doc.text(OSO_ROBUSTNESS_LABELS[group.robustness], margin, y)
+      setColor(COLORS.text)
+      const numbers = group.numbers.map((n) => `#${String(n).padStart(2, '0')}`).join(', ')
+      const lines = doc.splitTextToSize(numbers, contentWidth - 24)
+      doc.text(lines, margin + 24, y)
+      y += lines.length * 4.5 + 1
+    }
+
+    checkPageBreak(8)
+    doc.setFontSize(FONTS.small)
+    doc.setFont('helvetica', 'italic')
+    setColor(COLORS.textLight)
+    const note = `Grundlage SORA ${SORA_VERSION}. Quelle OSO: ${formatCitation(OSO_CITATION)} (freie, keine amtliche \u00dcbersetzung). Quelle TMPR: ${formatCitation(TMPR_TABLE_CITATION)}.`
+    const noteLines = doc.splitTextToSize(sanitizeForPdf(note), contentWidth - 4)
+    doc.text(noteLines, margin, y)
+    y += noteLines.length * 4 + 1
   }
 
   function drawMetarStationInfo(metarStation: MetarStationInfo) {
@@ -918,7 +949,7 @@ export function generateReport(data: ReportData) {
 
     // 2.4 SORA
     drawSubHeader('2.4', 'SORA Risikoklassifizierung')
-    drawSora(seg.grc, seg.arc, seg.sail)
+    drawSora(seg.grc, seg.arc, seg.sail, seg.flightType)
 
     // 2.5 Wetterbewertung
     drawSubHeader('2.5', 'Wetterbewertung')
@@ -1157,7 +1188,7 @@ export function generateReport(data: ReportData) {
 
     // 2.4 SORA Risikoklassifizierung
     drawSubHeader('2.4', 'SORA Risikoklassifizierung')
-    drawSora(data.grc, data.arc, data.sail)
+    drawSora(data.grc, data.arc, data.sail, data.flightType)
 
     // 2.5 Wetterbewertung
     drawSubHeader('2.5', 'Wetterbewertung')

@@ -163,6 +163,7 @@ interface SegmentCollectedData {
   grc: number | null
   arc: ArcClass | null
   sail: number | null
+  flightType: 'vlos' | 'bvlos' | null
   anmeldungenItems: AnmeldungItem[]
   anmeldungenChecked: Record<string, boolean>
   anmeldungenAdditional: Array<{ label: string; detail: string }>
@@ -192,6 +193,7 @@ function collectSegmentData(
   const grc = computeGrc(missionId, segId, legacy)
   const arc = computeArc(missionId, segId, legacy)
   const sail = grc !== null && arc !== null ? computeSail(grc, arc) : null
+  const flightType = readSegmentField<'vlos' | 'bvlos' | null>(missionId, segId, 'grc:flightType', null, legacy)
 
   // Resolve location name — only fall back to legacy key for first segment
   const manualLoc = segId
@@ -328,6 +330,7 @@ function collectSegmentData(
     grc,
     arc,
     sail,
+    flightType,
     anmeldungenItems,
     anmeldungenChecked,
     anmeldungenAdditional,
@@ -381,6 +384,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
         grc: sd.grc,
         arc: sd.arc,
         sail: sd.sail,
+        flightType: sd.flightType,
         anmeldungen: sd.anmeldungenItems,
         mapImage: sd.mapImage || undefined,
         flugfreigabe: sd.flugfreigabe,
@@ -744,6 +748,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     grc: primaryData.grc,
     arc: primaryData.arc,
     sail: primaryData.sail,
+    flightType: primaryData.flightType,
     assessment: primaryData.assessment,
     metarStation: primaryData.metarStation,
     traffic: primaryData.traffic,
