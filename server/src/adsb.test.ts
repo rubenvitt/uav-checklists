@@ -142,7 +142,7 @@ describe('GET /adsb/point/:lat/:lon/:radius', () => {
       throw new Error('down');
     }).request('/adsb/point/52.37/9.73/6');
     expect(res.status).toBe(502);
-    expect(await res.json()).toEqual({ error: 'upstream_unavailable' });
+    expect(await res.json()).toEqual({ error: 'upstream_unavailable', attempts: [] });
   });
 
   it('is not registered when disabled', async () => {

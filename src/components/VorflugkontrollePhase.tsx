@@ -354,6 +354,7 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
         snapshot={traffic.snapshot}
         assessment={trafficAssessment}
         isLive={traffic.isLive}
+        configured={traffic.configured}
         loading={traffic.loading}
         fetching={traffic.fetching}
         error={traffic.error}

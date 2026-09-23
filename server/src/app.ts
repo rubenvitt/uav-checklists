@@ -37,7 +37,7 @@ import {
 } from './db.js';
 import { verifyChainFromDb } from './verifyChain.js';
 import type { UploadScanner } from './antivirus.js';
-import { parseAdsbParams, type AdsbLookup } from './adsb.js';
+import { AdsbUnavailableError, parseAdsbParams, type AdsbLookup } from './adsb.js';
 
 export interface AppDeps {
   db: DB;
@@ -133,8 +133,10 @@ export function createApp(deps: AppDeps): Hono {
       c.header('Cache-Control', 'no-store');
       try {
         return c.json(await adsb(params.lat, params.lon, params.radiusNm));
-      } catch {
-        return c.json({ error: 'upstream_unavailable' }, 502);
+      } catch (e) {
+        // Status je Upstream mitsenden (z. B. 429/403), damit Ausfälle ohne Server-Logs erkennbar sind
+        const attempts = e instanceof AdsbUnavailableError ? e.attempts : [];
+        return c.json({ error: 'upstream_unavailable', attempts }, 502);
       }
     });
   }

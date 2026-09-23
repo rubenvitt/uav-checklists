@@ -2,13 +2,27 @@ import type { FlightTrafficSnapshot, TrafficAircraft } from '../types/traffic'
 import { haversineDistance, calcBearing, compassDirection } from '../utils/geo'
 
 // Die ADS-B-Aggregatoren (adsb.lol, adsb.fi) senden keine CORS-Header, daher
-// läuft die Abfrage über einen Proxy unter `/adsb/point/...`:
-//   - Standard: gleiche Origin — in Produktion die Cloudflare Pages Function
-//     (functions/adsb/point/), im Dev-Server der Vite-Proxy (vite.config.ts)
-//   - VITE_ADSB_API_URL: anderer Host, z. B. das optionale Backend (server/)
-const BASE_URL = (import.meta.env.VITE_ADSB_API_URL ?? '').trim().replace(/\/+$/, '')
+// läuft die Abfrage über den `/adsb/point/...`-Proxy im optionalen Backend
+// (server/). Reihenfolge der Basis-URL:
+//   1. VITE_ADSB_API_URL (eigener Proxy)
+//   2. VITE_SIGN_API_URL (Signatur-Backend stellt den Proxy mit bereit)
+//   3. im Dev-Server: gleiche Origin — vite.config.ts leitet an adsb.lol weiter
+// Ist nichts davon verfügbar, bleibt die Funktion deaktiviert (Hinweis in der UI).
+function resolveBaseUrl(): string | null {
+  const candidates = [import.meta.env.VITE_ADSB_API_URL, import.meta.env.VITE_SIGN_API_URL]
+  for (const raw of candidates) {
+    if (raw && raw.trim() !== '') return raw.trim().replace(/\/+$/, '')
+  }
+  return import.meta.env.DEV ? '' : null
+}
+
+const BASE_URL = resolveBaseUrl()
 
 const NM_IN_KM = 1.852
+
+export function isAdsbConfigured(): boolean {
+  return BASE_URL !== null
+}
 
 function num(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
@@ -58,6 +72,10 @@ function normalizeAircraft(raw: Record<string, unknown>, lat: number, lon: numbe
 }
 
 export async function fetchFlightTraffic(lat: number, lon: number, radiusKm: number): Promise<FlightTrafficSnapshot> {
+  if (BASE_URL === null) {
+    throw new Error('Flugverkehrsdaten sind nicht konfiguriert')
+  }
+
   const radiusNm = Math.ceil(radiusKm / NM_IN_KM)
   const response = await fetch(`${BASE_URL}/adsb/point/${lat.toFixed(4)}/${lon.toFixed(4)}/${radiusNm}`)
   if (!response.ok) {

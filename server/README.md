@@ -102,13 +102,15 @@ main page whenever a backend URL is configured.
 `/adsb/point/...` relays live traffic from [adsb.lol](https://adsb.lol/)
 (fallback [adsb.fi](https://adsb.fi/)) to the PWA's flight-traffic section —
 the aggregators send no CORS headers, so the browser cannot call them directly.
-The hosted PWA uses the same logic as a Cloudflare Pages Function
-(`functions/adsb/point/[[path]].ts`, same origin); this route is for
-deployments elsewhere — point the PWA at it with `VITE_ADSB_API_URL`.
 It is **public** (traffic must be visible without login), limited to a 25 NM
 radius, trims each aircraft to the fields the PWA uses and caches per ~100 m
 location for 15 s, so polling clients at the same site cause one upstream
 request. Disable with `ADSB_PROXY=off`. adsb.lol data is ODbL-licensed.
+
+Requests carry a User-Agent with contact info (adsb.lol rejects generic ones
+with 403). A 502 lists the status per upstream in `attempts`. Note that this
+cannot run as a Cloudflare Pages Function/Worker: from Cloudflare egress
+adsb.lol answers 429 and adsb.fi 403 — it needs a regular host like this one.
 
 ### Virus scanning
 

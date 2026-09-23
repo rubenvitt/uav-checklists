@@ -29,7 +29,7 @@ const requests = [
   ['Bright Sky (DWD)', 'Stationsmessung und amtliche Warnungen', 'Koordinaten'],
   ['NOAA SWPC', 'Geomagnetischer K-Index', 'keine'],
   ['Overpass / OpenStreetMap', 'Umgebungsprüfung', 'Koordinaten'],
-  ['adsb.lol / adsb.fi (über den Proxy der App)', 'Live-Flugverkehr (ADS-B)', 'Koordinaten, nicht die eigene IP'],
+  ['adsb.lol / adsb.fi (über das Backend)', 'Live-Flugverkehr (ADS-B)', 'Koordinaten, nicht die eigene IP'],
   ['Nominatim', 'Ortsname zum Standort', 'Koordinaten'],
   ['OpenStreetMap-Kacheln', 'Kartendarstellung', 'Kartenausschnitt'],
 ]
