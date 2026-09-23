@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { site } from '../site.config'
 
 /* ── Einblenden beim Scrollen ─────────────────────────────── */
 
@@ -181,5 +182,87 @@ export function PhoneFrame({
         </figcaption>
       ) : null}
     </figure>
+  )
+}
+
+/**
+ * Browserfenster für die Desktop-Aufnahmen (`*-desktop.webp`, 1024 × 700).
+ * Schlicht gehalten: Titelleiste mit drei Punkten und Adresszeile.
+ */
+export function BrowserFrame({
+  src,
+  alt,
+  caption,
+  className = '',
+  priority = false,
+}: {
+  src: string
+  alt: string
+  caption?: string
+  className?: string
+  priority?: boolean
+}) {
+  return (
+    <figure className={className}>
+      <div className="overflow-hidden rounded-lg border border-ink/15 bg-paper shadow-[0_26px_60px_-30px_rgba(16,22,28,0.55)]">
+        <div aria-hidden className="flex items-center gap-3 border-b border-ink/10 bg-paper-2 px-3 py-2">
+          <span className="flex gap-1.5">
+            <span className="size-2 rounded-full bg-ink/20" />
+            <span className="size-2 rounded-full bg-ink/20" />
+            <span className="size-2 rounded-full bg-ink/20" />
+          </span>
+          <span className="flex-1 truncate rounded bg-paper px-2.5 py-0.5 text-center font-mono text-[0.65rem] text-muted">
+            {site.appUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+          </span>
+          <span className="w-[2.6rem]" />
+        </div>
+        <img
+          src={src}
+          alt={alt}
+          width={1024}
+          height={700}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="async"
+          className="block h-auto w-full"
+        />
+      </div>
+      {caption ? (
+        <figcaption className="mt-3 flex items-baseline gap-2 font-mono text-[0.7rem] text-muted">
+          <span className="text-signal">▸</span>
+          {caption}
+        </figcaption>
+      ) : null}
+    </figure>
+  )
+}
+
+/**
+ * Screenshot passend zum Bildschirm des Betrachters: bis `lg` im Handyrahmen,
+ * darüber die Desktop-Aufnahme im Browserfenster. Ausgeblendete Bilder mit
+ * `loading="lazy"` lädt der Browser nicht.
+ */
+export function DeviceShot({
+  shot,
+  alt,
+  caption,
+  phoneClassName = '',
+  browserClassName = '',
+}: {
+  shot: string
+  alt: string
+  caption?: string
+  phoneClassName?: string
+  browserClassName?: string
+}) {
+  return (
+    <>
+      <PhoneFrame src={`./screenshots/${shot}.webp`} alt={alt} caption={caption} className={`lg:hidden ${phoneClassName}`} />
+      <BrowserFrame
+        src={`./screenshots/${shot}-desktop.webp`}
+        alt={alt}
+        caption={caption}
+        className={`hidden lg:block ${browserClassName}`}
+      />
+    </>
   )
 }

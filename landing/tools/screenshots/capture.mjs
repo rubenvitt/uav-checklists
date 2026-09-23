@@ -12,7 +12,12 @@
  *   node tools/screenshots/capture.mjs
  *   node tools/screenshots/optimize.mjs
  *
+ * Jede Ansicht wird zweimal aufgenommen: im Handyformat (`<name>.png`) und
+ * im Desktop-Browser (`<name>-desktop.png`). Die Landingpage zeigt ab der
+ * lg-Breite die Desktop-Fassung im Browserrahmen.
+ *
  * Umgebungsvariablen:
+ *   DEVICES         Auswahl, z. B. `mobile` oder `desktop` (Standard: beide)
  *   APP_URL         Basis-URL der laufenden PWA (Standard http://localhost:5174)
  *   OUT             Zielverzeichnis (Standard ../../public/screenshots)
  *   CHROMIUM_PATH   abweichende Chromium-Binärdatei für Playwright
@@ -52,30 +57,56 @@ const OVERPASS = {
   ],
 }
 
+/**
+ * Feste ADS-B-Antwort (readsb-Format wie vom Backend-Proxy): Rettungshubschrauber
+ * im Tiefflug, ein Airliner im Anflug auf Hannover-Langenhagen, Kleinflugzeug
+ * und ein Überflug in Reiseflughöhe. Die Werte sind erfunden, aber plausibel.
+ */
+const ADSB_TRAFFIC = [
+  { hex: '3c4dc4', flight: 'CHX4', r: 'D-HXBC', t: 'EC35', desc: 'EUROCOPTER EC-135', category: 'A7', emergency: 'lifeguard', lat: 52.3778, lon: 9.7228, alt_geom: 1150, gs: 108, track: 292, geom_rate: -320, seen_pos: 1.2 },
+  { hex: '3c6589', flight: 'EWG7KN', r: 'D-AEWK', t: 'A320', category: 'A3', lat: 52.4632, lon: 9.6921, alt_geom: 1700, gs: 146, track: 272, geom_rate: -704, seen_pos: 0.4 },
+  { hex: '3dd2a1', flight: 'DEFKA', r: 'D-EFKA', t: 'C172', category: 'A1', lat: 52.3934, lon: 9.6247, alt_geom: 2600, gs: 92, track: 85, geom_rate: 0, seen_pos: 2.1 },
+  { hex: '4ca7f3', flight: 'RYR8GZ', r: 'EI-DWL', t: 'B738', category: 'A3', lat: 52.4381, lon: 9.7695, alt_geom: 36975, gs: 468, track: 118, geom_rate: 0, seen_pos: 0.8 },
+]
+/** Taucht für die Banner-Aufnahme neu auf: Hubschrauber im Tiefflug, 1,6 km West. */
+const ADSB_NEWCOMER = { hex: '3d0a52', r: 'D-HNWX', t: 'H145', category: 'A7', lat: 52.3911, lon: 9.6744, alt_geom: 600, gs: 85, track: 70, geom_rate: 0, seen_pos: 0.6 }
+let adsbAircraft = ADSB_TRAFFIC
+
 fs.mkdirSync(OUT, { recursive: true })
 
 const launchOptions = process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}
 const proxyUrl = process.env.HTTPS_PROXY ?? process.env.https_proxy
 const proxy = proxyUrl ? { server: proxyUrl, bypass: 'localhost,127.0.0.1' } : undefined
 
-/** Geräteprofil der Aufnahmen: iPhone-Format, dreifache Pixeldichte. */
-const device = {
-  viewport: { width: 430, height: 932 },
-  deviceScaleFactor: 3,
+const common = {
   locale: 'de-DE',
   timezoneId: 'Europe/Berlin',
-  isMobile: true,
-  hasTouch: true,
   permissions: ['geolocation'],
   geolocation: { latitude: LAT, longitude: LON },
   ignoreHTTPSErrors: true,
   ...(proxy ? { proxy } : {}),
 }
 
+/**
+ * Geräteprofile der Aufnahmen:
+ * - mobile: iPhone-Format, dreifache Pixeldichte
+ * - desktop: kleines Laptop-Browserfenster, doppelte Pixeldichte — nur die
+ *   Ansichten, die die Landingpage im Browserrahmen zeigt (Aufmacher, Ablauf)
+ */
+const DEVICES = {
+  mobile: { suffix: '', options: { ...common, viewport: { width: 430, height: 932 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true } },
+  desktop: {
+    suffix: '-desktop',
+    options: { ...common, viewport: { width: 1024, height: 700 }, deviceScaleFactor: 2 },
+    only: ['einsatzkarte', 'wetter', 'flugbuch', 'luftraum', 'nachbereitung'],
+  },
+}
+const selected = (process.env.DEVICES ?? 'mobile,desktop').split(',').map((d) => d.trim()).filter(Boolean)
+
 const browser = await chromium.launch(launchOptions)
 
-async function makeContext(colorScheme) {
-  const ctx = await browser.newContext({ ...device, colorScheme })
+async function makeContext(device, colorScheme) {
+  const ctx = await browser.newContext({ ...device.options, colorScheme })
   await ctx.addInitScript(
     ([store, theme]) => {
       for (const [k, v] of Object.entries(store)) localStorage.setItem(k, v)
@@ -85,6 +116,13 @@ async function makeContext(colorScheme) {
   )
   await ctx.route('https://**/api/interpreter*', (route) =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(OVERPASS) }),
+  )
+  await ctx.route('**/adsb/point/**', (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ source: 'adsb.lol', now: Date.now(), ac: adsbAircraft }),
+    }),
   )
   return ctx
 }
@@ -104,12 +142,6 @@ async function go(pg, route, wait = 2500) {
   await clean(pg)
 }
 
-async function shot(pg, name) {
-  await pg.waitForTimeout(250)
-  await pg.screenshot({ path: path.join(OUT, `${name}.png`) })
-  console.log('  ->', name)
-}
-
 async function expand(pg, text) {
   const heading = pg.getByText(text, { exact: true }).first()
   if (!(await heading.count())) return
@@ -118,68 +150,110 @@ async function expand(pg, text) {
   await pg.waitForTimeout(900)
 }
 
+/** Scrollt so, dass der Text `offset` CSS-Pixel unter dem oberen Rand steht. */
 async function scrollTo(pg, text, offset = 88) {
   const el = pg.getByText(text, { exact: false }).first()
-  await el.scrollIntoViewIfNeeded({ timeout: 5000 }).catch(() => console.log('    (nicht gefunden:', text, ')'))
-  await pg.evaluate((o) => window.scrollBy(0, -o), offset)
+  try {
+    await el.evaluate((node, o) => {
+      const top = node.getBoundingClientRect().top + window.scrollY - o
+      window.scrollTo(0, Math.max(0, top))
+    }, offset)
+  } catch {
+    console.log('    (nicht gefunden:', text, ')')
+  }
   await pg.waitForTimeout(700)
 }
 
-const ctx = await makeContext('light')
-const page = await ctx.newPage()
+async function captureDevice(device) {
+  const shot = async (pg, name) => {
+    if (device.only && !device.only.includes(name)) return
+    await pg.waitForTimeout(250)
+    await pg.screenshot({ path: path.join(OUT, `${name}${device.suffix}.png`) })
+    console.log('  ->', `${name}${device.suffix}`)
+  }
 
-console.log('* Übersicht')
-await go(page, '/', 1800)
-await shot(page, 'uebersicht')
+  const ctx = await makeContext(device, 'light')
+  const page = await ctx.newPage()
 
-console.log('* Einsatzdaten')
-await go(page, `/mission/${MID}/einsatzdaten`)
-await scrollTo(page, 'Einsatzkarte', 40)
-await page.waitForTimeout(9000) // Kartenkacheln
-await shot(page, 'einsatzkarte')
+  console.log('* Übersicht')
+  await go(page, '/', 1800)
+  await shot(page, 'uebersicht')
 
-console.log('* Vorflugkontrolle')
-await go(page, `/mission/${MID}/vorflugkontrolle`, 6000)
-await scrollTo(page, 'Wetterbedingungen')
-await page.waitForTimeout(1500)
-await shot(page, 'wetter')
-await expand(page, 'Umgebungsprüfung')
-await scrollTo(page, 'Umgebungsprüfung')
-await shot(page, 'umgebung')
-await expand(page, 'Umgebungsprüfung')
-await expand(page, 'SORA Risikoklassifizierung')
-await scrollTo(page, 'SAIL-Bestimmung', 260)
-await shot(page, 'sail')
-await expand(page, 'SORA Risikoklassifizierung')
-await scrollTo(page, '24-Stunden-Vorhersage', 40)
-await shot(page, 'vorhersage')
-await expand(page, 'Remote Controller (A und B)')
-await scrollTo(page, 'Remote Controller (A und B)')
-await shot(page, 'technik')
+  console.log('* Einsatzdaten')
+  await go(page, `/mission/${MID}/einsatzdaten`)
+  await scrollTo(page, 'Einsatzkarte', 40)
+  await page.waitForTimeout(9000) // Kartenkacheln
+  await shot(page, 'einsatzkarte')
 
-console.log('* Flüge')
-await go(page, `/mission/${MID}/fluege`, 3000)
-await scrollTo(page, 'Ereignisse (', 520)
-await shot(page, 'flugbuch')
-const procedures = page.locator('button', { hasText: 'Prozeduren' }).first()
-if (await procedures.count()) {
-  await procedures.click()
-  await page.waitForTimeout(1800)
-  await shot(page, 'prozeduren')
+  console.log('* Vorflugkontrolle')
+  await go(page, `/mission/${MID}/vorflugkontrolle`, 6000)
+  await scrollTo(page, 'Wetterbedingungen')
+  await page.waitForTimeout(1500)
+  await shot(page, 'wetter')
+  await expand(page, 'Umgebungsprüfung')
+  await scrollTo(page, 'Umgebungsprüfung')
+  await shot(page, 'umgebung')
+  await expand(page, 'Umgebungsprüfung')
+  // Öffnet sich bei Tiefflug in der Nähe von selbst
+  if (!(await page.getByText('nächster Tiefflug').first().isVisible().catch(() => false))) {
+    await expand(page, 'Flugverkehr (ADS-B)')
+  }
+  await scrollTo(page, 'Flugverkehr (ADS-B)', 40)
+  await shot(page, 'flugverkehr')
+  await expand(page, 'Flugverkehr (ADS-B)')
+  await expand(page, 'SORA Risikoklassifizierung')
+  await scrollTo(page, 'SAIL-Bestimmung', 260)
+  await shot(page, 'sail')
+  await expand(page, 'SORA Risikoklassifizierung')
+  await scrollTo(page, '24-Stunden-Vorhersage', 40)
+  await shot(page, 'vorhersage')
+  await expand(page, 'Remote Controller (A und B)')
+  await scrollTo(page, 'Remote Controller (A und B)')
+  await shot(page, 'technik')
+
+  console.log('* Flüge')
+  await go(page, `/mission/${MID}/fluege`, 3000)
+  await scrollTo(page, 'Ereignisse (', 520)
+  await shot(page, 'flugbuch')
+  const procedures = page.locator('button', { hasText: 'Prozeduren' }).first()
+  if (await procedures.count()) {
+    await procedures.click()
+    await page.waitForTimeout(1800)
+    await shot(page, 'prozeduren')
+  }
+
+  console.log('* Luftraumüberwachung')
+  await go(page, `/mission/${MID}/fluege`, 3000)
+  adsbAircraft = [...ADSB_TRAFFIC, ADSB_NEWCOMER]
+  await page.getByTitle('Jetzt aktualisieren').first().click()
+  await page.getByText('als Ereignis protokolliert').first().waitFor({ timeout: 10000 })
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await page.waitForTimeout(600)
+  await shot(page, 'luftraum')
+  adsbAircraft = ADSB_TRAFFIC
+
+  console.log('* Nachbereitung')
+  await go(page, `/mission/${MID}/nachbereitung`, 3000)
+  await shot(page, 'nachbereitung')
+  await expand(page, 'Einsatzabschluss')
+  await scrollTo(page, 'Einsatzabschluss')
+  await shot(page, 'abschluss')
+  await ctx.close()
+
+  console.log('* Dunkles Design')
+  const darkCtx = await makeContext(device, 'dark')
+  const darkPage = await darkCtx.newPage()
+  await go(darkPage, `/mission/${MID}/fluege`, 3000)
+  await shot(darkPage, 'fluege-dark')
+  await darkCtx.close()
 }
 
-console.log('* Nachbereitung')
-await go(page, `/mission/${MID}/nachbereitung`, 3000)
-await shot(page, 'nachbereitung')
-await expand(page, 'Einsatzabschluss')
-await scrollTo(page, 'Einsatzabschluss')
-await shot(page, 'abschluss')
-
-console.log('* Dunkles Design')
-const darkCtx = await makeContext('dark')
-const darkPage = await darkCtx.newPage()
-await go(darkPage, `/mission/${MID}/fluege`, 3000)
-await shot(darkPage, 'fluege-dark')
+for (const name of selected) {
+  const device = DEVICES[name]
+  if (!device) throw new Error(`Unbekanntes Geräteprofil: ${name}`)
+  console.log(`== ${name}`)
+  await captureDevice(device)
+}
 
 await browser.close()
 console.log('fertig — jetzt tools/screenshots/optimize.mjs ausführen')

@@ -33,8 +33,8 @@ const faq: Array<{ q: string; a: ReactNode }> = [
       <>
         Die App startet und arbeitet offline, inklusive Checklisten, Flugtagebuch, Prozeduren und
         PDF-Export. Wetter, DWD-Abgleich, K-Index und Umgebungsprüfung brauchen einmal Netz; einmal geladen
-        bleiben sie beim Einsatz gespeichert. Der Live-Flugverkehr braucht Netz, offline zeigt die App den
-        zuletzt geladenen Stand mit Uhrzeit. Kartenkacheln, die schon einmal angezeigt wurden,
+        bleiben sie beim Einsatz gespeichert. Der Live-Flugverkehr und die Luftraumüberwachung während der
+        Flüge brauchen Netz; offline zeigt die App den zuletzt geladenen Stand mit Uhrzeit. Kartenkacheln, die schon einmal angezeigt wurden,
         kommen aus dem Zwischenspeicher.
       </>
     ),

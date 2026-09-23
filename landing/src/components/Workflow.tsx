@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { TbClipboardList, TbDrone, TbFileCheck, TbMapPin } from 'react-icons/tb'
-import { PhoneFrame, Reveal, SectionHead } from './primitives'
+import { DeviceShot, Reveal, SectionHead } from './primitives'
 
 const phases = [
   {
@@ -53,12 +53,13 @@ const phases = [
       'Block Off / Block On je Flug mit Fernpilot und Luftraumbeobachter',
       'Landungsstatus: in Ordnung, auffällig oder Notfall',
       'Ereignisprotokoll mit Zeitstempel für alles, was gemeldet werden muss',
+      'Luftraumüberwachung (ADS-B): neu auftauchende Tiefflieger lösen eine Meldung aus und landen automatisch im Ereignisprotokoll',
       'Standortwechsel („Verlegen“) legt einen neuen Abschnitt im selben Einsatz an',
       'Prozeduren-Nachschlagewerk und SOS-Schnellzugriff jederzeit erreichbar',
     ],
-    shot: 'flugbuch',
-    shotAlt: 'Flugtagebuch mit drei abgeschlossenen Flügen und Ereignisliste',
-    caption: 'Drei Flüge, zwei Ereignisse — das Flugbuch schreibt sich nebenbei.',
+    shot: 'luftraum',
+    shotAlt: 'Meldung der Luftraumüberwachung: Hubschrauber im Tiefflug 1,6 km westlich, darunter der Status der ADS-B-Überwachung',
+    caption: 'Neuer Hubschrauber im Tiefflug — gemeldet und schon im Protokoll.',
   },
   {
     id: 'nachbereitung',
@@ -153,12 +154,12 @@ export default function Workflow() {
           </div>
 
           <Reveal className="lg:sticky lg:top-28 lg:self-start">
-            <PhoneFrame
+            <DeviceShot
               key={phase.shot}
-              src={`./screenshots/${phase.shot}.webp`}
+              shot={phase.shot}
               alt={phase.shotAlt}
               caption={phase.caption}
-              className="mx-auto max-w-[17rem] sm:max-w-[18.5rem]"
+              phoneClassName="mx-auto max-w-[17rem] sm:max-w-[18.5rem]"
             />
           </Reveal>
         </div>
