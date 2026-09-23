@@ -58,15 +58,15 @@ export default function Hero() {
           <div className="relative lg:pl-10">
             <PhoneFrame
               src="./screenshots/flugbuch.webp"
-              alt="Flugtagebuch in der Flugmappe mit drei protokollierten Flügen und zwei Ereignissen"
+              alt="Flugphase in der Flugmappe mit Luftraumüberwachung (ADS-B), Ereignisprotokoll und Flugtagebuch"
               className="mx-auto max-w-[17rem] sm:max-w-[18rem]"
               priority
             />
             <div className="mt-5 hidden items-start gap-3 lg:flex">
               <span aria-hidden className="mt-2 h-px w-8 shrink-0 bg-signal" />
               <p className="max-w-[28ch] font-mono text-[0.7rem] leading-relaxed text-muted">
-                Abb. 01 — Flugtagebuch mit Block&nbsp;Off/On, Fernpilot, Luftraumbeobachter und
-                Ereignisprotokoll.
+                Abb. 01 — Flugphase mit Luftraumüberwachung, Ereignisprotokoll und Flugtagebuch
+                mit Block&nbsp;Off/On.
               </p>
             </div>
           </div>

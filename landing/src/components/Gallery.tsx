@@ -12,6 +12,16 @@ const shots = [
     caption: 'ARC-Fragebogen und SAIL-Matrix mit hervorgehobenem Ergebnis.',
   },
   {
+    file: 'flugverkehr',
+    alt: 'Flugverkehr aus ADS-B-Daten mit Rettungshubschrauber im Tiefflug, Kennzahlen und Empfehlungen',
+    caption: 'Flugverkehr — Rettungshubschrauber im Tiefflug, 2,2 km entfernt: Warnung.',
+  },
+  {
+    file: 'luftraum',
+    alt: 'Meldung der Luftraumüberwachung während der Flugphase mit Eintrag im Ereignisprotokoll',
+    caption: 'Luftraumüberwachung — neuer Tiefflieger, sofort gemeldet und protokolliert.',
+  },
+  {
     file: 'umgebung',
     alt: 'Umgebungsprüfung mit Krankenhäusern, Sicherheitsbehörden und Schutzgebieten',
     caption: 'Umgebungsprüfung — Entfernung und Himmelsrichtung je Kategorie.',
@@ -49,7 +59,7 @@ export default function Gallery() {
       <div className="mx-auto max-w-[84rem] px-5 sm:px-8">
         <div className="flex flex-wrap items-end justify-between gap-4 border-t border-line-dark pt-3">
           <span className="label text-signal-2">Bildstrecke</span>
-          <span className="label text-paper-3/50">8 Ansichten · Originalaufnahmen</span>
+          <span className="label text-paper-3/50">10 Ansichten · Originalaufnahmen</span>
         </div>
         <h2 className="display mt-6 max-w-[20ch] text-[length:var(--text-section)] text-paper">
           So sieht das im Feld aus.

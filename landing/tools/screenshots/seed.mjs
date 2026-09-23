@@ -116,8 +116,23 @@ export function buildStorage(now) {
   ])
   put('flightlog:events', [
     { id: 'e1', timestamp: iso(52), text: 'Sickerstelle bei km 5,1 lokalisiert — Position an EL gemeldet.', segmentId: SEG },
-    { id: 'e2', timestamp: iso(29), text: 'Rettungshubschrauber im Anflug gesichtet, UAV auf 30 m abgesunken.', segmentId: SEG },
+    // So legt die ADS-B-Überwachung (useTrafficMonitor) ein Ereignis an
+    {
+      id: 'e2',
+      timestamp: iso(30),
+      text: 'ADS-B: Hubschrauber im Tiefflug in der Nähe (während eines Flugs)\n• CHX4 (EC35, Hubschrauber, Ambulanz-/Rettungsflug) – Tiefflug in unter 3 km: 290 m ü. Grund, 2.4 km SO',
+      segmentId: SEG,
+      source: 'adsb',
+    },
+    { id: 'e3', timestamp: iso(29), text: 'Rettungshubschrauber im Anflug gesichtet, UAV auf 30 m abgesunken.', segmentId: SEG },
   ])
+  // ADS-B-Überwachung: der Verkehr aus capture.mjs (ADSB_TRAFFIC) ist schon
+  // gemeldet — so erscheint auf den Flug-Aufnahmen kein Banner. Das Banner
+  // zeigt capture.mjs gezielt mit einem neu auftauchenden Luftfahrzeug.
+  seg('traffic:monitor', {
+    lastProcessedAt: iso(1),
+    tracked: Object.fromEntries(['3c4dc4', '3c6589'].map((hex) => [hex, { lastSeen: iso(1), alertedStatus: 'warning' }])),
+  })
   // Nachbereitung
   put('postflight:checked', Object.fromEntries(['motoren','uav_beschaedigung','ueberwarmung','akkus','rotoren','payload','fernbedienung','kabel'].map(k=>[k,'positive'])))
   put('postflight:remarks', 'Keine Auffälligkeiten. Akkutemperatur nach dem dritten Flug erhöht, im Normbereich.')

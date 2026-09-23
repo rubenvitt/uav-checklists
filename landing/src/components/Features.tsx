@@ -37,8 +37,8 @@ const features: Feature[] = [
   },
   {
     icon: TbPlaneInflight,
-    title: 'Live-Flugverkehr',
-    body: 'Luftfahrzeuge im Umkreis von 10 km aus ADS-B-Daten, mit Höhe über Grund, Entfernung und Richtung. Tiefflug unter 500 m in der Nähe wird als Warnung markiert, Hubschrauber und Rettungsflüge hervorgehoben. Der Stand zum Zeitpunkt der Prüfung landet im Bericht.',
+    title: 'Live-Flugverkehr mit Überwachung',
+    body: 'Luftfahrzeuge im Umkreis von 10 km aus ADS-B-Daten, mit Höhe über Grund, Entfernung und Richtung; Tiefflug unter 500 m in der Nähe wird als Warnung markiert. Während der Flüge beobachtet die App den Luftraum weiter: Taucht ein neuer Tiefflieger auf oder kommt einer näher, gibt es eine Meldung — und einen Eintrag im Ereignisprotokoll und im Bericht.',
     tag: 'adsb.lol / adsb.fi',
   },
   {

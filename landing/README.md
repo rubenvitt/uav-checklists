@@ -132,9 +132,15 @@ node tools/screenshots/social.mjs
 
 `tools/screenshots/seed.mjs` legt dafür einen vollständig ausgefüllten
 Beispiel-Einsatz im localStorage an (erfundene Namen, Einsatzort Hannover).
-Wetter, K-Index und Kartenkacheln werden dabei tatsächlich abgerufen, nur die
-Overpass-Antwort ist fest hinterlegt, damit die Umgebungsprüfung reproduzierbar
-bleibt.
+Wetter, K-Index und Kartenkacheln werden dabei tatsächlich abgerufen. Fest
+hinterlegt sind die Overpass-Antwort (Umgebungsprüfung) und die ADS-B-Antwort
+(erfundener, aber plausibler Verkehr um Hannover). Für die Aufnahme
+`luftraum` taucht ein zusätzlicher Hubschrauber auf, damit die
+Luftraumüberwachung ihre Meldung zeigt.
+
+Alle Aufnahmen sind im Handyformat, auch für die Desktop-Ansicht der Seite:
+Desktop-Aufnahmen der App wären im Rahmen zu klein, um sie zu lesen.
+`CHROMIUM_PATH` zeigt bei Bedarf auf eine vorhandene Chromium-Binärdatei.
 
 `playwright` und `sharp` sind absichtlich **keine** dauerhaften
 Abhängigkeiten — sie werden nur zum Erneuern der Bilder gebraucht und würden
