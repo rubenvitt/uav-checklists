@@ -32,7 +32,7 @@ const faq: Array<{ q: string; a: ReactNode }> = [
     a: (
       <>
         Die App startet und arbeitet offline, inklusive Checklisten, Flugtagebuch, Prozeduren und
-        PDF-Export. Wetter, K-Index und Umgebungsprüfung brauchen einmal Netz; einmal geladen
+        PDF-Export. Wetter, DWD-Abgleich, K-Index und Umgebungsprüfung brauchen einmal Netz; einmal geladen
         bleiben sie beim Einsatz gespeichert. Kartenkacheln, die schon einmal angezeigt wurden,
         kommen aus dem Zwischenspeicher.
       </>

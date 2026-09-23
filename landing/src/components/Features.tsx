@@ -26,8 +26,8 @@ const features: Feature[] = [
   {
     icon: TbCloudStorm,
     title: 'Wetter gegen Drohnengrenzwerte',
-    body: 'Wind, Böen, Temperatur, Niederschlag, Sicht, Luftfeuchte, Druck und Taupunkt von Open-Meteo — bewertet gegen das Profil der gewählten Drohne, nicht gegen Allgemeinplätze.',
-    tag: 'Open-Meteo',
+    body: 'Wind, Böen, Temperatur, Niederschlag, Sicht, Luftfeuchte, Druck und Taupunkt von Open-Meteo — bewertet gegen das Profil der gewählten Drohne, nicht gegen Allgemeinplätze. In Deutschland gegengeprüft mit der Messung der nächsten DWD-Station und den amtlichen Wetter- und Unwetterwarnungen.',
+    tag: 'Open-Meteo · DWD',
   },
   {
     icon: TbRadar2,

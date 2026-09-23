@@ -26,6 +26,7 @@ const pillars = [
 
 const requests = [
   ['Open-Meteo', 'Wetter und Vorhersage', 'Koordinaten'],
+  ['Bright Sky (DWD)', 'Stationsmessung und amtliche Warnungen', 'Koordinaten'],
   ['NOAA SWPC', 'Geomagnetischer K-Index', 'keine'],
   ['Overpass / OpenStreetMap', 'Umgebungsprüfung', 'Koordinaten'],
   ['Nominatim', 'Ortsname zum Standort', 'Koordinaten'],
