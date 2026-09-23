@@ -52,7 +52,7 @@ describe('createAdsbProxy', () => {
 
   it('falls back to the next upstream and accepts the `aircraft` key', async () => {
     const fetchImpl = vi.fn(async (url: string) =>
-      url.startsWith('https://primary.test') ? jsonResponse({ error: 'rate limited' }, 429) : jsonResponse({ aircraft: [HELI] }),
+      new URL(url).hostname === 'primary.test' ? jsonResponse({ error: 'rate limited' }, 429) : jsonResponse({ aircraft: [HELI] }),
     );
     const lookup = createAdsbProxy({ upstreams: UPSTREAMS, fetchImpl: fetchImpl as unknown as typeof fetch });
 
