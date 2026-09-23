@@ -17,6 +17,8 @@ interface UseMissionWeatherResult {
   windByAltitude: WindAtAltitude[] | null
   hourlyForecast: HourlyForecastPoint[] | null
   metarStation: MetarStationInfo | null
+  /** Geländehöhe in m ü. NN (null bei älteren Snapshots) */
+  elevation: number | null
   loading: boolean
   error: string | null
   refresh: () => void
@@ -79,6 +81,7 @@ export function useMissionWeather(lat: number | null, lon: number | null, maxAlt
     windByAltitude: data?.windByAltitude ?? null,
     hourlyForecast: data?.hourlyForecast ?? null,
     metarStation: data?.metarStation ?? null,
+    elevation: data?.elevation ?? null,
     loading: shouldFetch && query.isLoading,
     error: shouldFetch && query.error
       ? (query.error instanceof Error ? query.error.message : 'Wetterdaten konnten nicht geladen werden')

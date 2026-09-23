@@ -1,6 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query'
 import type { DroneId, DroneSpec } from '../types/drone'
 import type { WeatherResponse, DwdWeatherResponse } from '../types/weather'
+import type { FlightTrafficSnapshot } from '../types/traffic'
+import { assessTraffic } from './trafficAssessment'
 import type { NearbyCategory } from '../services/overpassApi'
 import type { ArcClass } from '../components/ArcDetermination'
 import type { FlightLogEntry, EventNote } from '../types/flightLog'
@@ -10,7 +12,7 @@ import { getMission, getSegments, getActiveSegment } from './missionStorage'
 import { getMissionField } from '../stores/missionFormStore'
 import { buildMissionLabel, readManualLocationName } from './missionLabel'
 import { computeAssessment } from './assessment'
-import { generateReport, type ReportData, type SegmentReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type AnmeldungItem, type ChecklistGroupData, type PostFlightInspectionData, type PostFlightInspectionItem, type DisruptionsData, type MissionResultData, type EinsatzabschlussData, type EinsatzabschlussItem, type WartungPflegeData, type WartungPflegeItem } from './generateReport'
+import { generateReport, type ReportData, type SegmentReportData, type EinsatzdetailsData, type TruppstaerkeData, type EinsatzauftragData, type AnmeldungItem, type ChecklistGroupData, type PostFlightInspectionData, type PostFlightInspectionItem, type DisruptionsData, type MissionResultData, type EinsatzabschlussData, type EinsatzabschlussItem, type WartungPflegeData, type WartungPflegeItem, type TrafficReportData } from './generateReport'
 import { computeFollowupSuggestions, type FollowupContext } from './followupSuggestions'
 import { AUFSTIEGSORT_ITEMS, UAV_ITEMS, RC_ITEMS } from '../data/technischeKontrolleItems'
 import { FLUGBRIEFING_ITEMS } from '../data/flugbriefingItems'
@@ -155,6 +157,7 @@ interface SegmentCollectedData {
   assessment: AssessmentResult | null
   persistedWeather: WeatherResponse | null
   metarStation: WeatherResponse['metarStation']
+  traffic: TrafficReportData | null
   grc: number | null
   arc: ArcClass | null
   sail: number | null
@@ -243,6 +246,13 @@ function collectSegmentData(
   }
   const metarStation = persistedWeather?.metarStation ?? cachedWeather?.metarStation ?? null
 
+  // Flugverkehr: zuletzt gespeicherte Momentaufnahme des Abschnitts
+  const trafficSnapshot = readSegmentField<FlightTrafficSnapshot | null>(missionId, segId, 'env:traffic', null, legacy)
+  const elevation = persistedWeather?.elevation ?? cachedWeather?.elevation ?? null
+  const traffic: TrafficReportData | null = trafficSnapshot
+    ? { snapshot: trafficSnapshot, assessment: assessTraffic(trafficSnapshot, elevation) }
+    : null
+
   // Anmeldungen
   const anmeldungenChecked = readSegmentField<Record<string, boolean>>(missionId, segId, 'anmeldungen:checked', {}, legacy)
   const anmeldungenAdditional = readSegmentField<Array<{ label: string; detail: string }>>(missionId, segId, 'anmeldungen:additional', [], legacy)
@@ -312,6 +322,7 @@ function collectSegmentData(
     assessment,
     persistedWeather,
     metarStation,
+    traffic,
     grc,
     arc,
     sail,
@@ -363,6 +374,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
         manualChecks: sd.manualChecks,
         assessment: sd.assessment,
         metarStation: sd.metarStation,
+        traffic: sd.traffic,
         grc: sd.grc,
         arc: sd.arc,
         sail: sd.sail,
@@ -730,6 +742,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     sail: primaryData.sail,
     assessment: primaryData.assessment,
     metarStation: primaryData.metarStation,
+    traffic: primaryData.traffic,
     checklistGroups: [...(primaryData.checklistGroups ?? []), ...globalChecklistGroups],
     flugfreigabe: primaryData.flugfreigabe,
     flugentscheidung: primaryData.flugentscheidung,

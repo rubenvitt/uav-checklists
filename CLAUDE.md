@@ -60,7 +60,7 @@ Each mission progresses through phases reflected in the URL (`/mission/:missionI
 
 - `src/components/sections/` — Feature sections within phases (WeatherSection, NearbyCheckSection, RiskClassSection, etc.)
 - `src/hooks/` — Custom hooks wrapping TanStack Query and localStorage
-- `src/services/` — API clients (weather, geocode, K-index, Overpass/OSM)
+- `src/services/` — API clients (weather, geocode, K-index, Overpass/OSM, ADS-B)
 - `src/data/` — Static data (drone specs, weather thresholds)
 - `src/types/` — TypeScript types (drone, weather, assessment, mission)
 - `src/utils/` — Mission storage, PDF generation, formatting, recommendations
@@ -73,6 +73,7 @@ Each mission progresses through phases reflected in the URL (`/mission/:missionI
 | Bright Sky / DWD (station obs + alerts, DE only) | `brightSkyApi.ts` | TanStack Query (persisted per segment) + SW NetworkFirst 10min |
 | SWPC NOAA (K-index) | `kIndexApi.ts` | TanStack Query: 1h + SW NetworkFirst 1h |
 | Overpass/OSM (nearby) | `overpassApi.ts` | localStorage: 1h |
+| adsb.lol / adsb.fi (live traffic, via `server/` proxy `/adsb/point/...` — no CORS upstream) | `adsbApi.ts` | TanStack Query: 30s stale, 60s refetch + snapshot per segment; SW NetworkOnly |
 | Nominatim (geocode) | `geocodeApi.ts` | TanStack Query |
 
 ## Conventions

@@ -5,6 +5,9 @@ import type { NearbyCategory } from '../services/overpassApi'
 import type { AssessmentResult, MetricStatus } from '../types/assessment'
 import type { FlightLogEntry, EventNote } from '../types/flightLog'
 import type { MetarStationInfo } from '../types/weather'
+import type { FlightTrafficSnapshot, TrafficAssessment } from '../types/traffic'
+import { EMERGENCY_LABELS, aircraftLabel, formatSnapshotTime } from './trafficAssessment'
+import { TRAFFIC_LOW_LEVEL_M } from '../data/thresholds'
 
 // ── Design System ──────────────────────────────────────────────────────────
 
@@ -144,6 +147,11 @@ export interface WartungPflegeData {
   items: WartungPflegeItem[]
 }
 
+export interface TrafficReportData {
+  snapshot: FlightTrafficSnapshot
+  assessment: TrafficAssessment
+}
+
 export interface SegmentReportData {
   label: string
   locationName?: string
@@ -152,6 +160,7 @@ export interface SegmentReportData {
   manualChecks: Record<string, boolean>
   assessment: AssessmentResult | null
   metarStation?: MetarStationInfo | null
+  traffic?: TrafficReportData | null
   grc: number | null
   arc: ArcClass | null
   sail: number | null
@@ -181,6 +190,7 @@ export interface ReportData {
   sail: number | null
   assessment: AssessmentResult | null
   metarStation?: MetarStationInfo | null
+  traffic?: TrafficReportData | null
   checklistGroups?: ChecklistGroupData[]
   flugfreigabe?: string | null
   flugentscheidung?: { status: 'granted' | 'denied'; timestamp: string } | null
@@ -517,6 +527,78 @@ export function generateReport(data: ReportData) {
     }
   }
 
+  function drawTraffic(traffic: TrafficReportData | null | undefined) {
+    checkPageBreak(10)
+    drawGroupTitle('Flugverkehr (ADS-B)')
+
+    if (!traffic) {
+      checkPageBreak(7)
+      doc.setFontSize(FONTS.body)
+      doc.setFont('helvetica', 'italic')
+      setColor(COLORS.textMuted)
+      doc.text('Keine ADS-B-Daten abgerufen.', margin, y)
+      y += 6
+      return
+    }
+
+    const { snapshot, assessment } = traffic
+    drawMetricRow(
+      'Verkehr im Umkreis',
+      `${assessment.airborneCount} gesamt, ${assessment.lowLevelCount} tief`,
+      assessment.overall,
+      `Stand ${formatSnapshotTime(snapshot.fetchedAt)}`,
+    )
+
+    const airborne = assessment.items.filter((i) => !i.aircraft.onGround).slice(0, 10)
+    const heightRef = assessment.heightIsAgl ? '\u00fc. Grund' : '\u00fc. NN'
+    for (const item of airborne) {
+      checkPageBreak(6)
+      const a = item.aircraft
+      const statusColor = item.status === 'warning' ? COLORS.warning : item.status === 'caution' ? COLORS.caution : COLORS.good
+      setFill(statusColor)
+      doc.circle(margin + 3.5, y - 1.2, 1, 'F')
+
+      doc.setFontSize(FONTS.body)
+      doc.setFont('helvetica', 'normal')
+      setColor(COLORS.textMuted)
+      const extras = [a.typeCode, a.isRotorcraft ? 'Hubschrauber' : null, a.emergency ? (EMERGENCY_LABELS[a.emergency] ?? a.emergency) : null]
+        .filter(Boolean)
+        .join(', ')
+      doc.text(sanitizeForPdf(`${aircraftLabel(a)}${extras ? ` (${extras})` : ''}`), margin + 7, y)
+      const heightStr = item.heightM !== null ? `${item.heightM} m ${heightRef}` : 'H\u00f6he unbekannt'
+      const rightStr = `${heightStr} \u00b7 ${formatDistance(a.distanceM)} ${a.direction}`
+      doc.text(rightStr, margin + contentWidth - doc.getTextWidth(rightStr), y)
+      y += 4.5
+    }
+    const hidden = assessment.airborneCount - airborne.length
+    if (hidden > 0) {
+      checkPageBreak(5)
+      doc.setFontSize(FONTS.small)
+      setColor(COLORS.textLight)
+      doc.text(`+ ${hidden} weitere in gr\u00f6\u00dferer Entfernung`, margin + 7, y)
+      y += 4.5
+    }
+
+    for (const rec of assessment.recommendations) {
+      checkPageBreak(6)
+      doc.setFontSize(FONTS.small)
+      doc.setFont('helvetica', 'italic')
+      setColor(COLORS.textMuted)
+      const lines = doc.splitTextToSize(sanitizeForPdf(rec), contentWidth - 4)
+      doc.text(lines, margin, y)
+      y += lines.length * 4
+    }
+
+    checkPageBreak(8)
+    doc.setFontSize(FONTS.small)
+    doc.setFont('helvetica', 'italic')
+    setColor(COLORS.textLight)
+    const note = `Momentaufnahme, Umkreis ${snapshot.radiusKm} km, tief = unter ${TRAFFIC_LOW_LEVEL_M} m, Quelle: ${snapshot.source}. ADS-B erfasst nicht jeden Luftverkehr (z. B. Segelflug, UL, Gleitschirme) und ersetzt nicht die Luftraumbeobachtung.`
+    const noteLines = doc.splitTextToSize(sanitizeForPdf(note), contentWidth - 4)
+    doc.text(noteLines, margin, y)
+    y += noteLines.length * 4 + 1
+  }
+
   function drawSora(grc: number | null, arc: ArcClass | null, sail: number | null) {
     if (grc !== null) {
       drawKeyValue('Ground Risk Class (GRC)', String(grc))
@@ -803,6 +885,7 @@ export function generateReport(data: ReportData) {
     drawKeyValue('Standort', seg.location)
     y += 2
     drawNearby(seg.categories, seg.manualChecks)
+    drawTraffic(seg.traffic)
 
     // 2.4 SORA
     drawSubHeader('2.4', 'SORA Risikoklassifizierung')
@@ -1032,6 +1115,7 @@ export function generateReport(data: ReportData) {
     // 2.3 Umgebungspr\u00fcfung
     drawSubHeader('2.3', 'Umgebungspr\u00fcfung')
     drawNearby(data.categories, data.manualChecks)
+    drawTraffic(data.traffic)
 
     // 2.4 SORA Risikoklassifizierung
     drawSubHeader('2.4', 'SORA Risikoklassifizierung')

@@ -68,3 +68,28 @@ export function evaluateMetarDistance(distanceKm: number): MetricStatus {
   if (distanceKm >= 10) return 'caution'
   return 'good'
 }
+
+/* ── Flugverkehr (ADS-B) ──────────────────────────────────── */
+
+/** Suchradius für den Flugverkehr um den Einsatzort */
+export const TRAFFIC_SEARCH_RADIUS_KM = 10
+/** Höhenfilter: Verkehr bis zu dieser Höhe über Grund ist für den UAS-Betrieb relevant */
+export const TRAFFIC_LOW_LEVEL_M = 500
+/** Innerhalb dieser Entfernung gilt tieffliegender Verkehr als unmittelbar */
+export const TRAFFIC_NEAR_M = 3000
+
+/**
+ * Bewertet ein einzelnes Luftfahrzeug.
+ * - am Boden → good
+ * - ≤ 500 m über Grund und ≤ 3 km entfernt → warning
+ * - ≤ 500 m über Grund im Suchradius oder ≤ 1000 m und ≤ 3 km → caution
+ * Unbekannte Höhe wird konservativ als tieffliegend gewertet.
+ */
+export function evaluateTrafficAircraft(distanceM: number, heightM: number | null, onGround: boolean): MetricStatus {
+  if (onGround) return 'good'
+  const lowLevel = heightM === null || heightM <= TRAFFIC_LOW_LEVEL_M
+  if (lowLevel && distanceM <= TRAFFIC_NEAR_M) return 'warning'
+  if (lowLevel) return 'caution'
+  if (heightM <= 2 * TRAFFIC_LOW_LEVEL_M && distanceM <= TRAFFIC_NEAR_M) return 'caution'
+  return 'good'
+}

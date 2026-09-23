@@ -37,6 +37,7 @@ import {
 } from './db.js';
 import { verifyChainFromDb } from './verifyChain.js';
 import type { UploadScanner } from './antivirus.js';
+import { parseAdsbParams, type AdsbLookup } from './adsb.js';
 
 export interface AppDeps {
   db: DB;
@@ -54,6 +55,11 @@ export interface AppDeps {
    * is skipped entirely (graceful degradation for local/dev).
    */
   scanUpload?: UploadScanner;
+  /**
+   * Optional ADS-B lookup for the public `/adsb/point/...` proxy. When unset,
+   * the route is not registered (404) and the PWA falls back to a hint.
+   */
+  adsb?: AdsbLookup;
 }
 
 const MAX_PDF_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -110,6 +116,28 @@ export function createApp(deps: AppDeps): Hono {
 
   // --- unauthenticated liveness ---
   app.get('/health', (c) => c.json({ status: 'ok', publicKey: deps.signingKey.publicKeyPem }));
+
+  /**
+   * GET /adsb/point/:lat/:lon/:radius — PUBLIC ADS-B proxy (radius in NM).
+   * The upstream aggregators send no CORS headers, so the PWA cannot query
+   * them directly. No auth: live traffic must be visible without login. The
+   * lookup caches per location, so repeated polls do not hit the upstreams.
+   */
+  const adsb = deps.adsb;
+  if (adsb) {
+    app.get('/adsb/point/:lat/:lon/:radius', async (c) => {
+      const params = parseAdsbParams(c.req.param('lat'), c.req.param('lon'), c.req.param('radius'));
+      if (!params) {
+        return c.json({ error: 'invalid_params' }, 400);
+      }
+      c.header('Cache-Control', 'no-store');
+      try {
+        return c.json(await adsb(params.lat, params.lon, params.radiusNm));
+      } catch {
+        return c.json({ error: 'upstream_unavailable' }, 502);
+      }
+    });
+  }
 
   // --- everything below requires a valid PocketID bearer token ---
   const auth = authMiddleware(deps.verifier);

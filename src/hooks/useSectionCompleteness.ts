@@ -67,6 +67,7 @@ export function useVorflugkontrolleCompleteness(
   weatherWarning: boolean,
   nearbyWarning: boolean,
   hasLocation: boolean,
+  trafficWarning: boolean = false,
 ): SectionConfig[] {
   const missionId = useMissionId()
   const segmentId = useSegmentId()
@@ -100,6 +101,12 @@ export function useVorflugkontrolleCompleteness(
       id: 'nearbycheck',
       isComplete: !nearbyWarning,
       hasWarning: nearbyWarning,
+      locked: !hasLocation,
+    },
+    {
+      id: 'flighttraffic',
+      isComplete: !trafficWarning,
+      hasWarning: trafficWarning,
       locked: !hasLocation,
     },
     {

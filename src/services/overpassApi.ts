@@ -1,4 +1,4 @@
-import { haversineDistance } from '../utils/geo'
+import { haversineDistance, calcBearing, compassDirection } from '../utils/geo'
 
 const SEARCH_RADIUS = 1500
 
@@ -154,20 +154,6 @@ const CATEGORY_DEFS: CategoryDef[] = [
     },
   },
 ]
-
-function calcBearing(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const dLon = (lon2 - lon1) * Math.PI / 180
-  const lat1R = lat1 * Math.PI / 180
-  const lat2R = lat2 * Math.PI / 180
-  const y = Math.sin(dLon) * Math.cos(lat2R)
-  const x = Math.cos(lat1R) * Math.sin(lat2R) - Math.sin(lat1R) * Math.cos(lat2R) * Math.cos(dLon)
-  return ((Math.atan2(y, x) * 180 / Math.PI) + 360) % 360
-}
-
-function compassDirection(degrees: number): string {
-  const dirs = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW']
-  return dirs[Math.round(degrees / 45) % 8]
-}
 
 function buildQuery(lat: number, lon: number): string {
   const r = SEARCH_RADIUS
