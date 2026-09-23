@@ -102,7 +102,8 @@ export default function Footer() {
               oder Richtigkeit der angezeigten Wetter-, Luftraum- und Umgebungsdaten. Die
               Verantwortung für die Flugdurchführung bleibt vollständig bei der verantwortlichen
               Person. Kartendaten © OpenStreetMap-Mitwirkende, Wetterdaten Open-Meteo und
-              Deutscher Wetterdienst (über Bright Sky, CC BY 4.0), K-Index NOAA SWPC.
+              Deutscher Wetterdienst (über Bright Sky, CC BY 4.0), K-Index NOAA SWPC,
+              Flugverkehr adsb.lol (ODbL) und adsb.fi.
             </p>
             <p className="mt-5 font-mono text-[0.7rem] text-paper-3/35">
               Stand {site.revision} · Diese Seite lädt keine Skripte oder Schriften von fremden

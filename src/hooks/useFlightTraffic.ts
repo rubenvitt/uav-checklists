@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSegmentPersistedState } from './useSegmentPersistedState'
-import { fetchFlightTraffic, isAdsbConfigured } from '../services/adsbApi'
+import { fetchFlightTraffic } from '../services/adsbApi'
 import { haversineDistance } from '../utils/geo'
 import type { FlightTrafficSnapshot } from '../types/traffic'
 
@@ -16,7 +16,6 @@ interface UseFlightTrafficResult {
   snapshot: FlightTrafficSnapshot | null
   /** true, wenn `snapshot` aus der laufenden Abfrage stammt (nicht aus dem Speicher) */
   isLive: boolean
-  configured: boolean
   loading: boolean
   fetching: boolean
   error: string | null
@@ -27,11 +26,10 @@ export function useFlightTraffic(lat: number | null, lon: number | null, radiusK
   const queryClient = useQueryClient()
   const [persisted, setPersisted] = useSegmentPersistedState<FlightTrafficSnapshot | null>('env:traffic', null)
 
-  const configured = isAdsbConfigured()
   const roundedLat = lat !== null ? Math.round(lat * 1000) / 1000 : null
   const roundedLon = lon !== null ? Math.round(lon * 1000) / 1000 : null
   const hasLocation = lat !== null && lon !== null
-  const enabled = configured && hasLocation
+  const enabled = hasLocation
 
   const query = useQuery<FlightTrafficSnapshot>({
     queryKey: ['traffic', roundedLat, roundedLon, radiusKm],
@@ -63,7 +61,6 @@ export function useFlightTraffic(lat: number | null, lon: number | null, radiusK
   return {
     snapshot,
     isLive: !!query.data && !query.isError,
-    configured,
     loading: enabled && query.isLoading,
     fetching: enabled && query.isFetching,
     error: enabled && query.error

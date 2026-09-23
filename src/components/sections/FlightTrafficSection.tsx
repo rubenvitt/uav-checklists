@@ -18,7 +18,6 @@ interface FlightTrafficSectionProps {
   snapshot: FlightTrafficSnapshot | null
   assessment: TrafficAssessment | null
   isLive: boolean
-  configured: boolean
   loading: boolean
   fetching: boolean
   error: string | null
@@ -38,8 +37,7 @@ const dotColors: Record<MetricStatus, string> = {
   warning: 'bg-warning',
 }
 
-function getBadge(assessment: TrafficAssessment | null, configured: boolean, error: string | null): { label: string; status: MetricStatus } | undefined {
-  if (!configured) return { label: 'Nicht verfügbar', status: 'caution' }
+function getBadge(assessment: TrafficAssessment | null, error: string | null): { label: string; status: MetricStatus } | undefined {
   if (!assessment) return error ? { label: 'Offline', status: 'caution' } : undefined
   if (assessment.overall === 'warning') return { label: 'Tiefflug in der Nähe', status: 'warning' }
   if (assessment.lowLevelCount > 0) return { label: `${assessment.lowLevelCount} im Tiefflug`, status: 'caution' }
@@ -100,10 +98,10 @@ function AircraftRow({ item, heightIsAgl }: { item: TrafficAircraftAssessment; h
 }
 
 export default function FlightTrafficSection({
-  latitude, longitude, snapshot, assessment, isLive, configured, loading, fetching, error, onRefresh,
+  latitude, longitude, snapshot, assessment, isLive, loading, fetching, error, onRefresh,
   locked, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete,
 }: FlightTrafficSectionProps) {
-  const badge = getBadge(assessment, configured, error)
+  const badge = getBadge(assessment, error)
   const liveMapUrl = latitude !== null && longitude !== null
     ? `https://globe.adsb.lol/?lat=${latitude.toFixed(4)}&lon=${longitude.toFixed(4)}&zoom=11`
     : null
@@ -113,13 +111,6 @@ export default function FlightTrafficSection({
   return (
     <ChecklistSection title="Flugverkehr (ADS-B)" icon={<PiAirplaneInFlight />} badge={badge} loading={loading} locked={locked} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <div className="space-y-3">
-        {!configured && (
-          <p className="rounded-lg bg-surface-alt px-4 py-3 text-sm text-text-muted">
-            Für Live-Flugverkehr wird der ADS-B-Proxy des Backends benötigt, der in dieser Installation nicht eingerichtet ist.
-            Über die Live-Karte unten lässt sich der Verkehr trotzdem prüfen.
-          </p>
-        )}
-
         {error && (
           <div className="rounded-lg bg-caution-bg px-4 py-3 text-sm text-caution">
             {error}

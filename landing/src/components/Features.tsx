@@ -1,6 +1,5 @@
 import type { IconType } from 'react-icons'
 import {
-  TbAlertTriangle,
   TbBook2,
   TbCloudStorm,
   TbDeviceMobileCheck,
@@ -8,6 +7,7 @@ import {
   TbMap2,
   TbMapPinCheck,
   TbPhone,
+  TbPlaneInflight,
   TbScale,
   TbSignature,
   TbSunMoon,
@@ -26,8 +26,8 @@ const features: Feature[] = [
   {
     icon: TbCloudStorm,
     title: 'Wetter gegen Drohnengrenzwerte',
-    body: 'Wind, Böen, Temperatur, Niederschlag, Sicht, Luftfeuchte, Druck und Taupunkt von Open-Meteo — bewertet gegen das Profil der gewählten Drohne. Wind wird von 10 bis 180 m auf die geplante Flughöhe interpoliert, dazu 24-Stunden-Vorhersage und Sonnenzeiten.',
-    tag: 'Open-Meteo',
+    body: 'Wind, Böen, Temperatur, Niederschlag, Sicht, Luftfeuchte, Druck und Taupunkt von Open-Meteo — bewertet gegen das Profil der gewählten Drohne. Wind wird von 10 bis 180 m auf die geplante Flughöhe interpoliert, dazu der geomagnetische K-Index, 24-Stunden-Vorhersage und Sonnenzeiten.',
+    tag: 'Open-Meteo / NOAA SWPC',
   },
   {
     icon: TbUrgent,
@@ -36,10 +36,10 @@ const features: Feature[] = [
     tag: 'DWD / Bright Sky',
   },
   {
-    icon: TbAlertTriangle,
-    title: 'Geomagnetischer K-Index',
-    body: 'Kp-Wert vom NOAA Space Weather Prediction Center — relevant für Kompass und RTK, und in der Bewertung genauso behandelt wie jede andere Metrik.',
-    tag: 'NOAA SWPC',
+    icon: TbPlaneInflight,
+    title: 'Live-Flugverkehr',
+    body: 'Luftfahrzeuge im Umkreis von 10 km aus ADS-B-Daten, mit Höhe über Grund, Entfernung und Richtung. Tiefflug unter 500 m in der Nähe wird als Warnung markiert, Hubschrauber und Rettungsflüge hervorgehoben. Der Stand zum Zeitpunkt der Prüfung landet im Bericht.',
+    tag: 'adsb.lol / adsb.fi',
   },
   {
     icon: TbMapPinCheck,
