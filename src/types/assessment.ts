@@ -12,6 +12,7 @@ export type MetricKey =
   | 'humidity'
   | 'pressure'
   | 'dewPoint'
+  | 'dwdAlert'
 
 export interface MetricAssessment {
   key: MetricKey

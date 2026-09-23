@@ -30,6 +30,7 @@ const phases = [
       'Die eigentliche Entscheidungsgrundlage: Wetter, Umgebung, Luftraum, Risikoklasse — und am Ende die dokumentierte Flugfreigabe.',
     points: [
       'Wetterbewertung gegen die Grenzwerte der gewählten Drohne',
+      'Gegenprüfung mit DWD-Stationsmessung und amtlichen Unwetterwarnungen (Deutschland)',
       'Wind auf 10 / 80 / 120 / 180 m, interpoliert auf die geplante Flughöhe',
       'Umgebungsprüfung: Krankenhäuser, BOS, Bahn, Autobahn, Schutzgebiete, Strommasten',
       'Fluganmeldungen bei Leitstelle, Polizei und weiteren Stellen',

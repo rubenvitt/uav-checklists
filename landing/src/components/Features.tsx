@@ -8,10 +8,10 @@ import {
   TbMap2,
   TbMapPinCheck,
   TbPhone,
-  TbRadar2,
   TbScale,
   TbSignature,
   TbSunMoon,
+  TbUrgent,
 } from 'react-icons/tb'
 import { Reveal, SectionHead } from './primitives'
 
@@ -26,13 +26,14 @@ const features: Feature[] = [
   {
     icon: TbCloudStorm,
     title: 'Wetter gegen Drohnengrenzwerte',
-    body: 'Wind, Böen, Temperatur, Niederschlag, Sicht, Luftfeuchte, Druck und Taupunkt von Open-Meteo — bewertet gegen das Profil der gewählten Drohne, nicht gegen Allgemeinplätze.',
+    body: 'Wind, Böen, Temperatur, Niederschlag, Sicht, Luftfeuchte, Druck und Taupunkt von Open-Meteo — bewertet gegen das Profil der gewählten Drohne. Wind wird von 10 bis 180 m auf die geplante Flughöhe interpoliert, dazu 24-Stunden-Vorhersage und Sonnenzeiten.',
     tag: 'Open-Meteo',
   },
   {
-    icon: TbRadar2,
-    title: 'Wind nach Höhe',
-    body: 'Windwerte für 10, 80, 120 und 180 m werden auf die geplante maximale Flughöhe interpoliert. Dazu 24-Stunden-Vorhersage sowie Sonnenauf- und -untergang.',
+    icon: TbUrgent,
+    title: 'Amtliche Unwetterwarnungen',
+    body: 'Liegt für den Einsatzort eine Warnung des Deutschen Wetterdienstes vor, erscheint sie als eigene Kachel. Unwetter zählt als Empfehlung gegen die Freigabe. Dazu der Abgleich mit der Messung der nächsten DWD-Station.',
+    tag: 'DWD / Bright Sky',
   },
   {
     icon: TbAlertTriangle,

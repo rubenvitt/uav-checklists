@@ -70,6 +70,7 @@ Each mission progresses through phases reflected in the URL (`/mission/:missionI
 | API | Service file | Cache strategy |
 |-----|-------------|----------------|
 | Open-Meteo (weather) | `weatherApi.ts` | TanStack Query: 10min stale, 5min refetch + SW NetworkFirst 10min |
+| Bright Sky / DWD (station obs + alerts, DE only) | `brightSkyApi.ts` | TanStack Query (persisted per segment) + SW NetworkFirst 10min |
 | SWPC NOAA (K-index) | `kIndexApi.ts` | TanStack Query: 1h + SW NetworkFirst 1h |
 | Overpass/OSM (nearby) | `overpassApi.ts` | localStorage: 1h |
 | Nominatim (geocode) | `geocodeApi.ts` | TanStack Query |

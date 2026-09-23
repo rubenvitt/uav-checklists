@@ -7,7 +7,7 @@ import { getSegments } from '../../utils/missionStorage'
 import type { FlightLogEntry, EventNote } from '../../types/flightLog'
 import type { MetricStatus, MetricAssessment } from '../../types/assessment'
 import type { DroneId } from '../../types/drone'
-import type { WeatherResponse } from '../../types/weather'
+import type { WeatherResponse, DwdWeatherResponse } from '../../types/weather'
 import type { NearbyCategory } from '../../services/overpassApi'
 import { getDroneById } from '../../data/drones'
 import { computeAssessment } from '../../utils/assessment'
@@ -130,7 +130,8 @@ function usePreflightHints(): Record<string, PreflightHint[]> {
     // Weather
     const weather = readSegmentField<WeatherResponse | null>(missionId, segId, 'env:weather', null, isFirst)
     if (weather?.current && persistedKIndex?.kIndex != null) {
-      const assessment = computeAssessment(weather.current, persistedKIndex.kIndex, drone, weather.windByAltitude ?? undefined, maxAltitude)
+      const dwd = readSegmentField<DwdWeatherResponse | null>(missionId, segId, 'env:dwd', null, isFirst)
+      const assessment = computeAssessment(weather.current, persistedKIndex.kIndex, drone, weather.windByAltitude ?? undefined, maxAltitude, dwd?.alerts)
       for (const metric of assessment.metrics) {
         if (metric.status !== 'good') {
           // Only add if not already present with same or worse status

@@ -101,8 +101,8 @@ export default function Footer() {
               Hinweis: Kein amtliches Produkt, keine Zulassung, keine Gewähr für Vollständigkeit
               oder Richtigkeit der angezeigten Wetter-, Luftraum- und Umgebungsdaten. Die
               Verantwortung für die Flugdurchführung bleibt vollständig bei der verantwortlichen
-              Person. Kartendaten © OpenStreetMap-Mitwirkende, Wetterdaten Open-Meteo, K-Index NOAA
-              SWPC.
+              Person. Kartendaten © OpenStreetMap-Mitwirkende, Wetterdaten Open-Meteo und
+              Deutscher Wetterdienst (über Bright Sky, CC BY 4.0), K-Index NOAA SWPC.
             </p>
             <p className="mt-5 font-mono text-[0.7rem] text-paper-3/35">
               Stand {site.revision} · Diese Seite lädt keine Skripte oder Schriften von fremden

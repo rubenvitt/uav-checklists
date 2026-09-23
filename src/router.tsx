@@ -117,6 +117,7 @@ function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
   const handleRefresh = useCallback(() => {
     clearMissionEnvironment(missionId, activeSegmentId)
     queryClient.removeQueries({ queryKey: ['weather'] })
+    queryClient.removeQueries({ queryKey: ['dwd'] })
     queryClient.removeQueries({ queryKey: ['kindex'] })
     queryClient.removeQueries({ queryKey: ['nearby'] })
     queryClient.invalidateQueries({ queryKey: ['geocode'] })
