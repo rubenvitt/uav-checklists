@@ -83,6 +83,7 @@ Each mission progresses through phases reflected in the URL (`/mission/:missionI
 - Light/dark/system theme with sunrise/sunset-aware auto-switching (`useTheme`)
 - Collapsible sections use `ChecklistSection` component with lock/status badge support
 - Drone specs are a static registry in `src/data/drones.ts` — typed as `DroneId` union
+- Payloads (Kameras/Scheinwerfer) are a static registry in `src/data/payloads.ts` (`PayloadId` union, compatible drones, weight). Slot rules come from `DroneSpec.payloadSlots`/`maxPayload`. The currently mounted payload is mission-scoped (`selectedPayloads`); each `FlightLogEntry.payloads` snapshots it at takeoff
 - No backend — all persistence is localStorage, all API calls are to public third-party services
 
 ## Landing page (`landing/`)

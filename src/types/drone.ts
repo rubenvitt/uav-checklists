@@ -9,5 +9,7 @@ export interface DroneSpec {
   maxTemp: number            // °C
   ipRating: string | null    // e.g. "IP55", null if none
   maxAltitude: number        // m above sea level
-  weight: number             // g
+  weight: number             // g, Leergewicht inkl. Akkus, ohne Nutzlast
+  payloadSlots: number       // Anzahl gleichzeitig nutzbarer Gimbal-Slots
+  maxPayload: number         // g, max. Gesamt-Nutzlast
 }

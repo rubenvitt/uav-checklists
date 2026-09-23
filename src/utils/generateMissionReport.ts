@@ -8,6 +8,8 @@ import type { ArcClass } from '../components/ArcDetermination'
 import type { FlightLogEntry, EventNote } from '../types/flightLog'
 import type { AssessmentResult } from '../types/assessment'
 import { getDroneById } from '../data/drones'
+import { sanitizePayloadSelection, resolvePayloads } from '../data/payloads'
+import type { PayloadId } from '../types/payload'
 import { getMission, getSegments, getActiveSegment } from './missionStorage'
 import { getMissionField } from '../stores/missionFormStore'
 import { buildMissionLabel, readManualLocationName } from './missionLabel'
@@ -345,6 +347,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
   const droneId = readMissionField<DroneId>(missionId, 'selectedDrone', 'matrice-350-rtk')
   const maxAltitude = readMissionField<number>(missionId, 'maxAltitude', 120)
   const drone = getDroneById(droneId)
+  const payloads = resolvePayloads(sanitizePayloadSelection(drone, readMissionField<PayloadId[]>(missionId, 'selectedPayloads', [])))
   const persistedKIndex = readMissionField<{ kIndex: number } | null>(missionId, 'env:kindex', null)
 
   // All flight log entries & events (will be filtered per segment)
@@ -734,6 +737,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     mapImage: primaryData.mapImage || undefined,
     location: primaryData.locationName,
     drone,
+    payloads,
     maxAltitude,
     categories: primaryData.categories,
     manualChecks: primaryData.manualChecks,

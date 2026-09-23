@@ -2,7 +2,9 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import type { DroneId } from '../types/drone'
+import type { PayloadId } from '../types/payload'
 import { getDroneById } from '../data/drones'
+import { sanitizePayloadSelection, resolvePayloads } from '../data/payloads'
 import { useMissionId } from '../context/useMissionId'
 import { useSegmentId } from '../context/useSegmentId'
 import { useGeolocation } from '../hooks/useGeolocation'
@@ -49,6 +51,7 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
   const { segments, activeSegment, setLocationName, startRelocation } = useMissionSegment()
   const [showRelocationDialog, setShowRelocationDialog] = useState(false)
   const [selectedDrone, setSelectedDrone] = useMissionPersistedState<DroneId>('selectedDrone', 'matrice-350-rtk')
+  const [rawPayloads, setSelectedPayloads] = useMissionPersistedState<PayloadId[]>('selectedPayloads', [])
   const [maxAltitude, setMaxAltitude] = useMissionPersistedState<number>('maxAltitude', 120)
   const [currentFlugfreigabe] = useSegmentPersistedState<string | null>('flugfreigabe', null)
   const [currentFlugentscheidung] = useSegmentPersistedState<{ status: 'granted' | 'denied'; timestamp: string } | null>('flugentscheidung', null)
@@ -105,6 +108,11 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
   }, [segmentId, geocode.city, geocode.country, setLocationName])
 
   const drone = getDroneById(selectedDrone)
+  const selectedPayloads = sanitizePayloadSelection(drone, rawPayloads)
+  const handleSelectDrone = (id: DroneId) => {
+    setSelectedDrone(id)
+    setSelectedPayloads((prev) => sanitizePayloadSelection(getDroneById(id), prev))
+  }
   const assessment =
     weather.current && kIndex.kIndex !== null
       ? computeAssessment(weather.current, kIndex.kIndex, drone, weather.windByAltitude ?? undefined, maxAltitude, dwd.data?.alerts)
@@ -299,6 +307,7 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
         mapImage: mapImage || undefined,
         location: locationName,
         drone,
+        payloads: resolvePayloads(selectedPayloads),
         maxAltitude,
         categories: nearby.categories,
         manualChecks,
@@ -336,7 +345,9 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
       />
       <RahmenangabenSection
         selectedDrone={selectedDrone}
-        onSelectDrone={setSelectedDrone}
+        onSelectDrone={handleSelectDrone}
+        selectedPayloads={selectedPayloads}
+        onChangePayloads={setSelectedPayloads}
         maxAltitude={maxAltitude}
         onChangeAltitude={setMaxAltitude}
       />

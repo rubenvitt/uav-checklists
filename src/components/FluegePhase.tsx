@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router'
-import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren, PiNotePencil, PiClock, PiPencilSimple, PiCheckCircle, PiArrowRight, PiSkipForward, PiMapPinArea, PiAirplaneInFlight } from 'react-icons/pi'
+import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren, PiNotePencil, PiClock, PiPencilSimple, PiCheckCircle, PiArrowRight, PiSkipForward, PiMapPinArea, PiAirplaneInFlight, PiPackage } from 'react-icons/pi'
 import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
 import { useMissionId } from '../context/useMissionId'
 import { useMissionSegment } from '../hooks/useMissionSegment'
@@ -9,6 +9,11 @@ import { useGeolocation } from '../hooks/useGeolocation'
 import { useTrafficMonitor } from '../hooks/useTrafficMonitor'
 import type { FlightTrafficSnapshot } from '../types/traffic'
 import type { FlightLogEntry, LandingStatus, EventNote } from '../types/flightLog'
+import type { DroneId, DroneSpec } from '../types/drone'
+import type { PayloadId } from '../types/payload'
+import { getDroneById } from '../data/drones'
+import { sanitizePayloadSelection, computeWeightSummary, formatPayloadList, formatWeight } from '../data/payloads'
+import PayloadSelector from './PayloadSelector'
 import ProceduresButton from './procedures/ProceduresButton'
 import EmergencyFAB from './procedures/EmergencyFAB'
 import SegmentBanner from './SegmentBanner'
@@ -90,6 +95,10 @@ export default function FluegePhase() {
   const [defaultLrb] = useMissionPersistedState<string>('crew_lrb', '')
   const crewSuggestions = useCrewSuggestions()
   const [, setFluegeAbgeschlossen] = useMissionPersistedState<boolean>('fluegeAbgeschlossen', false)
+  const [selectedDrone] = useMissionPersistedState<DroneId>('selectedDrone', 'matrice-350-rtk')
+  const [rawPayloads, setSelectedPayloads] = useMissionPersistedState<PayloadId[]>('selectedPayloads', [])
+  const drone = getDroneById(selectedDrone)
+  const mountedPayloads = sanitizePayloadSelection(drone, rawPayloads)
 
   const [showRelocationDialog, setShowRelocationDialog] = useState(false)
 
@@ -121,6 +130,7 @@ export default function FluegePhase() {
       landungStatus: 'ok',
       bemerkung: '',
       segmentId: activeSegmentId ?? undefined,
+      payloads: mountedPayloads,
     }
     setEntries((prev) => [...prev, entry])
   }
@@ -191,14 +201,22 @@ export default function FluegePhase() {
         <ActiveFlightCard
           entry={activeEntry}
           suggestions={crewSuggestions}
+          drone={drone}
           onLand={() => landFlight(activeEntry.id)}
-          onUpdate={(updates) => updateEntry(activeEntry.id, updates)}
+          onUpdate={(updates) => {
+            updateEntry(activeEntry.id, updates)
+            // Korrektur der Nutzlast im laufenden Flug = aktuell montierte Nutzlast
+            if (updates.payloads) setSelectedPayloads(updates.payloads)
+          }}
           onRemove={() => removeEntry(activeEntry.id)}
         />
       )}
 
       {/* Neuen Flug starten + Verlegen + Ereignis notieren */}
       <div className="flex flex-col gap-2">
+        {!activeEntry && (
+          <MountedPayloadCard drone={drone} value={mountedPayloads} onChange={setSelectedPayloads} />
+        )}
         {!activeEntry && (
           <button
             onClick={startFlight}
@@ -253,6 +271,7 @@ export default function FluegePhase() {
             <GroupedFlightList
               entries={completedEntries}
               segments={segments}
+              drone={drone}
               suggestions={crewSuggestions}
               onUpdate={updateEntry}
               onRemove={removeEntry}
@@ -263,6 +282,7 @@ export default function FluegePhase() {
                 key={entry.id}
                 entry={entry}
                 index={completedEntries.length - idx}
+                drone={drone}
                 suggestions={crewSuggestions}
                 onUpdate={(updates) => updateEntry(entry.id, updates)}
                 onRemove={() => removeEntry(entry.id)}
@@ -395,12 +415,14 @@ function RelocationButton({ onRelocate, disabled }: { onRelocate: () => void; di
 function GroupedFlightList({
   entries,
   segments,
+  drone,
   suggestions,
   onUpdate,
   onRemove,
 }: {
   entries: FlightLogEntry[]
   segments: import('../types/mission').MissionSegment[]
+  drone: DroneSpec
   suggestions: string[]
   onUpdate: (id: string, updates: Partial<FlightLogEntry>) => void
   onRemove: (id: string) => void
@@ -444,6 +466,7 @@ function GroupedFlightList({
                   key={entry.id}
                   entry={entry}
                   index={idx}
+                  drone={drone}
                   suggestions={suggestions}
                   onUpdate={(updates) => onUpdate(entry.id, updates)}
                   onRemove={() => onRemove(entry.id)}
@@ -618,16 +641,62 @@ function EventNoteCard({
   )
 }
 
+/* ── Montierte Nutzlast (zwischen Flügen wechselbar) ──────── */
+
+function MountedPayloadCard({
+  drone,
+  value,
+  onChange,
+}: {
+  drone: DroneSpec
+  value: PayloadId[]
+  onChange: (ids: PayloadId[]) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const weight = computeWeightSummary(drone, value)
+
+  return (
+    <div className="overflow-hidden rounded-xl bg-surface">
+      <button
+        type="button"
+        onClick={() => setExpanded((o) => !o)}
+        aria-expanded={expanded}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt"
+      >
+        <PiPackage className="shrink-0 text-lg text-text-muted" />
+        <div className="min-w-0 flex-1">
+          <p className="text-xs text-text-muted">Montierte Nutzlast</p>
+          <p className="truncate text-sm font-medium text-text">
+            {formatPayloadList(value)}
+            <span className={`ml-2 text-xs font-normal ${weight.overweight ? 'text-warning' : 'text-text-muted'}`}>
+              {formatWeight(weight.totalWeight)}
+            </span>
+          </p>
+        </div>
+        {weight.overweight && <PiWarning className="shrink-0 text-warning" title="Max. Nutzlast überschritten" />}
+        <span className="shrink-0 text-xs text-text-muted">{expanded ? 'Fertig' : 'Wechseln'}</span>
+      </button>
+      {expanded && (
+        <div className="border-t border-surface-alt">
+          <PayloadSelector drone={drone} value={value} onChange={onChange} label={drone.name} />
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ── Aktiver Flug ─────────────────────────────────────────── */
 
 function ActiveFlightCard({
   entry,
+  drone,
   suggestions,
   onLand,
   onUpdate,
   onRemove,
 }: {
   entry: FlightLogEntry
+  drone: DroneSpec
   suggestions: string[]
   onLand: () => void
   onUpdate: (u: Partial<FlightLogEntry>) => void
@@ -676,6 +745,12 @@ function ActiveFlightCard({
           placeholder="Name des LRB"
           size="normal"
         />
+        <PayloadSelector
+          drone={drone}
+          value={entry.payloads ?? []}
+          onChange={(ids) => onUpdate({ payloads: ids })}
+          label="Montierte Nutzlast"
+        />
         <div className="px-4 py-3">
           <label className="mb-1 block text-xs text-text-muted">Bemerkung</label>
           <input
@@ -710,12 +785,14 @@ function ActiveFlightCard({
 function CompletedFlightCard({
   entry,
   index,
+  drone,
   suggestions,
   onUpdate,
   onRemove,
 }: {
   entry: FlightLogEntry
   index: number
+  drone: DroneSpec
   suggestions: string[]
   onUpdate: (u: Partial<FlightLogEntry>) => void
   onRemove: () => void
@@ -745,6 +822,7 @@ function CompletedFlightCard({
           </div>
           <p className="truncate text-xs text-text-muted">
             {entry.fernpilot || '—'} / {entry.lrb || '—'}
+            {entry.payloads && entry.payloads.length > 0 && ` · ${formatPayloadList(entry.payloads)}`}
           </p>
         </div>
         <LandingStatusBadge status={entry.landungStatus} />
@@ -798,6 +876,17 @@ function CompletedFlightCard({
               onChange={(v) => onUpdate({ lrb: v })}
               suggestions={suggestions}
               placeholder="Name"
+              size="compact"
+            />
+          </div>
+
+          {/* Nutzlast */}
+          <div className="px-4 py-2.5">
+            <PayloadSelector
+              drone={drone}
+              value={entry.payloads ?? []}
+              onChange={(ids) => onUpdate({ payloads: ids })}
+              label="Nutzlast"
               size="compact"
             />
           </div>
