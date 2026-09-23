@@ -4,8 +4,9 @@ import { useMissionPersistedState } from './useMissionPersistedState'
 import { useSegmentPersistedState } from './useSegmentPersistedState'
 import { fetchWeather } from '../services/weatherApi'
 import { fetchKIndex } from '../services/kIndexApi'
+import { fetchDwdWeather } from '../services/brightSkyApi'
 import { fetchNearbyPOIs, type NearbyCategory } from '../services/overpassApi'
-import type { WeatherResponse, WeatherData, SunData, WindAtAltitude, HourlyForecastPoint, MetarStationInfo } from '../types/weather'
+import type { WeatherResponse, WeatherData, SunData, WindAtAltitude, HourlyForecastPoint, MetarStationInfo, DwdWeatherResponse } from '../types/weather'
 import { setMissionField } from '../stores/missionFormStore'
 
 /* ── Weather ──────────────────────────────────────────────── */
@@ -84,6 +85,69 @@ export function useMissionWeather(lat: number | null, lon: number | null, maxAlt
       : null,
     refresh,
     lastUpdated: query.dataUpdatedAt ? new Date(query.dataUpdatedAt) : null,
+  }
+}
+
+/* ── DWD / Bright Sky (Zusatzquelle) ──────────────────────── */
+
+interface UseMissionDwdWeatherResult {
+  data: DwdWeatherResponse | null
+  loading: boolean
+  error: string | null
+  refresh: () => void
+}
+
+export function useMissionDwdWeather(lat: number | null, lon: number | null): UseMissionDwdWeatherResult {
+  const queryClient = useQueryClient()
+  const [persisted, setPersisted] = useSegmentPersistedState<DwdWeatherResponse | null>('env:dwd', null)
+  const [persistedCoords, setPersistedCoords] = useSegmentPersistedState<string | null>('env:dwd:coords', null)
+
+  const roundedLat = lat !== null ? Math.round(lat * 1000) / 1000 : null
+  const roundedLon = lon !== null ? Math.round(lon * 1000) / 1000 : null
+  const hasLocation = lat !== null && lon !== null
+  const currentCoords = hasLocation ? `${roundedLat},${roundedLon}` : null
+
+  // Auto-invalidate when coordinates change significantly
+  useEffect(() => {
+    if (persisted !== null && currentCoords !== null && persistedCoords !== null && currentCoords !== persistedCoords) {
+      setPersisted(null)
+      setPersistedCoords(null)
+      queryClient.removeQueries({ queryKey: ['dwd'] })
+    }
+  }, [currentCoords, persistedCoords, persisted, setPersisted, setPersistedCoords, queryClient])
+
+  const shouldFetch = hasLocation && persisted === null
+
+  const query = useQuery<DwdWeatherResponse>({
+    queryKey: ['dwd', roundedLat, roundedLon],
+    queryFn: () => fetchDwdWeather(lat!, lon!),
+    staleTime: Infinity,
+    gcTime: Infinity,
+    retry: 1,
+    enabled: shouldFetch,
+  })
+
+  useEffect(() => {
+    if (query.data && persisted === null) {
+      setPersisted(query.data)
+      setPersistedCoords(currentCoords)
+    }
+  }, [query.data, persisted, currentCoords, setPersisted, setPersistedCoords])
+
+  const data = persisted ?? query.data ?? null
+
+  const refresh = useCallback(() => {
+    setPersisted(null)
+    queryClient.removeQueries({ queryKey: ['dwd'] })
+  }, [queryClient, setPersisted])
+
+  return {
+    data,
+    loading: shouldFetch && query.isLoading,
+    error: shouldFetch && query.error
+      ? (query.error instanceof Error ? query.error.message : 'DWD-Daten konnten nicht geladen werden')
+      : null,
+    refresh,
   }
 }
 
@@ -202,6 +266,8 @@ export function clearMissionEnvironment(missionId: string, segmentId?: string | 
   setMissionField(missionId, `${prefix}env:weather`, null)
   setMissionField(missionId, `${prefix}env:weather:alt`, null)
   setMissionField(missionId, `${prefix}env:weather:coords`, null)
+  setMissionField(missionId, `${prefix}env:dwd`, null)
+  setMissionField(missionId, `${prefix}env:dwd:coords`, null)
   setMissionField(missionId, 'env:kindex', null)
   setMissionField(missionId, `${prefix}env:nearby`, null)
   setMissionField(missionId, `${prefix}env:nearby:coords`, null)

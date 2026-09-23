@@ -6,7 +6,7 @@ import { getDroneById } from '../data/drones'
 import { useMissionId } from '../context/useMissionId'
 import { useSegmentId } from '../context/useSegmentId'
 import { useGeolocation } from '../hooks/useGeolocation'
-import { useMissionWeather, useMissionKIndex, useMissionNearby } from '../hooks/useMissionEnvironment'
+import { useMissionWeather, useMissionDwdWeather, useMissionKIndex, useMissionNearby } from '../hooks/useMissionEnvironment'
 import { useReverseGeocode } from '../hooks/useReverseGeocode'
 import { useMissionPersistedState, clearMissionFormStorageByPrefix } from '../hooks/useMissionPersistedState'
 import { useSegmentPersistedState } from '../hooks/useSegmentPersistedState'
@@ -56,12 +56,14 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
   useEffect(() => {
     if (prevSegmentRef.current && segmentId && prevSegmentRef.current !== segmentId) {
       queryClient.removeQueries({ queryKey: ['weather'] })
+      queryClient.removeQueries({ queryKey: ['dwd'] })
       queryClient.removeQueries({ queryKey: ['nearby'] })
     }
     prevSegmentRef.current = segmentId
   }, [segmentId, queryClient])
   const nearby = useMissionNearby(geo.latitude, geo.longitude)
   const weather = useMissionWeather(geo.latitude, geo.longitude, maxAltitude)
+  const dwd = useMissionDwdWeather(geo.latitude, geo.longitude)
 
   // Lifted state for PDF report
   const [soraData, setSoraData] = useState<{ grc: number | null; arc: ArcClass | null; sail: number | null }>({ grc: null, arc: null, sail: null })
@@ -340,6 +342,10 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
       <RiskClassSection key={soraResetKey} locked={!hasLocation} onSoraChange={handleSoraChange} open={openState.riskclass} onToggle={() => toggle('riskclass')} isComplete={isComplete.riskclass} onContinue={() => continueToNext('riskclass')} />
       <WeatherSection
         assessment={assessment}
+        current={weather.current}
+        dwd={dwd.data}
+        dwdLoading={dwd.loading}
+        dwdError={dwd.error}
         sun={weather.sun}
         windByAltitude={weather.windByAltitude}
         hourlyForecast={weather.hourlyForecast}

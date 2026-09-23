@@ -60,3 +60,49 @@ export interface WeatherResponse {
   hourlyForecast: HourlyForecastPoint[]
   metarStation: MetarStationInfo | null
 }
+
+/* ── DWD (Bright Sky) ─────────────────────────────────────── */
+
+export interface DwdStationInfo {
+  name: string
+  distanceMeters: number
+  observationType: string
+}
+
+/** Aktuelle DWD-Stationsbeobachtung. Einzelwerte können fehlen (null), wenn die Station sie nicht meldet. */
+export interface DwdObservation {
+  timestamp: string
+  temperature: number | null
+  windSpeed: number | null
+  windGusts: number | null
+  windDirection: number | null
+  humidity: number | null
+  dewPoint: number | null
+  visibility: number | null
+  pressureMsl: number | null
+  precipitation: number | null
+  cloudCover: number | null
+  station: DwdStationInfo | null
+}
+
+export type DwdAlertSeverity = 'minor' | 'moderate' | 'severe' | 'extreme'
+
+export interface DwdAlert {
+  id: string
+  severity: DwdAlertSeverity
+  event: string
+  headline: string
+  description: string | null
+  instruction: string | null
+  onset: string | null
+  expires: string | null
+}
+
+export interface DwdWeatherResponse {
+  /** false, wenn der Standort außerhalb des DWD-Abdeckungsbereichs (Deutschland) liegt */
+  covered: boolean
+  observation: DwdObservation | null
+  alerts: DwdAlert[]
+  /** Name der DWD-Warnzelle (Gemeinde/Kreis), falls bekannt */
+  warnCellName: string | null
+}

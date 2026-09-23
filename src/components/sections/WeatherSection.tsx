@@ -1,6 +1,6 @@
 import { WiDayCloudyHigh } from 'react-icons/wi'
 import type { AssessmentResult, MetricStatus } from '../../types/assessment'
-import type { SunData, WindAtAltitude, HourlyForecastPoint, MetarStationInfo } from '../../types/weather'
+import type { SunData, WindAtAltitude, HourlyForecastPoint, MetarStationInfo, WeatherData, DwdWeatherResponse } from '../../types/weather'
 import type { DroneSpec } from '../../types/drone'
 import { formatDistance } from '../../utils/formatting'
 import ChecklistSection from '../ChecklistSection'
@@ -11,9 +11,14 @@ import Recommendations from '../Recommendations'
 import SunTimes from '../SunTimes'
 import WindByAltitude from '../WindByAltitude'
 import HourlyForecast from '../HourlyForecast'
+import DwdCrossCheck from '../DwdCrossCheck'
 
 interface WeatherSectionProps {
   assessment: AssessmentResult | null
+  current: WeatherData | null
+  dwd: DwdWeatherResponse | null
+  dwdLoading: boolean
+  dwdError: string | null
   sun: SunData | null
   windByAltitude: WindAtAltitude[] | null
   hourlyForecast: HourlyForecastPoint[] | null
@@ -96,7 +101,7 @@ function MetarStationHint({ metarStation }: { metarStation: MetarStationInfo | n
   )
 }
 
-export default function WeatherSection({ assessment, sun, windByAltitude, hourlyForecast, metarStation, maxAltitude, drone, isLoading, error, locked, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: WeatherSectionProps) {
+export default function WeatherSection({ assessment, current, dwd, dwdLoading, dwdError, sun, windByAltitude, hourlyForecast, metarStation, maxAltitude, drone, isLoading, error, locked, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete }: WeatherSectionProps) {
   const badge = assessment
     ? { label: badgeLabel[assessment.overall], status: assessment.overall }
     : undefined
@@ -120,6 +125,7 @@ export default function WeatherSection({ assessment, sun, windByAltitude, hourly
       )}
 
       {!isLoading && hasWeatherPayload && <MetarStationHint metarStation={metarStation} />}
+      {!isLoading && <DwdCrossCheck dwd={dwd} loading={dwdLoading} error={dwdError} openMeteo={current} drone={drone} />}
       {assessment && !isLoading && <Recommendations recommendations={assessment.recommendations} />}
       {sun && <SunTimes sunrise={sun.sunrise} sunset={sun.sunset} />}
       {windByAltitude && <WindByAltitude data={windByAltitude} maxAltitude={maxAltitude} />}

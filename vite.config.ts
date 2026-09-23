@@ -50,6 +50,14 @@ export default defineConfig({
           },
         },
         {
+          urlPattern: /^https:\/\/api\.brightsky\.dev\/.*/i,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'dwd-api',
+            expiration: { maxEntries: 10, maxAgeSeconds: 600 },
+          },
+        },
+        {
           urlPattern: /^https:\/\/services\.swpc\.noaa\.gov\/.*/i,
           handler: 'NetworkFirst',
           options: {

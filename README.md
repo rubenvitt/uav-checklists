@@ -18,6 +18,7 @@ Jeder Einsatz durchläuft einen strukturierten Workflow:
 - Echtzeit-Wetterdaten von [Open-Meteo](https://open-meteo.com/) (Wind, Böen, Temperatur, Niederschlag, Sichtweite, Luftfeuchtigkeit, Druck, Taupunkt)
 - Windgeschwindigkeiten auf mehreren Höhen (10m, 80m, 120m, 180m), interpoliert auf die gewählte Flughöhe
 - Geomagnetischer K-Index von [NOAA SWPC](https://www.swpc.noaa.gov/)
+- DWD-Abgleich über [Bright Sky](https://brightsky.dev/) (nur Deutschland): aktuelle Messwerte der nächsten DWD-Station im Vergleich zu Open-Meteo sowie amtliche Wetter-/Unwetterwarnungen. Quelle: Deutscher Wetterdienst (CC BY 4.0)
 - 24-Stunden-Vorhersage und Sonnenauf-/untergangszeiten
 - Automatische Bewertung aller Metriken gegen drohnenspezifische Grenzwerte (`gut` / `Vorsicht` / `Warnung`)
 - Kontextbezogene Handlungsempfehlungen auf Deutsch
@@ -147,7 +148,7 @@ src/
 │   ├── MissionOverview.tsx # Einsatzübersicht (Start, Liste, Löschen)
 │   └── MissionStepper.tsx  # Phasen-Navigation
 ├── hooks/                  # Custom Hooks (TanStack Query, localStorage, Geolocation)
-├── services/               # API-Clients (Open-Meteo, NOAA, Overpass, Nominatim)
+├── services/               # API-Clients (Open-Meteo, Bright Sky/DWD, NOAA, Overpass, Nominatim)
 ├── data/                   # Statische Daten (Drohnenspecs, Schwellenwerte)
 ├── types/                  # TypeScript-Typen
 ├── utils/                  # Hilfsfunktionen (Storage, PDF, Bewertung, Formatierung)
@@ -159,6 +160,7 @@ src/
 | API | Dienst | Cache-Strategie |
 |---|---|---|
 | [Open-Meteo](https://open-meteo.com/) | Wetter und Vorhersage | TanStack Query 10 min + Service Worker 10 min |
+| [Bright Sky](https://brightsky.dev/) (DWD) | Stationsmessung + amtliche Warnungen (nur DE) | TanStack Query (Snapshot je Einsatzabschnitt) + Service Worker 10 min |
 | [NOAA SWPC](https://www.swpc.noaa.gov/) | Geomagnetischer K-Index | TanStack Query 1 h + Service Worker 1 h |
 | [Overpass](https://overpass-api.de/) | Nahegelegene Infrastruktur (OSM) | localStorage 8 h |
 | [Nominatim](https://nominatim.openstreetmap.org/) | Reverse Geocoding | TanStack Query |
