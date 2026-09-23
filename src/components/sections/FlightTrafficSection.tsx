@@ -1,9 +1,10 @@
 import {
   PiAirplaneInFlight, PiAirplaneTilt, PiArrowDown, PiArrowUp, PiArrowsClockwise,
-  PiInfo, PiLightning, PiArrowSquareOut,
+  PiInfo, PiLightning, PiArrowSquareOut, PiPlugs,
 } from 'react-icons/pi'
 import type { MetricStatus } from '../../types/assessment'
 import type { FlightTrafficSnapshot, TrafficAircraftAssessment, TrafficAssessment } from '../../types/traffic'
+import type { FlightTrafficErrorKind } from '../../hooks/useFlightTraffic'
 import { formatDistance } from '../../utils/formatting'
 import { EMERGENCY_LABELS, aircraftLabel, formatSnapshotTime } from '../../utils/trafficAssessment'
 import { TRAFFIC_LOW_LEVEL_M, TRAFFIC_NEAR_M } from '../../data/thresholds'
@@ -22,6 +23,7 @@ interface FlightTrafficSectionProps {
   loading: boolean
   fetching: boolean
   error: string | null
+  errorKind: FlightTrafficErrorKind | null
   onRefresh: () => void
   locked?: boolean
   open?: boolean
@@ -38,9 +40,11 @@ const dotColors: Record<MetricStatus, string> = {
   warning: 'bg-warning',
 }
 
-function getBadge(assessment: TrafficAssessment | null, configured: boolean, error: string | null): { label: string; status: MetricStatus } | undefined {
-  if (!configured) return { label: 'Nicht verfügbar', status: 'caution' }
-  if (!assessment) return error ? { label: 'Offline', status: 'caution' } : undefined
+function getBadge(assessment: TrafficAssessment | null, noServer: boolean, error: string | null): { label: string; status: MetricStatus } | undefined {
+  if (!assessment) {
+    if (noServer) return { label: 'Kein Server', status: 'caution' }
+    return error ? { label: 'Offline', status: 'caution' } : undefined
+  }
   if (assessment.overall === 'warning') return { label: 'Tiefflug in der Nähe', status: 'warning' }
   if (assessment.lowLevelCount > 0) return { label: `${assessment.lowLevelCount} im Tiefflug`, status: 'caution' }
   if (assessment.overall === 'caution') return { label: 'Achtung', status: 'caution' }
@@ -100,10 +104,13 @@ function AircraftRow({ item, heightIsAgl }: { item: TrafficAircraftAssessment; h
 }
 
 export default function FlightTrafficSection({
-  latitude, longitude, snapshot, assessment, isLive, configured, loading, fetching, error, onRefresh,
+  latitude, longitude, snapshot, assessment, isLive, configured, loading, fetching, error, errorKind, onRefresh,
   locked, open, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete,
 }: FlightTrafficSectionProps) {
-  const badge = getBadge(assessment, configured, error)
+  // „Failed to fetch“ (CORS/Netzwerk) bzw. fehlende Route heißt: kein Proxy
+  // erreichbar — ein Einrichtungs-, kein Datenproblem
+  const noServer = !configured || errorKind === 'no-server'
+  const badge = getBadge(assessment, noServer, error)
   const liveMapUrl = latitude !== null && longitude !== null
     ? `https://globe.adsb.lol/?lat=${latitude.toFixed(4)}&lon=${longitude.toFixed(4)}&zoom=11`
     : null
@@ -113,14 +120,19 @@ export default function FlightTrafficSection({
   return (
     <ChecklistSection title="Flugverkehr (ADS-B)" icon={<PiAirplaneInFlight />} badge={badge} loading={loading} locked={locked} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <div className="space-y-3">
-        {!configured && (
-          <p className="rounded-lg bg-surface-alt px-4 py-3 text-sm text-text-muted">
-            Für Live-Flugverkehr wird der ADS-B-Proxy des Backends benötigt, der in dieser Installation nicht eingerichtet ist.
-            Über die Live-Karte unten lässt sich der Verkehr trotzdem prüfen.
-          </p>
+        {noServer && (
+          <div className="flex items-start gap-3 rounded-lg bg-surface-alt px-4 py-3 text-sm text-text-muted">
+            <PiPlugs className="mt-0.5 shrink-0 text-base" />
+            <p>
+              <span className="font-medium text-text">Kein ADS-B-Server verbunden.</span>{' '}
+              Live-Flugverkehr benötigt den ADS-B-Proxy des Backends{configured ? ', der gerade nicht erreichbar ist' : ''}.
+              Über die Live-Karte unten lässt sich der Verkehr trotzdem prüfen.
+              {snapshot && ` Angezeigt wird der Stand von ${formatSnapshotTime(snapshot.fetchedAt)} Uhr.`}
+            </p>
+          </div>
         )}
 
-        {error && (
+        {error && !noServer && (
           <div className="rounded-lg bg-caution-bg px-4 py-3 text-sm text-caution">
             {error}
             {snapshot && ` — angezeigt wird der Stand von ${formatSnapshotTime(snapshot.fetchedAt)} Uhr.`}

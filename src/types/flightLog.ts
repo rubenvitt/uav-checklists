@@ -16,4 +16,6 @@ export interface EventNote {
   timestamp: string // ISO timestamp
   text: string
   segmentId?: string
+  /** Automatisch angelegt, z. B. von der ADS-B-Überwachung */
+  source?: 'adsb'
 }

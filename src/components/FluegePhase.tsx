@@ -1,14 +1,19 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router'
-import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren, PiNotePencil, PiClock, PiPencilSimple, PiCheckCircle, PiArrowRight, PiSkipForward, PiMapPinArea } from 'react-icons/pi'
+import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren, PiNotePencil, PiClock, PiPencilSimple, PiCheckCircle, PiArrowRight, PiSkipForward, PiMapPinArea, PiAirplaneInFlight } from 'react-icons/pi'
 import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
 import { useMissionId } from '../context/useMissionId'
 import { useMissionSegment } from '../hooks/useMissionSegment'
+import { useSegmentPersistedState } from '../hooks/useSegmentPersistedState'
+import { useGeolocation } from '../hooks/useGeolocation'
+import { useTrafficMonitor } from '../hooks/useTrafficMonitor'
+import type { FlightTrafficSnapshot } from '../types/traffic'
 import type { FlightLogEntry, LandingStatus, EventNote } from '../types/flightLog'
 import ProceduresButton from './procedures/ProceduresButton'
 import EmergencyFAB from './procedures/EmergencyFAB'
 import SegmentBanner from './SegmentBanner'
 import RelocationConfirmDialog from './RelocationConfirmDialog'
+import TrafficMonitorCard, { TrafficAlertBanner } from './TrafficMonitorCard'
 
 const LANDING_STATUS_CONFIG: Record<LandingStatus, { label: string; color: string; bgColor: string; borderColor: string; icon: React.ReactNode }> = {
   ok: { label: 'In Ordnung', color: 'text-good', bgColor: 'bg-good', borderColor: 'border-good', icon: <PiCheck /> },
@@ -91,6 +96,18 @@ export default function FluegePhase() {
   const [eventNotes, setEventNotes] = useMissionPersistedState<EventNote[]>('flightlog:events', [])
 
   const activeEntry = entries.find((e) => e.blockOn === null)
+
+  // Standort wie in der Vorflugkontrolle; ohne GPS/manuellen Standort den der
+  // dort zuletzt abgefragten Flugverkehrsdaten
+  const isFirstSegment = segments.length > 0 && activeSegment?.id === segments[0].id
+  const geo = useGeolocation(missionId, activeSegmentId, isFirstSegment)
+  const [preflightTraffic] = useSegmentPersistedState<FlightTrafficSnapshot | null>('env:traffic', null)
+  const trafficMonitor = useTrafficMonitor({
+    latitude: geo.latitude ?? (geo.loading ? null : preflightTraffic?.lat ?? null),
+    longitude: geo.longitude ?? (geo.loading ? null : preflightTraffic?.lon ?? null),
+    flightActive: !!activeEntry,
+  })
+
   const completedEntries = entries.filter((e) => e.blockOn !== null).slice().reverse()
 
   function startFlight() {
@@ -165,6 +182,10 @@ export default function FluegePhase() {
         </div>
       </div>
 
+      {trafficMonitor.pendingAlert && (
+        <TrafficAlertBanner alert={trafficMonitor.pendingAlert} onAcknowledge={trafficMonitor.acknowledge} />
+      )}
+
       {/* Aktiver Flug */}
       {activeEntry && (
         <ActiveFlightCard
@@ -202,6 +223,8 @@ export default function FluegePhase() {
           <ProceduresButton />
         </div>
       </div>
+
+      <TrafficMonitorCard monitor={trafficMonitor} flightActive={!!activeEntry} />
 
       {/* Ereignisse */}
       {eventNotes.length > 0 && (
@@ -570,8 +593,10 @@ function EventNoteCard({
       onClick={() => setEditing(true)}
       className="flex w-full items-center gap-3 rounded-xl bg-surface px-4 py-3 text-left transition-colors hover:bg-surface-alt active:scale-[0.99]"
     >
-      <div className="flex shrink-0 flex-col items-center">
-        <PiClock className="text-sm text-text-muted" />
+      <div className="flex shrink-0 flex-col items-center" title={note.source === 'adsb' ? 'Automatisch aus der ADS-B-Überwachung' : undefined}>
+        {note.source === 'adsb'
+          ? <PiAirplaneInFlight className="text-sm text-text-muted" />
+          : <PiClock className="text-sm text-text-muted" />}
         <span className="mt-0.5 text-[10px] font-medium tabular-nums text-text-muted">
           {formatTime(note.timestamp)}
         </span>
@@ -582,7 +607,7 @@ function EventNoteCard({
             Keine Beschreibung...
           </span>
         ) : (
-          <p className="truncate text-sm text-text">{note.text}</p>
+          <p className={note.source === 'adsb' ? 'line-clamp-4 whitespace-pre-line text-sm text-text' : 'truncate text-sm text-text'}>{note.text}</p>
         )}
       </div>
       <div className="flex shrink-0 items-center gap-1">

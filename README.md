@@ -41,7 +41,9 @@ Live-Flugverkehr im Umkreis von 10 km aus Community-ADS-B-Daten ([adsb.lol](http
 - Liste der Luftfahrzeuge mit Höhe über Grund (Geländehöhe von Open-Meteo), Entfernung, Richtung, Geschwindigkeit, Steig-/Sinkflug; Hubschrauber, militärischer Verkehr und Not-/Rettungsflüge werden markiert
 - Bewertung: unter 500 m über Grund in bis zu 3 km Entfernung = Warnung, tieffliegender Verkehr weiter entfernt = Vorsicht
 - Aktualisierung jede Minute; der letzte Stand wird je Einsatzabschnitt gespeichert und landet mit Uhrzeit im PDF
-- Da die ADS-B-Dienste keine CORS-Header senden, läuft die Abfrage über den ADS-B-Proxy im optionalen Backend (`server/`, `GET /adsb/point/...`). Ohne Backend zeigt die Sektion einen Hinweis und einen Link zur Live-Karte; im Dev-Server leitet Vite direkt an adsb.lol weiter
+- Da die ADS-B-Dienste keine CORS-Header senden, läuft die Abfrage über den ADS-B-Proxy im optionalen Backend (`server/`, `GET /adsb/point/...`). Ist kein Proxy erreichbar (fehlende Konfiguration, „Failed to fetch“ durch CORS/Netzwerk, Route fehlt), zeigt die Sektion „Kein ADS-B-Server verbunden“ statt eines Fehlers, dazu einen Link zur Live-Karte; im Dev-Server leitet Vite direkt an adsb.lol weiter
+- **Überwachung während der Flüge:** In der Flugphase wird der Verkehr weiter abgefragt (alle 30 s während eines Flugs, sonst jede Minute; ohne Server nur alle 5 min). Taucht ein neuer Tiefflieger auf (Bewertung ≥ Vorsicht) oder kommt ein bekannter näher, erscheint ein Banner, auf Wunsch eine Systembenachrichtigung (App im Hintergrund), und es wird automatisch ein Ereignis angelegt — damit steht es auch im Einsatzbericht. Hoch überfliegender Verkehr löst nichts aus; nach 15 min ohne Sichtung gilt ein Luftfahrzeug wieder als neu. Abschaltbar je Einsatz
+- Abfrageintervall nach API-Policy: adsb.fi erlaubt 1 Anfrage/s je IP, adsb.lol drosselt dynamisch; der Backend-Proxy cacht je Standort 15 s
 - Eine Cloudflare Pages Function als Proxy funktioniert nicht: Aus Cloudflare Workers heraus antwortet adsb.lol mit 429 (geteilte Egress-IPs) und adsb.fi mit 403
 - ADS-B erfasst nicht jeden Verkehr (Segelflug, UL, Gleitschirme …) und ersetzt keine Luftraumbeobachtung
 
