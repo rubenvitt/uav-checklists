@@ -1,6 +1,6 @@
 import { generateKeyPairSync } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
-import { USER_AGENT, createAdsbProxy, parseAdsbParams, type AdsbUpstream } from './adsb.js';
+import { AdsbUnavailableError, USER_AGENT, createAdsbProxy, parseAdsbParams, type AdsbUpstream } from './adsb.js';
 import { createApp } from './app.js';
 import type { TokenVerifier } from './auth.js';
 import { openDb } from './db.js';
@@ -91,7 +91,12 @@ describe('createAdsbProxy', () => {
       .mockResolvedValue(jsonResponse({ ac: [HELI] }));
     const lookup = createAdsbProxy({ upstreams: UPSTREAMS, fetchImpl: fetchImpl as unknown as typeof fetch });
 
-    await expect(lookup(52.37, 9.73, 6)).rejects.toThrow();
+    const err = await lookup(52.37, 9.73, 6).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AdsbUnavailableError);
+    expect((err as AdsbUnavailableError).attempts).toEqual([
+      { source: 'primary', error: 'Error' },
+      { source: 'fallback', error: 'Error' },
+    ]);
     const res = await lookup(52.37, 9.73, 6);
     expect(res.ac).toHaveLength(1);
   });

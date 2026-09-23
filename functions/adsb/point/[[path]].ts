@@ -6,7 +6,7 @@
  * (Upstreams, Fallback, Kürzen, 15-s-Cache je Isolate) teilt sie sich mit
  * dem optionalen Backend in server/src/adsb.ts.
  */
-import { createAdsbProxy, parseAdsbParams } from '../../../server/src/adsb'
+import { AdsbUnavailableError, createAdsbProxy, parseAdsbParams } from '../../../server/src/adsb'
 
 const lookup = createAdsbProxy()
 
@@ -28,7 +28,9 @@ export async function onRequestGet({ params }: PagesContext): Promise<Response> 
 
   try {
     return json(await lookup(parsed.lat, parsed.lon, parsed.radiusNm))
-  } catch {
-    return json({ error: 'upstream_unavailable' }, 502)
+  } catch (e) {
+    // Status je Upstream mitsenden: zeigt, ob ein Dienst Cloudflare-Anfragen abweist
+    const attempts = e instanceof AdsbUnavailableError ? e.attempts : []
+    return json({ error: 'upstream_unavailable', attempts }, 502)
   }
 }

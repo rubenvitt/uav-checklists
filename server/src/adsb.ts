@@ -65,7 +65,21 @@ export interface AdsbProxyOptions {
   now?: () => number;
 }
 
-export class AdsbUnavailableError extends Error {}
+/** Ergebnis je Upstream-Versuch — HTTP-Status oder Fehlermeldung, für die Diagnose. */
+export interface AdsbAttempt {
+  source: string;
+  status?: number;
+  error?: string;
+}
+
+export class AdsbUnavailableError extends Error {
+  readonly attempts: AdsbAttempt[];
+
+  constructor(attempts: AdsbAttempt[]) {
+    super('all ADS-B upstreams failed');
+    this.attempts = attempts;
+  }
+}
 
 function trimAircraft(raw: unknown): Record<string, unknown> | null {
   if (!raw || typeof raw !== 'object') return null;
@@ -91,24 +105,31 @@ export function createAdsbProxy(opts: AdsbProxyOptions = {}): AdsbLookup {
   const cache = new Map<string, { expires: number; value: Promise<AdsbResult> }>();
 
   async function fetchUpstream(lat: number, lon: number, radiusNm: number): Promise<AdsbResult> {
+    const attempts: AdsbAttempt[] = [];
     for (const upstream of upstreams) {
       try {
         const res = await fetchImpl(upstream.url(lat, lon, radiusNm), {
           headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
           signal: AbortSignal.timeout(timeoutMs),
         });
-        if (!res.ok) continue;
+        if (!res.ok) {
+          attempts.push({ source: upstream.name, status: res.status });
+          continue;
+        }
         const json = (await res.json()) as { ac?: unknown; aircraft?: unknown };
         // adsb.lol liefert `ac`, adsb.fi `aircraft`
         const list = Array.isArray(json.ac) ? json.ac : Array.isArray(json.aircraft) ? json.aircraft : null;
-        if (!list) continue;
+        if (!list) {
+          attempts.push({ source: upstream.name, status: res.status, error: 'unexpected_body' });
+          continue;
+        }
         const ac = list.map(trimAircraft).filter((a): a is Record<string, unknown> => a !== null);
         return { source: upstream.name, now: now(), ac };
-      } catch {
-        // nächster Upstream
+      } catch (e) {
+        attempts.push({ source: upstream.name, error: e instanceof Error ? e.name : 'unknown' });
       }
     }
-    throw new AdsbUnavailableError('all ADS-B upstreams failed');
+    throw new AdsbUnavailableError(attempts);
   }
 
   return async (lat, lon, radiusNm) => {
