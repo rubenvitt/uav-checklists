@@ -1,6 +1,6 @@
 import { TbArrowUpRight, TbBrandGithub } from 'react-icons/tb'
 import { site, keyFigures } from '../site.config'
-import { BrowserFrame, ButtonLink, CropMarks, PhoneFrame } from './primitives'
+import { ButtonLink, CropMarks, PhoneFrame } from './primitives'
 
 export default function Hero() {
   return (
@@ -55,32 +55,18 @@ export default function Hero() {
             </p>
           </div>
 
-          <div className="relative lg:pl-4">
-            {/* Handy: nur das Flugtagebuch */}
+          <div className="relative lg:pl-10">
             <PhoneFrame
               src="./screenshots/flugbuch.webp"
-              alt="Flugphase in der Flugmappe mit Luftraumüberwachung, Ereignisprotokoll und Flugtagebuch"
-              className="mx-auto max-w-[17rem] sm:max-w-[18rem] lg:hidden"
+              alt="Flugphase in der Flugmappe mit Luftraumüberwachung (ADS-B), Ereignisprotokoll und Flugtagebuch"
+              className="mx-auto max-w-[17rem] sm:max-w-[18rem]"
               priority
             />
-            {/* Desktop: Laptop-Browser, davor das Handy mit der Meldung der Luftraumüberwachung */}
-            <div className="relative hidden pb-24 lg:block">
-              <BrowserFrame
-                src="./screenshots/flugbuch-desktop.webp"
-                alt="Flugphase am Laptop: Luftraumüberwachung, Ereignisprotokoll und Flugtagebuch"
-                className="lg:ml-10"
-              />
-              <PhoneFrame
-                src="./screenshots/luftraum.webp"
-                alt="Meldung der Luftraumüberwachung auf dem Handy: Hubschrauber im Tiefflug in der Nähe"
-                className="absolute bottom-0 -left-2 w-[10.5rem] xl:w-[11.5rem]"
-              />
-            </div>
-            <div className="mt-5 hidden items-start gap-3 lg:flex lg:pl-[12.5rem] xl:pl-[13.5rem]">
+            <div className="mt-5 hidden items-start gap-3 lg:flex">
               <span aria-hidden className="mt-2 h-px w-8 shrink-0 bg-signal" />
-              <p className="max-w-[34ch] font-mono text-[0.7rem] leading-relaxed text-muted">
-                Abb. 01 — Flugphase am Laptop, auf dem Handy die Meldung der Luftraumüberwachung:
-                neuer Hubschrauber im Tiefflug, automatisch im Ereignisprotokoll.
+              <p className="max-w-[28ch] font-mono text-[0.7rem] leading-relaxed text-muted">
+                Abb. 01 — Flugphase mit Luftraumüberwachung, Ereignisprotokoll und Flugtagebuch
+                mit Block&nbsp;Off/On.
               </p>
             </div>
           </div>

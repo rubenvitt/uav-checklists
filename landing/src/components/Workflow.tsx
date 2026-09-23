@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { TbClipboardList, TbDrone, TbFileCheck, TbMapPin } from 'react-icons/tb'
-import { DeviceShot, Reveal, SectionHead } from './primitives'
+import { PhoneFrame, Reveal, SectionHead } from './primitives'
 
 const phases = [
   {
@@ -154,12 +154,12 @@ export default function Workflow() {
           </div>
 
           <Reveal className="lg:sticky lg:top-28 lg:self-start">
-            <DeviceShot
+            <PhoneFrame
               key={phase.shot}
-              shot={phase.shot}
+              src={`./screenshots/${phase.shot}.webp`}
               alt={phase.shotAlt}
               caption={phase.caption}
-              phoneClassName="mx-auto max-w-[17rem] sm:max-w-[18.5rem]"
+              className="mx-auto max-w-[17rem] sm:max-w-[18.5rem]"
             />
           </Reveal>
         </div>

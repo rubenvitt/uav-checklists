@@ -12,12 +12,7 @@
  *   node tools/screenshots/capture.mjs
  *   node tools/screenshots/optimize.mjs
  *
- * Jede Ansicht wird zweimal aufgenommen: im Handyformat (`<name>.png`) und
- * im Desktop-Browser (`<name>-desktop.png`). Die Landingpage zeigt ab der
- * lg-Breite die Desktop-Fassung im Browserrahmen.
- *
  * Umgebungsvariablen:
- *   DEVICES         Auswahl, z. B. `mobile` oder `desktop` (Standard: beide)
  *   APP_URL         Basis-URL der laufenden PWA (Standard http://localhost:5174)
  *   OUT             Zielverzeichnis (Standard ../../public/screenshots)
  *   CHROMIUM_PATH   abweichende Chromium-Binärdatei für Playwright
@@ -88,25 +83,16 @@ const common = {
 }
 
 /**
- * Geräteprofile der Aufnahmen:
- * - mobile: iPhone-Format, dreifache Pixeldichte
- * - desktop: kleines Laptop-Browserfenster, doppelte Pixeldichte — nur die
- *   Ansichten, die die Landingpage im Browserrahmen zeigt (Aufmacher, Ablauf)
+ * Geräteprofil der Aufnahmen: iPhone-Format, dreifache Pixeldichte. Auch auf
+ * dem Desktop zeigt die Landingpage Handy-Aufnahmen — Desktop-Aufnahmen wären
+ * im Browserrahmen zu klein, um sie zu lesen.
  */
-const DEVICES = {
-  mobile: { suffix: '', options: { ...common, viewport: { width: 430, height: 932 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true } },
-  desktop: {
-    suffix: '-desktop',
-    options: { ...common, viewport: { width: 1024, height: 700 }, deviceScaleFactor: 2 },
-    only: ['einsatzkarte', 'wetter', 'flugbuch', 'luftraum', 'nachbereitung'],
-  },
-}
-const selected = (process.env.DEVICES ?? 'mobile,desktop').split(',').map((d) => d.trim()).filter(Boolean)
+const device = { ...common, viewport: { width: 430, height: 932 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }
 
 const browser = await chromium.launch(launchOptions)
 
-async function makeContext(device, colorScheme) {
-  const ctx = await browser.newContext({ ...device.options, colorScheme })
+async function makeContext(colorScheme) {
+  const ctx = await browser.newContext({ ...device, colorScheme })
   await ctx.addInitScript(
     ([store, theme]) => {
       for (const [k, v] of Object.entries(store)) localStorage.setItem(k, v)
@@ -164,15 +150,14 @@ async function scrollTo(pg, text, offset = 88) {
   await pg.waitForTimeout(700)
 }
 
-async function captureDevice(device) {
-  const shot = async (pg, name) => {
-    if (device.only && !device.only.includes(name)) return
-    await pg.waitForTimeout(250)
-    await pg.screenshot({ path: path.join(OUT, `${name}${device.suffix}.png`) })
-    console.log('  ->', `${name}${device.suffix}`)
-  }
+async function shot(pg, name) {
+  await pg.waitForTimeout(250)
+  await pg.screenshot({ path: path.join(OUT, `${name}.png`) })
+  console.log('  ->', name)
+}
 
-  const ctx = await makeContext(device, 'light')
+async function captureAll() {
+  const ctx = await makeContext('light')
   const page = await ctx.newPage()
 
   console.log('* Übersicht')
@@ -241,19 +226,14 @@ async function captureDevice(device) {
   await ctx.close()
 
   console.log('* Dunkles Design')
-  const darkCtx = await makeContext(device, 'dark')
+  const darkCtx = await makeContext('dark')
   const darkPage = await darkCtx.newPage()
   await go(darkPage, `/mission/${MID}/fluege`, 3000)
   await shot(darkPage, 'fluege-dark')
   await darkCtx.close()
 }
 
-for (const name of selected) {
-  const device = DEVICES[name]
-  if (!device) throw new Error(`Unbekanntes Geräteprofil: ${name}`)
-  console.log(`== ${name}`)
-  await captureDevice(device)
-}
+await captureAll()
 
 await browser.close()
 console.log('fertig — jetzt tools/screenshots/optimize.mjs ausführen')
