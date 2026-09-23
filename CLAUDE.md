@@ -19,7 +19,7 @@ Package manager is **pnpm**.
 
 ## Tech Stack
 
-- React 19 + TypeScript (strict) + Vite 8 beta
+- React 19 + TypeScript (strict) + Vite 8
 - Tailwind CSS 4 (via `@tailwindcss/vite`)
 - React Router 7 (BrowserRouter, two routes: overview `/` and mission `/mission/:missionId/:phase`)
 - TanStack React Query (weather/geo data caching, persisted to localStorage)
