@@ -358,6 +358,7 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
         loading={traffic.loading}
         fetching={traffic.fetching}
         error={traffic.error}
+        errorKind={traffic.errorKind}
         onRefresh={traffic.refresh}
         locked={!hasLocation}
         open={openState.flighttraffic}

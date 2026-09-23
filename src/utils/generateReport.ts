@@ -854,7 +854,10 @@ export function generateReport(data: ReportData) {
       if (note.text) {
         doc.setFont('helvetica', 'normal')
         setColor(COLORS.text)
-        const lines = doc.splitTextToSize(sanitizeForPdf(note.text), contentWidth - 4)
+        // Zeilenweise bereinigen — sanitizeForPdf entfernt sonst die Umbrüche
+        // (ADS-B-Ereignisse listen je Luftfahrzeug eine Zeile)
+        const text = note.text.split('\n').map(sanitizeForPdf).filter(Boolean).join('\n')
+        const lines = doc.splitTextToSize(text, contentWidth - 4)
         checkPageBreak(lines.length * 4.5)
         doc.text(lines, margin + 2, y)
         y += lines.length * 4.5

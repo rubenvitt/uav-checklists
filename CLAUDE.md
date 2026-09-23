@@ -73,7 +73,7 @@ Each mission progresses through phases reflected in the URL (`/mission/:missionI
 | Bright Sky / DWD (station obs + alerts, DE only) | `brightSkyApi.ts` | TanStack Query (persisted per segment) + SW NetworkFirst 10min |
 | SWPC NOAA (K-index) | `kIndexApi.ts` | TanStack Query: 1h + SW NetworkFirst 1h |
 | Overpass/OSM (nearby) | `overpassApi.ts` | localStorage: 1h |
-| adsb.lol / adsb.fi (live traffic, via `server/` proxy `/adsb/point/...` — no CORS upstream; a Cloudflare Worker/Pages Function does not work: CF egress gets 429/403) | `adsbApi.ts` | TanStack Query: 30s stale, 60s refetch + snapshot per segment; SW NetworkOnly |
+| adsb.lol / adsb.fi (live traffic, via `server/` proxy `/adsb/point/...` — no CORS upstream; a Cloudflare Worker/Pages Function does not work: CF egress gets 429/403) | `adsbApi.ts` | TanStack Query: 30s stale, 60s refetch (30s during a flight, 5min when no server) + snapshot per segment; SW NetworkOnly. `useTrafficMonitor` (Flüge phase) turns new low-level traffic into banner/notification + auto `EventNote` (`source: 'adsb'`) |
 | Nominatim (geocode) | `geocodeApi.ts` | TanStack Query |
 
 ## Conventions

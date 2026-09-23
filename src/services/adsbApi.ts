@@ -24,6 +24,38 @@ export function isAdsbConfigured(): boolean {
   return BASE_URL !== null
 }
 
+/**
+ * - `no-server`: kein ADS-B-Proxy erreichbar (Netzwerk-/CORS-Fehler, Route fehlt,
+ *   Antwort ist kein JSON) — Konfigurations-, kein Datenproblem
+ * - `offline`: das Gerät hat kein Netz
+ * - `upstream`: Proxy erreichbar, aber adsb.lol/adsb.fi antworten nicht
+ * - `http`: sonstiger HTTP-Fehler
+ */
+export type AdsbErrorKind = 'no-server' | 'offline' | 'upstream' | 'http'
+
+export class AdsbError extends Error {
+  readonly kind: AdsbErrorKind
+
+  constructor(kind: AdsbErrorKind, message: string) {
+    super(message)
+    this.name = 'AdsbError'
+    this.kind = kind
+  }
+}
+
+function isOffline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false
+}
+
+function httpError(status: number): AdsbError {
+  // 404: Backend ohne ADS-B-Route (ältere Version oder ADSB_PROXY=off)
+  if (status === 404) return new AdsbError('no-server', 'Kein ADS-B-Server verbunden')
+  if (status === 429 || status >= 500) {
+    return new AdsbError('upstream', `ADS-B-Dienste derzeit nicht erreichbar (${status})`)
+  }
+  return new AdsbError('http', `Flugverkehrsdaten konnten nicht geladen werden: ${status}`)
+}
+
 function num(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
@@ -73,16 +105,29 @@ function normalizeAircraft(raw: Record<string, unknown>, lat: number, lon: numbe
 
 export async function fetchFlightTraffic(lat: number, lon: number, radiusKm: number): Promise<FlightTrafficSnapshot> {
   if (BASE_URL === null) {
-    throw new Error('Flugverkehrsdaten sind nicht konfiguriert')
+    throw new AdsbError('no-server', 'Kein ADS-B-Server konfiguriert')
   }
 
   const radiusNm = Math.ceil(radiusKm / NM_IN_KM)
-  const response = await fetch(`${BASE_URL}/adsb/point/${lat.toFixed(4)}/${lon.toFixed(4)}/${radiusNm}`)
-  if (!response.ok) {
-    throw new Error(`Flugverkehrsdaten konnten nicht geladen werden: ${response.status}`)
+  let response: Response
+  try {
+    response = await fetch(`${BASE_URL}/adsb/point/${lat.toFixed(4)}/${lon.toFixed(4)}/${radiusNm}`)
+  } catch {
+    // „Failed to fetch“: Server nicht erreichbar oder CORS verweigert — der
+    // Browser unterscheidet das bewusst nicht
+    throw isOffline()
+      ? new AdsbError('offline', 'Keine Internetverbindung')
+      : new AdsbError('no-server', 'Kein ADS-B-Server verbunden')
   }
+  if (!response.ok) throw httpError(response.status)
 
-  const json = await response.json()
+  let json: { ac?: unknown; aircraft?: unknown; source?: unknown }
+  try {
+    json = await response.json()
+  } catch {
+    // z. B. eine HTML-Seite statt des Proxys unter der konfigurierten URL
+    throw new AdsbError('no-server', 'Kein ADS-B-Server verbunden')
+  }
   const list: unknown[] = Array.isArray(json.ac) ? json.ac : Array.isArray(json.aircraft) ? json.aircraft : []
   const radiusM = radiusKm * 1000
 

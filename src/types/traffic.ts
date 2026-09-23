@@ -65,3 +65,45 @@ export interface TrafficAssessment {
   heightIsAgl: boolean
   recommendations: string[]
 }
+
+/* ── Überwachung während der Flüge ────────────────────────── */
+
+/** Bereits gemeldetes Luftfahrzeug (je Einsatzabschnitt gespeichert) */
+export interface TrafficMonitorTrack {
+  /** Zeitpunkt der letzten Sichtung (ISO) */
+  lastSeen: string
+  /** Höchste bisher gemeldete Stufe — erneut gemeldet wird nur eine Verschärfung */
+  alertedStatus: MetricStatus
+}
+
+export interface TrafficMonitorState {
+  /** `fetchedAt` des zuletzt ausgewerteten Snapshots (ISO) */
+  lastProcessedAt: string | null
+  /** Nach ICAO-Adresse (hex) */
+  tracked: Record<string, TrafficMonitorTrack>
+}
+
+export interface TrafficAlertItem {
+  hex: string
+  label: string
+  /** `new` = neu aufgetaucht, `closer` = bekannt, aber jetzt kritischer */
+  kind: 'new' | 'closer'
+  status: MetricStatus
+  typeCode: string | null
+  isRotorcraft: boolean
+  isMilitary: boolean
+  emergency: string | null
+  heightM: number | null
+  distanceM: number
+  direction: string
+}
+
+/** Meldung der Überwachung — eine je Abfrage mit neuen/kritischeren Luftfahrzeugen */
+export interface TrafficAlert {
+  id: string
+  /** Zeitpunkt der zugrunde liegenden Abfrage (ISO) */
+  at: string
+  status: MetricStatus
+  heightIsAgl: boolean
+  items: TrafficAlertItem[]
+}
