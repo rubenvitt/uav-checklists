@@ -100,7 +100,7 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
   const drone = getDroneById(selectedDrone)
   const assessment =
     weather.current && kIndex.kIndex !== null
-      ? computeAssessment(weather.current, kIndex.kIndex, drone, weather.windByAltitude ?? undefined, maxAltitude)
+      ? computeAssessment(weather.current, kIndex.kIndex, drone, weather.windByAltitude ?? undefined, maxAltitude, dwd.data?.alerts)
       : null
 
   const hasLocation = geo.latitude !== null && geo.longitude !== null

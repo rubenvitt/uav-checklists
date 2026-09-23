@@ -85,6 +85,13 @@ export function generateRecommendations(
             : `Ungewöhnlicher Luftdruck. Flugeigenschaften können leicht abweichen.`,
         )
         break
+      case 'dwdAlert':
+        recommendations.push(
+          isWarning
+            ? `Amtliche Unwetterwarnung des DWD für den Einsatzort (${metric.value}). Flug nicht empfohlen.`
+            : `Amtliche Wetterwarnung des DWD für den Einsatzort (${metric.value}). Warnlage vor dem Start prüfen.`,
+        )
+        break
       case 'dewPoint':
         recommendations.push(
           isWarning

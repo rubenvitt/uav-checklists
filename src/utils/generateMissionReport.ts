@@ -1,6 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 import type { DroneId, DroneSpec } from '../types/drone'
-import type { WeatherResponse } from '../types/weather'
+import type { WeatherResponse, DwdWeatherResponse } from '../types/weather'
 import type { NearbyCategory } from '../services/overpassApi'
 import type { ArcClass } from '../components/ArcDetermination'
 import type { FlightLogEntry, EventNote } from '../types/flightLog'
@@ -232,12 +232,13 @@ function collectSegmentData(
     cachedWeather = queryClient.getQueryData<WeatherResponse>(['weather', roundedLat, roundedLon, maxAltitude]) ?? null
   }
 
+  const persistedDwd = readSegmentField<DwdWeatherResponse | null>(missionId, segId, 'env:dwd', null, legacy)
   if (persistedWeather?.current && persistedKIndex?.kIndex != null) {
-    assessment = computeAssessment(persistedWeather.current, persistedKIndex.kIndex, drone, persistedWeather.windByAltitude ?? undefined, maxAltitude)
+    assessment = computeAssessment(persistedWeather.current, persistedKIndex.kIndex, drone, persistedWeather.windByAltitude ?? undefined, maxAltitude, persistedDwd?.alerts)
   } else if (cachedWeather?.current) {
     const kIndexData = queryClient.getQueryData<{ kIndex: number }>(['kindex'])
     if (kIndexData?.kIndex != null) {
-      assessment = computeAssessment(cachedWeather.current, kIndexData.kIndex, drone, cachedWeather.windByAltitude ?? undefined, maxAltitude)
+      assessment = computeAssessment(cachedWeather.current, kIndexData.kIndex, drone, cachedWeather.windByAltitude ?? undefined, maxAltitude, persistedDwd?.alerts)
     }
   }
   const metarStation = persistedWeather?.metarStation ?? cachedWeather?.metarStation ?? null

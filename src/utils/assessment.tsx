@@ -1,6 +1,6 @@
-import { PiWind, PiMagnet, PiEye } from 'react-icons/pi'
+import { PiWind, PiMagnet, PiEye, PiWarning } from 'react-icons/pi'
 import { WiStrongWind, WiThermometer, WiRain, WiHumidity, WiBarometer, WiFog } from 'react-icons/wi'
-import type { WeatherData, WindAtAltitude } from '../types/weather'
+import type { WeatherData, WindAtAltitude, DwdAlert, DwdAlertSeverity } from '../types/weather'
 import type { DroneSpec } from '../types/drone'
 import type { AssessmentResult, MetricAssessment, MetricStatus } from '../types/assessment'
 import {
@@ -44,12 +44,53 @@ function findMaxWind(windByAltitude: WindAtAltitude[], maxAltitude: number) {
   }
 }
 
+const ALERT_SEVERITY_RANK: Record<DwdAlertSeverity, number> = { minor: 0, moderate: 1, severe: 2, extreme: 3 }
+
+/** DWD-Ereignisnamen kommen in Großbuchstaben („SCHWERES GEWITTER") → „Schweres Gewitter" */
+function formatAlertEvent(event: string): string {
+  return event
+    .toLocaleLowerCase('de-DE')
+    .replace(/(^|[\s-])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toLocaleUpperCase('de-DE'))
+}
+
+function formatAlertTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+}
+
+/**
+ * Kachel für amtliche DWD-Warnungen — nur wenn eine noch nicht abgelaufene Warnung vorliegt.
+ * Unwetter (severe/extreme) → warning (No-Go), Wetterwarnung/markant (minor/moderate) → caution.
+ */
+function buildDwdAlertMetric(alerts: DwdAlert[], now: number = Date.now()): MetricAssessment | null {
+  const active = alerts.filter((a) => !a.expires || new Date(a.expires).getTime() > now)
+  if (active.length === 0) return null
+
+  const top = active.reduce((worst, a) => (ALERT_SEVERITY_RANK[a.severity] > ALERT_SEVERITY_RANK[worst.severity] ? a : worst))
+  const isSevere = ALERT_SEVERITY_RANK[top.severity] >= ALERT_SEVERITY_RANK.severe
+
+  const details: string[] = []
+  if (top.onset && new Date(top.onset).getTime() > now) details.push(`ab ${formatAlertTime(top.onset)}`)
+  if (top.expires) details.push(`bis ${formatAlertTime(top.expires)}`)
+  if (active.length > 1) details.push(`+${active.length - 1} weitere`)
+
+  return {
+    key: 'dwdAlert',
+    label: isSevere ? 'Unwetterwarnung (DWD)' : 'Wetterwarnung (DWD)',
+    value: formatAlertEvent(top.event),
+    unit: '',
+    status: isSevere ? 'warning' : 'caution',
+    icon: <PiWarning />,
+    detail: details.length > 0 ? details.join(' · ') : undefined,
+  }
+}
+
 export function computeAssessment(
   weather: WeatherData,
   kIndex: number,
   drone: DroneSpec,
   windByAltitude?: WindAtAltitude[],
   maxAltitude?: number,
+  dwdAlerts?: DwdAlert[],
 ): AssessmentResult {
   const hasAltitudeData = windByAltitude && windByAltitude.length > 0 && maxAltitude != null
   const maxWind = hasAltitudeData ? findMaxWind(windByAltitude, maxAltitude) : null
@@ -139,6 +180,9 @@ export function computeAssessment(
       icon: <WiFog />,
     },
   ]
+
+  const dwdAlertMetric = dwdAlerts ? buildDwdAlertMetric(dwdAlerts) : null
+  if (dwdAlertMetric) metrics.unshift(dwdAlertMetric)
 
   const statusPriority: Record<MetricStatus, number> = {
     good: 0,

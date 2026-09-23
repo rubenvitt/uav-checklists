@@ -18,7 +18,7 @@ Jeder Einsatz durchläuft einen strukturierten Workflow:
 - Echtzeit-Wetterdaten von [Open-Meteo](https://open-meteo.com/) (Wind, Böen, Temperatur, Niederschlag, Sichtweite, Luftfeuchtigkeit, Druck, Taupunkt)
 - Windgeschwindigkeiten auf mehreren Höhen (10m, 80m, 120m, 180m), interpoliert auf die gewählte Flughöhe
 - Geomagnetischer K-Index von [NOAA SWPC](https://www.swpc.noaa.gov/)
-- DWD-Abgleich über [Bright Sky](https://brightsky.dev/) (nur Deutschland): aktuelle Messwerte der nächsten DWD-Station im Vergleich zu Open-Meteo sowie amtliche Wetter-/Unwetterwarnungen. Quelle: Deutscher Wetterdienst (CC BY 4.0)
+- DWD-Abgleich über [Bright Sky](https://brightsky.dev/) (nur Deutschland): aktuelle Messwerte der nächsten DWD-Station im Vergleich zu Open-Meteo sowie amtliche Wetter-/Unwetterwarnungen. Eine aktive Warnung erscheint als eigene Kachel in der Bewertung; Unwetter (Stufe „severe“/„extreme“) gilt als Warnung und damit als Empfehlung gegen die Freigabe. Quelle: Deutscher Wetterdienst (CC BY 4.0)
 - 24-Stunden-Vorhersage und Sonnenauf-/untergangszeiten
 - Automatische Bewertung aller Metriken gegen drohnenspezifische Grenzwerte (`gut` / `Vorsicht` / `Warnung`)
 - Kontextbezogene Handlungsempfehlungen auf Deutsch
