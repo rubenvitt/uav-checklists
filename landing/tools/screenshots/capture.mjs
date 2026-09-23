@@ -128,6 +128,17 @@ async function go(pg, route, wait = 2500) {
   await clean(pg)
 }
 
+/**
+ * Wartet, bis Wetter- und DWD-Daten geladen sind — sonst landet der
+ * Ladezustand im Bild. Bricht nach 45 s mit Fehler ab statt still weiterzumachen.
+ */
+async function waitForWeather(pg) {
+  for (const text of ['Wetterdaten werden geladen', 'DWD-Daten werden geladen']) {
+    await pg.getByText(text).first().waitFor({ state: 'hidden', timeout: 45000 })
+  }
+  await pg.getByText('Wind', { exact: true }).first().waitFor({ timeout: 45000 })
+}
+
 async function expand(pg, text) {
   const heading = pg.getByText(text, { exact: true }).first()
   if (!(await heading.count())) return
@@ -172,6 +183,7 @@ async function captureAll() {
 
   console.log('* Vorflugkontrolle')
   await go(page, `/mission/${MID}/vorflugkontrolle`, 6000)
+  await waitForWeather(page)
   await scrollTo(page, 'Wetterbedingungen')
   await page.waitForTimeout(1500)
   await shot(page, 'wetter')
