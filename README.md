@@ -35,6 +35,16 @@ Automatische Abfrage nahegelegener Infrastruktur über [Overpass/OpenStreetMap](
 - Lufträume, Straßen, Bahnlinien, Wasserwege
 - Stromleitungen, Krankenhäuser, Naturschutzgebiete
 
+### Flugverkehr (ADS-B)
+
+Live-Flugverkehr im Umkreis von 10 km aus Community-ADS-B-Daten ([adsb.lol](https://adsb.lol/), Fallback [adsb.fi](https://adsb.fi/)):
+- Liste der Luftfahrzeuge mit Höhe über Grund (Geländehöhe von Open-Meteo), Entfernung, Richtung, Geschwindigkeit, Steig-/Sinkflug; Hubschrauber, militärischer Verkehr und Not-/Rettungsflüge werden markiert
+- Bewertung: unter 500 m über Grund in bis zu 3 km Entfernung = Warnung, tieffliegender Verkehr weiter entfernt = Vorsicht
+- Aktualisierung jede Minute; der letzte Stand wird je Einsatzabschnitt gespeichert und landet mit Uhrzeit im PDF
+- Da die ADS-B-Dienste keine CORS-Header senden, läuft die Abfrage über den ADS-B-Proxy im optionalen Backend (`server/`, `GET /adsb/point/...`). Ohne Backend zeigt die Sektion einen Hinweis und einen Link zur Live-Karte; im Dev-Server leitet Vite direkt an adsb.lol weiter
+- Eine Cloudflare Pages Function als Proxy funktioniert nicht: Aus Cloudflare Workers heraus antwortet adsb.lol mit 429 (geteilte Egress-IPs) und adsb.fi mit 403
+- ADS-B erfasst nicht jeden Verkehr (Segelflug, UL, Gleitschirme …) und ersetzt keine Luftraumbeobachtung
+
 ### Interaktive Einsatzkarte
 
 - Leaflet-Karte mit [Geoman](https://geoman.io/)-Zeichenwerkzeugen (Polygon, Kreis, Marker, Linie)
@@ -136,6 +146,7 @@ src/
 │   │   ├── WeatherSection         # Wetterbewertung
 │   │   ├── RiskClassSection       # SORA-Risikoklassifizierung
 │   │   ├── NearbyCheckSection     # Umgebungsprüfung (Overpass)
+│   │   ├── FlightTrafficSection   # Flugverkehr (ADS-B)
 │   │   ├── AnmeldungenSection     # Fluganmeldungen
 │   │   ├── EinsatzdetailsSection  # Einsatz-Stammdaten
 │   │   ├── EinsatzauftragSection  # Einsatzauftrag und Vorlagen
@@ -148,7 +159,7 @@ src/
 │   ├── MissionOverview.tsx # Einsatzübersicht (Start, Liste, Löschen)
 │   └── MissionStepper.tsx  # Phasen-Navigation
 ├── hooks/                  # Custom Hooks (TanStack Query, localStorage, Geolocation)
-├── services/               # API-Clients (Open-Meteo, Bright Sky/DWD, NOAA, Overpass, Nominatim)
+├── services/               # API-Clients (Open-Meteo, Bright Sky/DWD, NOAA, Overpass, ADS-B, Nominatim)
 ├── data/                   # Statische Daten (Drohnenspecs, Schwellenwerte)
 ├── types/                  # TypeScript-Typen
 ├── utils/                  # Hilfsfunktionen (Storage, PDF, Bewertung, Formatierung)
@@ -163,6 +174,7 @@ src/
 | [Bright Sky](https://brightsky.dev/) (DWD) | Stationsmessung + amtliche Warnungen (nur DE) | TanStack Query (Snapshot je Einsatzabschnitt) + Service Worker 10 min |
 | [NOAA SWPC](https://www.swpc.noaa.gov/) | Geomagnetischer K-Index | TanStack Query 1 h + Service Worker 1 h |
 | [Overpass](https://overpass-api.de/) | Nahegelegene Infrastruktur (OSM) | localStorage 8 h |
+| [adsb.lol](https://adsb.lol/) / [adsb.fi](https://adsb.fi/) über Backend-Proxy | Live-Flugverkehr (ADS-B, ODbL) | TanStack Query 30 s, Refetch 60 s, Snapshot je Einsatzabschnitt; Service Worker NetworkOnly |
 | [Nominatim](https://nominatim.openstreetmap.org/) | Reverse Geocoding | TanStack Query |
 | [OpenStreetMap Tiles](https://www.openstreetmap.org/) | Kartenkacheln | Service Worker CacheFirst 7 Tage |
 

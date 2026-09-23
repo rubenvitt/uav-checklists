@@ -33,6 +33,7 @@ const phases = [
       'Gegenprüfung mit DWD-Stationsmessung und amtlichen Unwetterwarnungen (Deutschland)',
       'Wind auf 10 / 80 / 120 / 180 m, interpoliert auf die geplante Flughöhe',
       'Umgebungsprüfung: Krankenhäuser, BOS, Bahn, Autobahn, Schutzgebiete, Strommasten',
+      'Live-Flugverkehr (ADS-B) im Umkreis, mit Warnung bei Tiefflug in der Nähe',
       'Fluganmeldungen bei Leitstelle, Polizei und weiteren Stellen',
       'SORA: GRC, ARC und daraus abgeleitetes SAIL',
       'Technische Kontrolle, Flugbriefing, Funktionstest — dann Freigabe oder Ablehnung',

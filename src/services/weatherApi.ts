@@ -201,5 +201,6 @@ export async function fetchWeather(lat: number, lon: number, maxAltitude: number
     windByAltitude: buildWindByAltitude(json.hourly, hourlyIdx, maxAltitude),
     hourlyForecast: buildHourlyForecast(json.hourly),
     metarStation: findNearestMetarStation(lat, lon),
+    elevation: typeof json.elevation === 'number' && Number.isFinite(json.elevation) ? json.elevation : null,
   }
 }

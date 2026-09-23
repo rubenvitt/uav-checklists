@@ -5,6 +5,15 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { devtools } from '@tanstack/devtools-vite'
 
+// Lokal ohne Backend: `/adsb/point/...` direkt an adsb.lol weiterleiten
+// (die API sendet keine CORS-Header). In Produktion übernimmt das der
+// ADS-B-Proxy im Backend (server/src/adsb.ts).
+const adsbDevProxy = {
+  target: 'https://api.adsb.lol',
+  changeOrigin: true,
+  rewrite: (path: string) => path.replace(/^\/adsb\/point\//, '/v2/point/'),
+}
+
 export default defineConfig({
   plugins: [devtools(), react(), babel({
     presets: [reactCompilerPreset()],
@@ -40,6 +49,14 @@ export default defineConfig({
           urlPattern: /\/(sign|verify|archive|me\/signature)(\?.*)?$/i,
           handler: 'NetworkOnly',
           options: { cacheName: 'sign-api-no-cache' },
+        },
+        {
+          // ADS-B-Proxy: Echtzeitdaten — ein veralteter Cache-Treffer wäre
+          // irreführend. Offline zeigt die App den zuletzt gespeicherten Stand
+          // mit Uhrzeit aus dem Einsatzspeicher.
+          urlPattern: /\/adsb\/point\//i,
+          handler: 'NetworkOnly',
+          options: { cacheName: 'adsb-no-cache' },
         },
         {
           urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/i,
@@ -83,5 +100,9 @@ export default defineConfig({
   server: {
     port: 5174,
     strictPort: true,
+    proxy: { '/adsb/point': adsbDevProxy },
+  },
+  preview: {
+    proxy: { '/adsb/point': adsbDevProxy },
   },
 })

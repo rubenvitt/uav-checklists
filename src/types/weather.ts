@@ -59,6 +59,8 @@ export interface WeatherResponse {
   windByAltitude: WindAtAltitude[]
   hourlyForecast: HourlyForecastPoint[]
   metarStation: MetarStationInfo | null
+  /** Geländehöhe des Rasterpunkts in m ü. NN (Open-Meteo). Fehlt bei älteren Snapshots. */
+  elevation?: number | null
 }
 
 /* ── DWD (Bright Sky) ─────────────────────────────────────── */

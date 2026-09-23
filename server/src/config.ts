@@ -46,6 +46,8 @@ export interface ServerConfig {
   clamavHost: string | null;
   /** clamd TCP port. Defaults to 3310. */
   clamavPort: number;
+  /** Whether the public ADS-B proxy route (`/adsb/point/...`) is served. */
+  adsbProxyEnabled: boolean;
 }
 
 export function loadConfig(): ServerConfig {
@@ -66,5 +68,6 @@ export function loadConfig(): ServerConfig {
     corsOrigin: optional('CORS_ORIGIN', 'http://localhost:5173'),
     clamavHost: (process.env.CLAMAV_HOST ?? '').trim() || null,
     clamavPort: Number(optional('CLAMAV_PORT', '3310')),
+    adsbProxyEnabled: !['0', 'false', 'off', 'no'].includes(optional('ADSB_PROXY', 'on').toLowerCase()),
   };
 }

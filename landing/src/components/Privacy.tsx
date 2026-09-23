@@ -29,6 +29,7 @@ const requests = [
   ['Bright Sky (DWD)', 'Stationsmessung und amtliche Warnungen', 'Koordinaten'],
   ['NOAA SWPC', 'Geomagnetischer K-Index', 'keine'],
   ['Overpass / OpenStreetMap', 'Umgebungsprüfung', 'Koordinaten'],
+  ['adsb.lol / adsb.fi (über das Backend)', 'Live-Flugverkehr (ADS-B)', 'Koordinaten, nicht die eigene IP'],
   ['Nominatim', 'Ortsname zum Standort', 'Koordinaten'],
   ['OpenStreetMap-Kacheln', 'Kartendarstellung', 'Kartenausschnitt'],
 ]
@@ -74,7 +75,7 @@ export default function Privacy() {
           <div>
             <h3 className="display text-2xl text-paper">Was doch nach draußen geht</h3>
             <p className="mt-4 text-sm leading-relaxed text-paper-3/65">
-              Wetter, Umgebung und Kartenkacheln kommen von öffentlichen Diensten. Dafür wird der
+              Wetter, Umgebung, Flugverkehr und Kartenkacheln kommen von öffentlichen Diensten. Dafür wird der
               Einsatzort übertragen — sonst nichts. Keine Namen, keine Einsatzdaten, keine
               Kennungen, keine API-Schlüssel. Offline greift der Zwischenspeicher, dann werden gar
               keine Abfragen gestellt.

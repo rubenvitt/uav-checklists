@@ -120,6 +120,8 @@ function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
     queryClient.removeQueries({ queryKey: ['dwd'] })
     queryClient.removeQueries({ queryKey: ['kindex'] })
     queryClient.removeQueries({ queryKey: ['nearby'] })
+    // Flugverkehr: gespeicherten Stand behalten, bis neue Daten da sind
+    queryClient.invalidateQueries({ queryKey: ['traffic'] })
     queryClient.invalidateQueries({ queryKey: ['geocode'] })
   }, [missionId, activeSegmentId, queryClient])
 

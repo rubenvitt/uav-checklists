@@ -8,6 +8,9 @@ import { useSegmentId } from '../context/useSegmentId'
 import { useGeolocation } from '../hooks/useGeolocation'
 import { useMissionWeather, useMissionDwdWeather, useMissionKIndex, useMissionNearby } from '../hooks/useMissionEnvironment'
 import { useReverseGeocode } from '../hooks/useReverseGeocode'
+import { useFlightTraffic } from '../hooks/useFlightTraffic'
+import { assessTraffic } from '../utils/trafficAssessment'
+import { TRAFFIC_SEARCH_RADIUS_KM } from '../data/thresholds'
 import { useMissionPersistedState, clearMissionFormStorageByPrefix } from '../hooks/useMissionPersistedState'
 import { useSegmentPersistedState } from '../hooks/useSegmentPersistedState'
 import { readStorage } from '../hooks/usePersistedState'
@@ -24,6 +27,7 @@ import SegmentBanner from './SegmentBanner'
 import RahmenangabenSection from './sections/RahmenangabenSection'
 import ExternalToolsSection from './sections/ExternalToolsSection'
 import NearbyCheckSection from './sections/NearbyCheckSection'
+import FlightTrafficSection from './sections/FlightTrafficSection'
 import AnmeldungenSection from './sections/AnmeldungenSection'
 import RiskClassSection from './sections/RiskClassSection'
 import WeatherSection from './sections/WeatherSection'
@@ -58,12 +62,15 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
       queryClient.removeQueries({ queryKey: ['weather'] })
       queryClient.removeQueries({ queryKey: ['dwd'] })
       queryClient.removeQueries({ queryKey: ['nearby'] })
+      queryClient.removeQueries({ queryKey: ['traffic'] })
     }
     prevSegmentRef.current = segmentId
   }, [segmentId, queryClient])
   const nearby = useMissionNearby(geo.latitude, geo.longitude)
   const weather = useMissionWeather(geo.latitude, geo.longitude, maxAltitude)
   const dwd = useMissionDwdWeather(geo.latitude, geo.longitude)
+  const traffic = useFlightTraffic(geo.latitude, geo.longitude, TRAFFIC_SEARCH_RADIUS_KM)
+  const trafficAssessment = traffic.snapshot ? assessTraffic(traffic.snapshot, weather.elevation) : null
 
   // Lifted state for PDF report
   const [soraData, setSoraData] = useState<{ grc: number | null; arc: ArcClass | null; sail: number | null }>({ grc: null, arc: null, sail: null })
@@ -115,7 +122,9 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
     .map((metric) => `Wetter: ${metric.label} ${metric.value}${metric.unit ? ` ${metric.unit}` : ''}`)
   const noGoReasonsFromNearby = criticalNearbyCategories.map((category) => `Umgebung: ${category.label}`)
   const noGoReasons = [...new Set([...noGoReasonsFromWeather, ...noGoReasonsFromNearby])]
-  const sections = useVorflugkontrolleCompleteness(!!weatherWarning, !!nearbyWarning, hasLocation)
+  // Flugverkehr ist eine Momentaufnahme: Warnung öffnet die Sektion, ist aber kein No-Go-Grund
+  const trafficWarning = trafficAssessment?.overall === 'warning'
+  const sections = useVorflugkontrolleCompleteness(!!weatherWarning, !!nearbyWarning, hasLocation, trafficWarning)
   const { openState, toggle, continueToNext, isComplete } = useAutoExpand(sections, 'vorflugkontrolle')
   const navigate = useNavigate()
   const currentDecision =
@@ -298,6 +307,7 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
         sail: soraData.sail,
         assessment,
         metarStation: weather.metarStation,
+        traffic: traffic.snapshot && trafficAssessment ? { snapshot: traffic.snapshot, assessment: trafficAssessment } : null,
         checklistGroups,
         flugfreigabe,
         flugentscheidung,
@@ -338,6 +348,23 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
       </div>
       <ExternalToolsSection latitude={geo.latitude} longitude={geo.longitude} locked={!hasLocation} open={openState.externaltools} onToggle={() => toggle('externaltools')} isComplete={isComplete.externaltools} onContinue={() => continueToNext('externaltools')} />
       <NearbyCheckSection categories={nearby.categories} loading={nearby.loading} error={nearby.error} locked={!hasLocation} onManualChecksChange={handleManualChecksChange} open={openState.nearbycheck} onToggle={() => toggle('nearbycheck')} isComplete={isComplete.nearbycheck} onContinue={() => continueToNext('nearbycheck')} />
+      <FlightTrafficSection
+        latitude={geo.latitude}
+        longitude={geo.longitude}
+        snapshot={traffic.snapshot}
+        assessment={trafficAssessment}
+        isLive={traffic.isLive}
+        configured={traffic.configured}
+        loading={traffic.loading}
+        fetching={traffic.fetching}
+        error={traffic.error}
+        onRefresh={traffic.refresh}
+        locked={!hasLocation}
+        open={openState.flighttraffic}
+        onToggle={() => toggle('flighttraffic')}
+        isComplete={isComplete.flighttraffic}
+        onContinue={() => continueToNext('flighttraffic')}
+      />
       <AnmeldungenSection categories={nearby.categories} open={openState.anmeldungen} onToggle={() => toggle('anmeldungen')} isComplete={isComplete.anmeldungen} onContinue={() => continueToNext('anmeldungen')} />
       <RiskClassSection key={soraResetKey} locked={!hasLocation} onSoraChange={handleSoraChange} open={openState.riskclass} onToggle={() => toggle('riskclass')} isComplete={isComplete.riskclass} onContinue={() => continueToNext('riskclass')} />
       <WeatherSection

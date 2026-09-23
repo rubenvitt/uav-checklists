@@ -66,6 +66,7 @@ and `1` (with the first broken row) when it is tampered.
 | `ARCHIVE_DIR` | no | `./data/archive` | On-disk archive directory |
 | `CLAMAV_HOST` | no | — (disabled) | clamd host (TCP) for upload virus scanning |
 | `CLAMAV_PORT` | no | `3310` | clamd TCP port |
+| `ADSB_PROXY` | no | `on` | `off` disables the public ADS-B proxy route |
 
 The **signing key** is generated and persisted on first boot if absent (a
 warning is logged). Treat it as a secret and back it up — losing it makes every
@@ -73,7 +74,7 @@ existing signature unverifiable.
 
 ## Endpoints
 
-All endpoints except `/health` and `/verify` require a valid PocketID **Bearer**
+All endpoints except `/health`, `/verify` and `/adsb/point/...` require a valid PocketID **Bearer**
 access token (`Authorization: Bearer <token>`). The token is validated against
 the issuer's JWKS (signature, `iss`, `aud`, `exp`); `sub` and display `name` are
 extracted.
@@ -87,6 +88,7 @@ extracted.
 | `GET` | `/me/signature` | yes | — | `image/png` bytes, or `404` |
 | `PUT` | `/me/signature` | yes | PNG bytes | `{ updatedAt }`; `415` if not a PNG |
 | `DELETE` | `/me/signature` | yes | — | `{ deleted:true }`, or `404` |
+| `GET` | `/adsb/point/:lat/:lon/:radiusNm` | **no** | — | `{ source, now, ac:[…] }` (readsb fields, trimmed); `400` invalid params, `502` upstreams down |
 
 PDF / PNG bytes are sent as the raw request body (`Content-Type: application/pdf`
 resp. `image/png`).
@@ -94,6 +96,21 @@ resp. `image/png`).
 `/verify` is **public** so anyone holding a PDF can check whether it is
 registered and unaltered — no login required. The SPA shows this checker on its
 main page whenever a backend URL is configured.
+
+### ADS-B proxy
+
+`/adsb/point/...` relays live traffic from [adsb.lol](https://adsb.lol/)
+(fallback [adsb.fi](https://adsb.fi/)) to the PWA's flight-traffic section —
+the aggregators send no CORS headers, so the browser cannot call them directly.
+It is **public** (traffic must be visible without login), limited to a 25 NM
+radius, trims each aircraft to the fields the PWA uses and caches per ~100 m
+location for 15 s, so polling clients at the same site cause one upstream
+request. Disable with `ADSB_PROXY=off`. adsb.lol data is ODbL-licensed.
+
+Requests carry a User-Agent with contact info (adsb.lol rejects generic ones
+with 403). A 502 lists the status per upstream in `attempts`. Note that this
+cannot run as a Cloudflare Pages Function/Worker: from Cloudflare egress
+adsb.lol answers 429 and adsb.fi 403 — it needs a regular host like this one.
 
 ### Virus scanning
 
