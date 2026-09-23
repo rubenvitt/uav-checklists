@@ -22,6 +22,12 @@ const KEPT_FIELDS = [
   'squawk', 'emergency', 'category', 'lat', 'lon', 'seen_pos', 'seen',
 ] as const;
 
+/**
+ * adsb.lol lehnt Anfragen ohne aussagekräftigen User-Agent mit Kontaktangabe
+ * ab (403 „User-Agent too generic“); Cloudflare Workers senden gar keinen.
+ */
+export const USER_AGENT = 'Flugmappe/1.0 (+https://github.com/rubenvitt/uav-checklists)';
+
 export interface AdsbUpstream {
   name: string;
   url: (lat: number, lon: number, radiusNm: number) => string;
@@ -88,7 +94,7 @@ export function createAdsbProxy(opts: AdsbProxyOptions = {}): AdsbLookup {
     for (const upstream of upstreams) {
       try {
         const res = await fetchImpl(upstream.url(lat, lon, radiusNm), {
-          headers: { Accept: 'application/json' },
+          headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
           signal: AbortSignal.timeout(timeoutMs),
         });
         if (!res.ok) continue;

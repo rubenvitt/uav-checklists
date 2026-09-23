@@ -1,6 +1,6 @@
 import { generateKeyPairSync } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
-import { createAdsbProxy, parseAdsbParams, type AdsbUpstream } from './adsb.js';
+import { USER_AGENT, createAdsbProxy, parseAdsbParams, type AdsbUpstream } from './adsb.js';
 import { createApp } from './app.js';
 import type { TokenVerifier } from './auth.js';
 import { openDb } from './db.js';
@@ -47,7 +47,10 @@ describe('createAdsbProxy', () => {
     expect(res.ac[0]).not.toHaveProperty('rssi');
     expect(res.ac[0]).not.toHaveProperty('messages');
     // coordinates are rounded to ~100 m before hitting the upstream
-    expect(fetchImpl).toHaveBeenCalledWith('https://primary.test/52.37/9.73/6', expect.anything());
+    expect(fetchImpl).toHaveBeenCalledWith(
+      'https://primary.test/52.37/9.73/6',
+      expect.objectContaining({ headers: expect.objectContaining({ 'User-Agent': USER_AGENT }) }),
+    );
   });
 
   it('falls back to the next upstream and accepts the `aircraft` key', async () => {
