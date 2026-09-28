@@ -1,0 +1,15 @@
+# Cloudflare Pages: Header für statisch ausgelieferte Dateien.
+# Die Startseite selbst läuft über functions/index.ts, das dieselben
+# Link-Header setzt (RFC 8288) — bei Änderungen beide Stellen anpassen.
+/
+  Link: </index.md>; rel="alternate"; type="text/markdown"
+  Link: </index.md>; rel="describedby"; type="text/markdown"
+  Link: <https://github.com/rubenvitt/uav-checklists#readme>; rel="service-doc"; type="text/html"
+  Link: </sitemap.xml>; rel="sitemap"; type="application/xml"
+  Vary: Accept
+
+/index.md
+  Content-Type: text/markdown; charset=utf-8
+
+/sitemap.xml
+  Content-Type: application/xml; charset=utf-8
