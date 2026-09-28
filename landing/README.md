@@ -64,6 +64,24 @@ beide Auslieferungen getrennt und blockieren sich nicht gegenseitig:
 Wichtig ist das Root directory: Ohne es würde Cloudflare den PWA-Build
 ausführen. Eine SPA-Weiterleitung wird hier nicht gebraucht.
 
+### Auffindbarkeit für Suchmaschinen und Agenten
+
+| Datei | Zweck |
+|---|---|
+| `public/sitemap.xml` | Sitemap nach sitemaps.org; in `robots.txt` referenziert |
+| `public/index.md` | Markdown-Fassung der Seite für Agenten, auch direkt unter `/index.md` abrufbar |
+| `functions/index.ts` | Pages Function nur für `/`: liefert bei `Accept: text/markdown` `index.md` aus (mit `X-Markdown-Tokens`), sonst das HTML; setzt die `Link`-Header (RFC 8288) |
+| `public/_headers` | dieselben `Link`-Header für die statische Auslieferung, Content-Types für `.md`/`.xml` |
+
+**Beim Ändern der Texte `public/index.md` mitpflegen.** Die Seite wird
+clientseitig gerendert; das ausgelieferte HTML ist leer, Agenten sehen also nur
+die Markdown-Fassung. Kommt eine weitere Seite dazu, gehört sie in
+`sitemap.xml`.
+
+Die Function ist Cloudflare-spezifisch. Auf anderen Webservern fällt nur die
+Content-Negotiation weg; `sitemap.xml`, `robots.txt` und `/index.md` bleiben
+als statische Dateien erreichbar.
+
 ## Datenschutz
 
 Die Seite lädt nichts von fremden Servern nach und setzt keine Cookies:
