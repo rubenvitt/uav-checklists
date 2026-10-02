@@ -20,6 +20,7 @@ Package manager is **pnpm**.
 ## Tech Stack
 
 - React 19 + TypeScript (strict) + Vite 8
+- TypeScript 7 (native) for `tsc -b`; typescript-eslint doesn't support TS 7 yet, so `.pnpmfile.cjs` gives it its own TS 6 copy — remove that hook once typescript-eslint supports TS 7
 - Tailwind CSS 4 (via `@tailwindcss/vite`)
 - React Router 7 (BrowserRouter, two routes: overview `/` and mission `/mission/:missionId/:phase`)
 - TanStack React Query (weather/geo data caching, persisted to localStorage)
