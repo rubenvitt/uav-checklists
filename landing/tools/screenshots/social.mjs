@@ -1,6 +1,9 @@
 /**
- * Erzeugt public/og-image.png (Vorschaubild beim Teilen) und
- * public/apple-touch-icon.png aus public/favicon.svg.
+ * Erzeugt public/og-image.png (Vorschaubild beim Teilen),
+ * public/apple-touch-icon.png sowie die Raster-Favicons public/favicon.ico
+ * (16/32/48 px) und public/favicon-96x96.png aus public/favicon.svg.
+ * Die Raster-Favicons brauchen Browser ohne SVG-Favicon-Unterstützung,
+ * Suchmaschinen und alles, was blind /favicon.ico abruft.
  *
  *   node tools/screenshots/social.mjs
  *
@@ -71,5 +74,45 @@ for (const [html, size, file] of [
   await page.screenshot({ path: path.join(landing, 'public', file) })
   console.log(file)
 }
+
+// Favicons mit transparenten Ecken: die Marke hat abgerundete Ecken.
+const favicon = (size) => `<!doctype html><html lang="de"><head><meta charset="utf-8"><style>
+*{margin:0;padding:0}body{width:${size}px;height:${size}px;background:transparent}svg{display:block;width:${size}px;height:${size}px}
+</style></head><body>${mark}</body></html>`
+
+const renderFavicon = async (size) => {
+  const ctx = await browser.newContext({ viewport: { width: size, height: size }, deviceScaleFactor: 1 })
+  const page = await ctx.newPage()
+  await page.setContent(favicon(size), { waitUntil: 'load' })
+  const png = await page.screenshot({ omitBackground: true })
+  await ctx.close()
+  return png
+}
+
+fs.writeFileSync(path.join(landing, 'public', 'favicon-96x96.png'), await renderFavicon(96))
+console.log('favicon-96x96.png')
+
+// ICO-Container mit eingebetteten PNGs (von allen aktuellen Browsern und
+// Windows unterstützt): 6 Byte Kopf, je Bild 16 Byte Verzeichniseintrag.
+const icoSizes = [16, 32, 48]
+const pngs = []
+for (const size of icoSizes) pngs.push(await renderFavicon(size))
+const header = Buffer.alloc(6 + 16 * pngs.length)
+header.writeUInt16LE(0, 0)
+header.writeUInt16LE(1, 2)
+header.writeUInt16LE(pngs.length, 4)
+let offset = header.length
+pngs.forEach((png, i) => {
+  const entry = 6 + 16 * i
+  header.writeUInt8(icoSizes[i], entry)
+  header.writeUInt8(icoSizes[i], entry + 1)
+  header.writeUInt16LE(1, entry + 4)
+  header.writeUInt16LE(32, entry + 6)
+  header.writeUInt32LE(png.length, entry + 8)
+  header.writeUInt32LE(offset, entry + 12)
+  offset += png.length
+})
+fs.writeFileSync(path.join(landing, 'public', 'favicon.ico'), Buffer.concat([header, ...pngs]))
+console.log('favicon.ico')
 
 await browser.close()

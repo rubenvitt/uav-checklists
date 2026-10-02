@@ -144,7 +144,8 @@ pnpm exec playwright install chromium
 node tools/screenshots/capture.mjs
 node tools/screenshots/optimize.mjs
 
-# 4. Vorschaubild und Touch-Icon (nur bei Änderungen am Aufmacher nötig)
+# 4. Vorschaubild, Touch-Icon und Favicons (nur bei Änderungen am Aufmacher
+#    oder an public/favicon.svg nötig)
 node tools/screenshots/social.mjs
 ```
 
