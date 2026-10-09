@@ -161,7 +161,7 @@ export default function EinsatzkarteSection({ latitude, longitude, locked, open,
           onClick={() => setMode('map')}
           className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             mode === 'map'
-              ? 'bg-surface text-text shadow-sm'
+              ? 'bg-surface text-text ring-1 ring-inset ring-line-strong'
               : 'text-text-muted hover:text-text'
           }`}
         >
@@ -172,7 +172,7 @@ export default function EinsatzkarteSection({ latitude, longitude, locked, open,
           onClick={() => setMode('photo')}
           className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             mode === 'photo'
-              ? 'bg-surface text-text shadow-sm'
+              ? 'bg-surface text-text ring-1 ring-inset ring-line-strong'
               : 'text-text-muted hover:text-text'
           }`}
         >

@@ -99,7 +99,7 @@ export default function RiskClassSection({ locked, onSoraChange, open, onToggle,
         </div>
 
         {/* ARC */}
-        <div className="border-t border-surface-alt pt-4">
+        <div className="border-t border-line pt-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-1">
             <h3 className="text-sm font-semibold text-text">Air Risk Class (ARC)</h3>
             <div className="flex flex-wrap gap-1">
@@ -111,7 +111,7 @@ export default function RiskClassSection({ locked, onSoraChange, open, onToggle,
         </div>
 
         {/* SAIL */}
-        <div className="border-t border-surface-alt pt-4">
+        <div className="border-t border-line pt-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-1">
             <h3 className="text-sm font-semibold text-text">SAIL-Bestimmung</h3>
             <div className="flex flex-wrap gap-1">
@@ -123,7 +123,7 @@ export default function RiskClassSection({ locked, onSoraChange, open, onToggle,
         </div>
 
         {/* SORA-Anhänge */}
-        <div className="border-t border-surface-alt pt-4">
+        <div className="border-t border-line pt-4">
           <h3 className="mb-3 text-sm font-semibold text-text">SORA-Anhänge</h3>
           <SoraAnnexes
             idPrefix={annexIdPrefix}

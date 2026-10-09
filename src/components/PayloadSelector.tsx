@@ -52,7 +52,7 @@ export default function PayloadSelector({ drone, value, onChange, label = 'Nutzl
               title={disabled ? 'Alle Gimbal-Slots belegt' : `${PAYLOAD_TYPE_LABELS[p.type]}: ${p.description}`}
               className={`flex items-center gap-1.5 rounded-lg ${isCompact ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} font-medium transition-colors ${
                 selected
-                  ? 'bg-text text-base'
+                  ? 'bg-accent text-on-accent'
                   : disabled
                     ? 'cursor-not-allowed bg-surface-alt text-text-muted/40'
                     : 'bg-surface-alt text-text-muted hover:text-text'

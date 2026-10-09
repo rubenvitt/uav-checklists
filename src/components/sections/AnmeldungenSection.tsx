@@ -87,7 +87,7 @@ export default function AnmeldungenSection({ categories, open, onToggle, isCompl
   return (
     <ChecklistSection title="Fluganmeldungen" icon={<PiPhone />} badge={badge} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <div className="-mx-5 -mt-1">
-        <div className="divide-y divide-surface-alt">
+        <div className="divide-y divide-line">
           {/* Required notifications */}
           {REQUIRED_NOTIFICATIONS.map((n) => (
             <button
@@ -98,7 +98,7 @@ export default function AnmeldungenSection({ categories, open, onToggle, isCompl
               <span
                 className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs transition-colors ${
                   checked[n.key]
-                    ? 'border-good bg-good text-white'
+                    ? 'border-good bg-good text-on-fill'
                     : 'border-text-muted/30 text-transparent'
                 }`}
               >
@@ -123,7 +123,7 @@ export default function AnmeldungenSection({ categories, open, onToggle, isCompl
               <span
                 className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs transition-colors ${
                   checked[n.key]
-                    ? 'border-good bg-good text-white'
+                    ? 'border-good bg-good text-on-fill'
                     : 'border-caution/50 text-transparent'
                 }`}
               >
@@ -154,7 +154,7 @@ export default function AnmeldungenSection({ categories, open, onToggle, isCompl
                 <span
                   className={`flex h-5 w-5 items-center justify-center rounded border text-xs transition-colors ${
                     checked[`custom_${i}`]
-                      ? 'border-good bg-good text-white'
+                      ? 'border-good bg-good text-on-fill'
                       : 'border-text-muted/30 text-transparent'
                   }`}
                 >

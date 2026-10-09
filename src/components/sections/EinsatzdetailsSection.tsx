@@ -19,7 +19,7 @@ export default function EinsatzdetailsSection({ open, onToggle, isComplete, onCo
 
   return (
     <ChecklistSection title="Einsatzdetails" icon={<PiClipboardText />} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
-      <div className="-mx-5 -mb-5 -mt-1 divide-y divide-surface-alt">
+      <div className="-mx-5 -mb-5 -mt-1 divide-y divide-line">
         <FlightPurposeSelector value={flugAnlass} onChange={setFlugAnlass} />
         <AutocompleteInput
           label="Einsatzstichwort"

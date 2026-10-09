@@ -17,19 +17,19 @@ const RESULT_OPTIONS: ResultOption[] = [
     key: 'erfolgreich',
     label: 'Einsatz erfolgreich beendet',
     icon: <PiCheckCircle />,
-    activeColor: 'bg-good text-white',
+    activeColor: 'bg-good text-on-fill',
   },
   {
     key: 'erfolglos',
     label: 'Einsatz erfolglos beendet',
     icon: <PiXCircle />,
-    activeColor: 'bg-caution text-white',
+    activeColor: 'bg-caution text-on-fill',
   },
   {
     key: 'abgebrochen',
     label: 'Einsatz abgebrochen',
     icon: <PiProhibit />,
-    activeColor: 'bg-warning text-white',
+    activeColor: 'bg-warning text-on-fill',
   },
 ]
 
@@ -112,7 +112,7 @@ export default function MissionResultSection({ open, onToggle, isComplete, onCon
                   onClick={() => setAbortReason(isActive ? '' : reason)}
                   className={`rounded-lg px-3 py-2 text-xs font-medium transition-colors active:scale-[0.98] ${
                     isActive
-                      ? 'bg-warning text-white'
+                      ? 'bg-warning text-on-fill'
                       : 'bg-surface-alt text-text-muted hover:text-text'
                   }`}
                 >

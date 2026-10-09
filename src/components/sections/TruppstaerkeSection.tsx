@@ -65,7 +65,7 @@ export default function TruppstaerkeSection({ open, onToggle, isComplete, onCont
   return (
     <ChecklistSection title="Truppstärke" icon={<PiUsersThree />} badge={badge} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <div className="-mx-5 -mt-1">
-        <div className="divide-y divide-surface-alt">
+        <div className="divide-y divide-line">
           {BASE_ROLES.map(({ key, label, critical }) => {
             const isEmpty = !names[key].trim()
             const showWarning = isEmpty && critical

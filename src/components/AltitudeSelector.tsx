@@ -16,7 +16,7 @@ export default function AltitudeSelector({ value, onChange }: AltitudeSelectorPr
             onClick={() => onChange(alt)}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               value === alt
-                ? 'bg-text text-base'
+                ? 'bg-accent text-on-accent'
                 : 'bg-surface-alt text-text-muted hover:text-text'
             }`}
           >

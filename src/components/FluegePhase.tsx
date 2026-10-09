@@ -118,6 +118,11 @@ export default function FluegePhase() {
   })
 
   const completedEntries = entries.filter((e) => e.blockOn !== null).slice().reverse()
+  const totalFlightMinutes = completedEntries.reduce((sum, e) => {
+    if (!e.blockOn) return sum
+    const ms = new Date(e.blockOn).getTime() - new Date(e.blockOff).getTime()
+    return ms > 0 ? sum + Math.round(ms / 60000) : sum
+  }, 0)
 
   function startFlight() {
     setFluegeAbgeschlossen(false)
@@ -182,8 +187,8 @@ export default function FluegePhase() {
       } />
 
       {/* Hinweis: Start und Landung melden */}
-      <div className="flex items-start gap-3 rounded-xl bg-surface p-4">
-        <PiInfo className="mt-0.5 shrink-0 text-lg text-text-muted" />
+      <div className="flex items-start gap-3 border border-banner-line bg-banner px-4 py-3">
+        <PiInfo className="mt-0.5 shrink-0 text-lg text-accent-text" />
         <div>
           <p className="text-sm font-medium text-text">Meldepflicht Start & Landung</p>
           <p className="mt-0.5 text-xs text-text-muted">
@@ -220,7 +225,7 @@ export default function FluegePhase() {
         {!activeEntry && (
           <button
             onClick={startFlight}
-            className="flex items-center justify-center gap-2 rounded-xl bg-text px-4 py-3.5 text-sm font-medium text-base transition-colors active:scale-[0.99]"
+            className="flex min-h-14 items-center justify-center gap-2 bg-accent px-4 text-[15px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
           >
             <PiAirplaneTakeoff className="text-lg" />
             Flug starten
@@ -233,7 +238,7 @@ export default function FluegePhase() {
           />
           <button
             onClick={addEvent}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-surface-alt bg-surface px-4 py-3 text-sm text-text-muted transition-colors hover:text-text active:scale-[0.99]"
+            className="flex min-h-12 flex-1 items-center justify-center gap-2 border border-line-strong bg-surface px-3 text-sm font-medium text-text-2 transition-colors hover:border-control-border hover:text-text"
           >
             <PiNotePencil className="text-lg" />
             Ereignis
@@ -246,10 +251,12 @@ export default function FluegePhase() {
 
       {/* Ereignisse */}
       {eventNotes.length > 0 && (
-        <div className="space-y-2">
-          <p className="px-1 text-xs font-medium text-text-muted">
-            Ereignisse ({eventNotes.length})
-          </p>
+        <section className="border border-line bg-surface">
+          <div className="flex h-9 items-center justify-between border-b border-line bg-surface-alt/60 px-4">
+            <h2 className="eyebrow">Ereignisse</h2>
+            <span className="num text-[11px] text-faint">{eventNotes.length}</span>
+          </div>
+          <div className="divide-y divide-line">
           {[...eventNotes].reverse().map((note) => (
             <EventNoteCard
               key={note.id}
@@ -258,15 +265,21 @@ export default function FluegePhase() {
               onRemove={() => removeEvent(note.id)}
             />
           ))}
-        </div>
+          </div>
+        </section>
       )}
 
       {/* Abgeschlossene Flüge */}
       {completedEntries.length > 0 && (
-        <div className="space-y-3">
-          <p className="px-1 text-xs font-medium text-text-muted">
-            Flugtagebuch ({completedEntries.length} {completedEntries.length === 1 ? 'Flug' : 'Flüge'})
-          </p>
+        <section className="border border-line bg-surface">
+          <div className="flex h-9 items-center justify-between border-b border-line bg-surface-alt/60 px-4">
+            <h2 className="eyebrow">Flugtagebuch</h2>
+            <span className="num text-[11px] text-faint">
+              {completedEntries.length} {completedEntries.length === 1 ? 'Flug' : 'Flüge'}
+              {totalFlightMinutes > 0 && ` · ${totalFlightMinutes} min`}
+            </span>
+          </div>
+          <div className="divide-y divide-line">
           {isMultiSegment ? (
             <GroupedFlightList
               entries={completedEntries}
@@ -289,12 +302,13 @@ export default function FluegePhase() {
               />
             ))
           )}
-        </div>
+          </div>
+        </section>
       )}
 
       {/* Leer-Zustand */}
       {entries.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-xl bg-surface py-12 text-center">
+        <div className="flex flex-col items-center gap-3 border border-line bg-surface py-12 text-center">
           <PiAirplaneTakeoff className="text-3xl text-text-muted" />
           <div>
             <p className="text-sm font-medium text-text">Noch keine Flüge</p>
@@ -343,7 +357,7 @@ function NextPhaseButton({ hasFlights, onProceed }: { hasFlights: boolean; onPro
     return (
       <button
         onClick={onProceed}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-text px-4 py-3.5 text-sm font-medium text-base transition-colors active:scale-[0.99]"
+        className="flex min-h-14 w-full items-center justify-center gap-2 bg-accent px-4 text-[15px] font-semibold text-on-accent transition-colors hover:bg-accent-hover"
       >
         Weiter zur Nachbereitung
         <PiArrowRight className="text-lg" />
@@ -360,7 +374,7 @@ function NextPhaseButton({ hasFlights, onProceed }: { hasFlights: boolean; onPro
         <div className="flex gap-2">
           <button
             onClick={onProceed}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-caution px-3 py-2 text-sm font-medium text-white transition-colors active:scale-[0.99]"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-caution px-3 py-2 text-sm font-medium text-on-fill transition-colors active:scale-[0.99]"
           >
             <PiSkipForward className="text-base" />
             Ja, fortfahren
@@ -382,7 +396,7 @@ function NextPhaseButton({ hasFlights, onProceed }: { hasFlights: boolean; onPro
         setConfirming(true)
         timerRef.current = setTimeout(() => setConfirming(false), 10000)
       }}
-      className="flex w-full items-center justify-center gap-2 rounded-xl border border-surface-alt bg-surface px-4 py-3 text-sm text-text-muted transition-colors hover:text-text active:scale-[0.99]"
+      className="flex w-full items-center justify-center gap-2 rounded-xl border border-line-strong bg-surface px-4 py-3 text-sm font-medium text-text-2 transition-colors hover:border-control-border hover:text-text active:scale-[0.99]"
     >
       <PiSkipForward className="text-base" />
       Ohne Flüge zur Nachbereitung
@@ -399,8 +413,8 @@ function RelocationButton({ onRelocate, disabled }: { onRelocate: () => void; di
       disabled={disabled}
       className={`flex flex-1 items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm transition-colors active:scale-[0.99] ${
         disabled
-          ? 'cursor-not-allowed border-surface-alt bg-surface-alt text-text-muted/40'
-          : 'border-caution/30 bg-caution-bg text-caution hover:bg-caution/20'
+          ? 'cursor-not-allowed border-line bg-surface-alt text-text-muted/40'
+          : 'border-line-strong bg-surface font-medium text-text-2 hover:border-control-border hover:text-text [&>svg]:text-caution'
       }`}
       title={disabled ? 'Flug zuerst beenden' : 'Standort verlegen'}
     >
@@ -452,13 +466,13 @@ function GroupedFlightList({
     <>
       {groups.map((group) => (
         <div key={group.segmentId ?? 'none'}>
-          <div className="flex items-center gap-2 px-1 pb-1">
-            <PiMapPinArea className="shrink-0 text-xs text-text-muted/60" />
-            <span className="text-[10px] font-medium uppercase tracking-wider text-text-muted/60">
+          <div className="flex items-center gap-2 bg-surface-alt/40 px-4 py-1.5">
+            <PiMapPinArea className="shrink-0 text-xs text-faint" />
+            <span className="eyebrow">
               {group.label}
             </span>
           </div>
-          <div className="space-y-3">
+          <div className="divide-y divide-line border-t border-line">
             {group.entries.map((entry) => {
               const idx = globalIndex--
               return (
@@ -511,7 +525,7 @@ function ConfirmDeleteButton({
     return (
       <button
         {...handler}
-        className="flex items-center gap-1 rounded-lg bg-warning px-2.5 py-1.5 text-xs font-medium text-white transition-colors active:scale-95"
+        className="flex items-center gap-1 rounded-lg bg-warning px-2.5 py-1.5 text-xs font-medium text-on-fill transition-colors active:scale-95"
         title="Löschen bestätigen"
       >
         <PiTrash className="text-sm" />
@@ -571,10 +585,11 @@ function EventNoteCard({
 
   if (editing) {
     return (
-      <div className="overflow-hidden rounded-xl bg-surface ring-1 ring-text-muted/20">
+      <div className="relative overflow-hidden bg-surface">
+        <span className="absolute inset-y-0 left-0 w-0.5 bg-accent" aria-hidden="true" />
         <div className="flex items-center gap-2 px-4 pt-3 pb-1">
           <PiClock className="shrink-0 text-sm text-text-muted" />
-          <span className="text-xs font-medium text-text">
+          <span className="num text-xs font-medium text-text">
             {formatTime(note.timestamp)}
           </span>
           <span className="ml-auto flex items-center gap-1">
@@ -614,14 +629,15 @@ function EventNoteCard({
   return (
     <button
       onClick={() => setEditing(true)}
-      className="flex w-full items-center gap-3 rounded-xl bg-surface px-4 py-3 text-left transition-colors hover:bg-surface-alt active:scale-[0.99]"
+      className="relative flex w-full items-start gap-3 bg-surface py-3 pr-2 pl-4 text-left transition-colors hover:bg-surface-alt"
     >
-      <div className="flex shrink-0 flex-col items-center" title={note.source === 'adsb' ? 'Automatisch aus der ADS-B-Überwachung' : undefined}>
-        {note.source === 'adsb'
-          ? <PiAirplaneInFlight className="text-sm text-text-muted" />
-          : <PiClock className="text-sm text-text-muted" />}
-        <span className="mt-0.5 text-[10px] font-medium tabular-nums text-text-muted">
+      <span className={`absolute inset-y-0 left-0 w-0.5 ${note.source === 'adsb' ? 'bg-accent' : 'bg-line-strong'}`} aria-hidden="true" />
+      <div className="flex w-12 shrink-0 flex-col" title={note.source === 'adsb' ? 'Automatisch aus der ADS-B-Überwachung' : undefined}>
+        <span className="num text-[13px] leading-5 font-medium text-text">
           {formatTime(note.timestamp)}
+        </span>
+        <span className={`num flex items-center gap-1 text-[9px] font-medium tracking-wider uppercase ${note.source === 'adsb' ? 'text-accent-text' : 'text-faint'}`}>
+          {note.source === 'adsb' ? <><PiAirplaneInFlight /> ADS-B</> : 'Notiz'}
         </span>
       </div>
       <div className="min-w-0 flex-1">
@@ -630,7 +646,7 @@ function EventNoteCard({
             Keine Beschreibung...
           </span>
         ) : (
-          <p className={note.source === 'adsb' ? 'line-clamp-4 whitespace-pre-line text-sm text-text' : 'truncate text-sm text-text'}>{note.text}</p>
+          <p className={note.source === 'adsb' ? 'line-clamp-4 whitespace-pre-line text-sm leading-5 text-text-2' : 'line-clamp-3 text-sm leading-5 text-text-2'}>{note.text}</p>
         )}
       </div>
       <div className="flex shrink-0 items-center gap-1">
@@ -656,7 +672,7 @@ function MountedPayloadCard({
   const weight = computeWeightSummary(drone, value)
 
   return (
-    <div className="overflow-hidden rounded-xl bg-surface">
+    <div className="overflow-hidden border border-line bg-surface">
       <button
         type="button"
         onClick={() => setExpanded((o) => !o)}
@@ -677,7 +693,7 @@ function MountedPayloadCard({
         <span className="shrink-0 text-xs text-text-muted">{expanded ? 'Fertig' : 'Wechseln'}</span>
       </button>
       {expanded && (
-        <div className="border-t border-surface-alt">
+        <div className="border-t border-line">
           <PayloadSelector drone={drone} value={value} onChange={onChange} label={drone.name} />
         </div>
       )}
@@ -717,7 +733,7 @@ function ActiveFlightCard({
       </div>
 
       {/* Felder */}
-      <div className="divide-y divide-surface-alt">
+      <div className="divide-y divide-line">
         <div className="px-4 py-3">
           <label className="mb-1 block text-xs text-text-muted">Block Off (Start)</label>
           <input
@@ -769,7 +785,7 @@ function ActiveFlightCard({
       <div className="flex gap-2 px-4 py-3">
         <button
           onClick={onLand}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-good px-4 py-3 text-sm font-medium text-white transition-colors active:scale-[0.99]"
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-good px-4 py-3 text-sm font-medium text-on-fill transition-colors active:scale-[0.99]"
         >
           <PiAirplaneLanding className="text-lg" />
           Landung
@@ -800,17 +816,17 @@ function CompletedFlightCard({
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div className="overflow-hidden rounded-xl bg-surface">
+    <div className="overflow-hidden bg-surface">
       {/* Collapsed header — always visible */}
       <button
         onClick={() => setExpanded((o) => !o)}
-        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt"
+        className="flex min-h-14 w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-surface-alt"
       >
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-alt text-xs font-semibold text-text-muted">
-          {index}
+        <span className="num flex h-7 w-7 shrink-0 items-center justify-center border border-line-strong text-xs font-medium text-text-muted">
+          {String(index).padStart(2, '0')}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 text-sm font-medium text-text">
+          <div className="num flex items-center gap-2 text-sm font-medium text-text">
             <span>{formatTime(entry.blockOff)}</span>
             <span className="text-text-muted">→</span>
             <span>{entry.blockOn ? formatTime(entry.blockOn) : '—'}</span>
@@ -833,7 +849,7 @@ function CompletedFlightCard({
 
       {/* Expanded edit area */}
       {expanded && (
-        <div className="divide-y divide-surface-alt border-t border-surface-alt">
+        <div className="divide-y divide-line border-t border-line">
           {/* Block times */}
           <div className="flex gap-4 px-4 py-2.5">
             <div className="flex-1">
@@ -934,7 +950,7 @@ function LandingStatusBadge({ status }: { status: LandingStatus }) {
     notfall: 'bg-warning-bg text-warning',
   }
   return (
-    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs ${bgMap[status]}`}>
+    <span className={`flex h-6 w-6 shrink-0 items-center justify-center text-xs ${bgMap[status]}`} title={cfg.label}>
       {cfg.icon}
     </span>
   )
@@ -959,7 +975,7 @@ function LandingStatusSelector({
             onClick={() => onChange(status)}
             className={`flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors ${
               isActive
-                ? `${cfg.bgColor} text-white`
+                ? `${cfg.bgColor} text-on-fill`
                 : 'bg-surface-alt text-text-muted hover:text-text'
             }`}
           >
@@ -1080,7 +1096,7 @@ function NameAutocomplete({
           <ul
             ref={listRef}
             role="listbox"
-            className="absolute left-0 right-0 z-10 mt-1 max-h-36 overflow-y-auto rounded-lg border border-surface-alt bg-surface shadow-lg"
+            className="absolute left-0 right-0 z-10 mt-1 max-h-36 overflow-y-auto rounded-lg border border-line bg-surface shadow-lg"
           >
             {filtered.map((s, i) => (
               <li

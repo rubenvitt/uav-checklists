@@ -9,7 +9,7 @@ const CATEGORY_CONFIG: Record<ProcedureCategory, { label: string; icon: React.Re
     label: 'Normale Verfahren',
     icon: <PiListChecks />,
     headerColor: 'text-text',
-    borderColor: 'border-surface-alt',
+    borderColor: 'border-line',
   },
   contingency: {
     label: 'Contingency Procedures',
@@ -95,10 +95,10 @@ export default function ProceduresBottomSheet() {
         </div>
 
         {/* Scrollable content */}
-        <div ref={contentRef} className="flex-1 overflow-y-auto border-t border-surface-alt">
+        <div ref={contentRef} className="flex-1 overflow-y-auto border-t border-line">
           <div className="mx-auto max-w-2xl space-y-1 px-4 py-4 pb-20">
             {/* Allgemeine Regeln */}
-            <div className="mb-3 rounded-xl bg-surface p-3 space-y-2">
+            <div className="mb-3 border border-line bg-surface p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <PiInfo className="text-xs text-text-muted" />
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Allgemeine Regeln</span>
@@ -122,13 +122,13 @@ export default function ProceduresBottomSheet() {
                 <div key={cat}>
                   <button
                     onClick={() => toggleCategory(cat)}
-                    className={`flex w-full items-center gap-3 rounded-xl bg-surface border ${cfg.borderColor} px-4 py-3.5 transition-colors hover:bg-surface-alt/50`}
+                    className={`flex w-full items-center gap-3 border border-line bg-surface border ${cfg.borderColor} px-4 py-3.5 transition-colors hover:bg-surface-alt/50`}
                   >
                     <span className={`text-base ${cfg.headerColor}`}>{cfg.icon}</span>
                     <span className={`flex-1 text-left text-xs font-semibold ${cfg.headerColor}`}>
                       {cfg.label}
                     </span>
-                    <span className="rounded-full bg-surface-alt px-2 py-0.5 text-[10px] font-medium text-text-muted">
+                    <span className="bg-surface-alt px-2 py-0.5 text-[10px] font-medium text-text-muted">
                       {procs.length}
                     </span>
                     <PiCaretDown className={`text-sm text-text-muted transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`} />

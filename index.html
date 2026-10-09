@@ -5,14 +5,13 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#0f172a" />
+    <meta name="theme-color" content="#0c0e11" />
     <title>Flugmappe</title>
     <script>
       (function() {
         var t = localStorage.getItem('theme');
         var dark = t === 'dark' || (!t && matchMedia('(prefers-color-scheme: dark)').matches);
         if (dark) document.documentElement.classList.add('dark');
-        document.querySelector('meta[name="theme-color"]').content = dark ? '#0f172a' : '#f8fafc';
       })();
     </script>
   </head>

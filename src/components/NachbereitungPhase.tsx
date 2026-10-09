@@ -86,7 +86,7 @@ export default function NachbereitungPhase() {
         <div className="flex gap-2">
           <button
             onClick={handleDownloadPdf}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt active:scale-[0.99]"
+            className="flex flex-1 items-center justify-center gap-2 border border-line bg-surface px-4 py-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt active:scale-[0.99]"
           >
             <PiFilePdf className="text-lg" />
             PDF herunterladen
@@ -94,7 +94,7 @@ export default function NachbereitungPhase() {
           {canSharePdf() && (
             <button
               onClick={handleSharePdf}
-              className="flex items-center justify-center gap-2 rounded-xl bg-surface px-4 py-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt active:scale-[0.99]"
+              className="flex items-center justify-center gap-2 border border-line bg-surface px-4 py-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt active:scale-[0.99]"
               aria-label="PDF teilen"
               title="PDF teilen"
             >
@@ -111,7 +111,7 @@ export default function NachbereitungPhase() {
     <div className="space-y-4">
       {/* Hinweis: Einsatz ohne Flüge */}
       {!hasFlights && (
-        <div className="flex items-start gap-3 rounded-xl bg-surface p-4">
+        <div className="flex items-start gap-3 border border-line bg-surface p-4">
           <PiInfo className="mt-0.5 shrink-0 text-lg text-text-muted" />
           <div>
             <p className="text-sm font-medium text-text">Einsatz ohne Flüge</p>
@@ -162,8 +162,8 @@ export default function NachbereitungPhase() {
           signaturesMissing
             ? 'cursor-not-allowed bg-surface text-text-muted opacity-60'
             : confirmComplete
-              ? 'bg-caution text-white active:scale-[0.99]'
-              : 'bg-text text-base active:scale-[0.99]'
+              ? 'bg-caution text-on-fill active:scale-[0.99]'
+              : 'bg-accent text-on-accent active:scale-[0.99]'
         }`}
       >
         <PiCheckCircle className="text-lg" />

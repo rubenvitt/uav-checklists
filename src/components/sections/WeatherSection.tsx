@@ -44,18 +44,18 @@ const badgeLabel: Record<MetricStatus, string> = {
 
 const metarCardStyles: Record<MetricStatus, { card: string; badge: string; note: string }> = {
   good: {
-    card: 'border-good/25 bg-good-bg/40',
-    badge: 'bg-good text-white',
+    card: 'border-line bg-surface-alt/40',
+    badge: 'num border border-good/40 bg-good-bg text-good text-[11px]',
     note: 'text-good',
   },
   caution: {
     card: 'border-caution/25 bg-caution-bg/40',
-    badge: 'bg-caution text-white',
+    badge: 'num border border-caution/40 bg-caution-bg text-caution text-[11px]',
     note: 'text-caution',
   },
   warning: {
     card: 'border-warning/25 bg-warning-bg/40',
-    badge: 'bg-warning text-white',
+    badge: 'num border border-warning/40 bg-warning-bg text-warning text-[11px]',
     note: 'text-warning',
   },
 }
@@ -69,7 +69,7 @@ const metarStatusHint: Record<MetricStatus, string> = {
 function MetarStationHint({ metarStation }: { metarStation: MetarStationInfo | null }) {
   if (!metarStation) {
     return (
-      <div className="rounded-xl border border-surface-alt bg-surface-alt/50 px-4 py-3">
+      <div className="rounded-xl border border-line bg-surface-alt/50 px-4 py-3">
         <p className="text-sm font-semibold text-text">METAR-Repräsentativität</p>
         <p className="mt-1 text-xs text-text-muted">
           Für diesen Standort ist keine METAR-Station im lokalen Deutschland-Datenbestand verfügbar.
@@ -84,7 +84,7 @@ function MetarStationHint({ metarStation }: { metarStation: MetarStationInfo | n
     <div className={`rounded-xl border px-4 py-3 ${styles.card}`}>
       <div className="flex items-center gap-2">
         <p className="flex-1 text-sm font-semibold text-text">METAR-Repräsentativität</p>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${styles.badge}`}>
+        <span className={`px-2 py-0.5 text-xs font-medium ${styles.badge}`}>
           {badgeLabel[metarStation.status]}
         </span>
       </div>

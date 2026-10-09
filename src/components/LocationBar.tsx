@@ -136,27 +136,28 @@ export default function LocationBar({
   }
 
   return (
-    <section className={`rounded-xl bg-surface overflow-hidden ring-1 transition-shadow ${hasLocation ? 'ring-good/30' : 'ring-warning/40 shadow-sm shadow-warning/10'}`}>
+    <section className={`relative border bg-surface overflow-hidden ${hasLocation ? 'border-line' : 'border-warning/60'}`}>
+      <span className={`absolute inset-y-0 left-0 w-0.5 ${hasLocation ? 'bg-good' : 'bg-warning'}`} aria-hidden="true" />
       {/* Section header */}
-      <div className="flex items-center gap-3 px-5 py-4">
-        <span className="text-lg flex items-center text-text">
+      <div className="flex min-h-14 items-center gap-3 px-4 py-3">
+        <span className="text-lg flex items-center text-text-muted">
           <PiMapPinArea />
         </span>
-        <span className="flex-1 font-semibold text-text">Einsatzort</span>
+        <span className="flex-1 text-[15px] leading-5 font-semibold text-text">Einsatzort</span>
         {hasLocation ? (
-          <span className="flex items-center gap-1 rounded-full bg-good-bg px-2.5 py-0.5 text-xs font-medium text-good">
+          <span className="num flex items-center gap-1 border border-good/40 bg-good-bg px-2 py-0.5 text-[11px] font-medium text-good">
             <PiCheckCircle className="text-sm" />
             Gesetzt
           </span>
         ) : (
-          <span className="rounded-full bg-warning-bg px-2.5 py-0.5 text-xs font-medium text-warning">
+          <span className="num border border-warning/40 bg-warning-bg px-2 py-0.5 text-[11px] font-medium text-warning">
             Pflichtfeld
           </span>
         )}
       </div>
 
       {/* Content */}
-      <div className="px-5 pb-5">
+      <div className="px-4 pb-4">
         {showSearch ? (
           <div>
             {needsManualLocation && !editing && (
@@ -192,22 +193,22 @@ export default function LocationBar({
                 <button
                   onClick={() => handleSelectCoordinate(coordinateMatch)}
                   disabled={resolvingCoordinate}
-                  className="flex w-full items-start gap-3 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2.5 text-left transition-colors hover:bg-blue-500/10 disabled:opacity-60 dark:border-blue-400/20 dark:bg-blue-400/5 dark:hover:bg-blue-400/10"
+                  className="flex w-full items-start gap-3 rounded-lg border border-accent/30 bg-accent-bg px-3 py-2.5 text-left transition-colors hover:border-accent disabled:opacity-60"
                 >
                   {resolvingCoordinate ? (
-                    <svg className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-blue-600 dark:text-blue-400" viewBox="0 0 24 24" fill="none">
+                    <svg className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-accent-text" viewBox="0 0 24 24" fill="none">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
                   ) : (
-                    <PiCrosshairSimple className="mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                    <PiCrosshairSimple className="mt-0.5 shrink-0 text-accent-text" />
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-text truncate">
                         {coordinateMatch.display}
                       </span>
-                      <span className="shrink-0 rounded-full bg-blue-500/10 px-2 py-0.5 text-[0.65rem] font-medium text-blue-600 dark:bg-blue-400/10 dark:text-blue-400">
+                      <span className="shrink-0 bg-accent-bg px-2 py-0.5 text-[0.65rem] font-medium text-accent-text">
                         {coordinateMatch.formatLabel}
                       </span>
                     </div>
@@ -235,7 +236,7 @@ export default function LocationBar({
                     >
                       <PiMapPin className="shrink-0 text-text-muted" />
                       <span className="flex-1 min-w-0 truncate">{s.name}</span>
-                      <span className="shrink-0 rounded-full bg-surface px-2 py-0.5 text-[0.6rem] text-text-muted">
+                      <span className="shrink-0 bg-surface px-2 py-0.5 text-[0.6rem] text-text-muted">
                         Adresssuche
                       </span>
                     </button>

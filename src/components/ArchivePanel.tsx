@@ -261,7 +261,7 @@ export default function ArchivePanel() {
                     <button
                       onClick={() => handleSoftDelete(entry.docHash)}
                       disabled={busy === entry.docHash}
-                      className="flex items-center gap-1.5 rounded-md bg-warning px-2.5 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                      className="flex items-center gap-1.5 rounded-md bg-warning px-2.5 py-1.5 text-sm font-medium text-on-fill transition-opacity hover:opacity-90 disabled:opacity-50"
                     >
                       {busy === entry.docHash ? <PiCircleNotch className="animate-spin" /> : <PiTrash />}
                       Löschen
@@ -316,7 +316,7 @@ export default function ArchivePanel() {
                     disabled={busy === entry.docHash}
                     className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors disabled:opacity-50 ${
                       confirmPurge === entry.docHash
-                        ? 'bg-warning text-white hover:opacity-90'
+                        ? 'bg-warning text-on-fill hover:opacity-90'
                         : 'bg-surface-alt text-text-muted hover:bg-warning/10 hover:text-warning'
                     }`}
                     aria-label="Endgültig löschen"

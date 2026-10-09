@@ -100,7 +100,7 @@ function Text({ children }: { children: ReactNode }) {
 
 function Hint({ tone = 'neutral', children }: { tone?: 'neutral' | 'good' | 'caution'; children: ReactNode }) {
   const tones = {
-    neutral: 'border-surface-alt bg-surface-alt text-text',
+    neutral: 'border-line bg-surface-alt text-text',
     good: 'border-good/30 bg-good-bg text-good',
     caution: 'border-caution/30 bg-caution-bg text-caution',
   }
@@ -502,7 +502,7 @@ export default function SoraAnnexes({ idPrefix, openAnnex, onToggle, sail, arc, 
       {SORA_ANNEXES.map((annex) => {
         const isOpen = openAnnex === annex.id
         return (
-          <div key={annex.id} id={soraAnnexElementId(idPrefix, annex.id)} className="scroll-mt-4 overflow-hidden rounded-lg border border-surface-alt">
+          <div key={annex.id} id={soraAnnexElementId(idPrefix, annex.id)} className="scroll-mt-4 overflow-hidden rounded-lg border border-line">
             <button
               onClick={() => onToggle(annex.id)}
               aria-expanded={isOpen}
@@ -515,7 +515,7 @@ export default function SoraAnnexes({ idPrefix, openAnnex, onToggle, sail, arc, 
               </span>
               <PiCaretDown className={`shrink-0 text-text-muted transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
             </button>
-            {isOpen && <div className="border-t border-surface-alt px-3 py-3">{renderAnnex(annex.id)}</div>}
+            {isOpen && <div className="border-t border-line px-3 py-3">{renderAnnex(annex.id)}</div>}
           </div>
         )
       })}

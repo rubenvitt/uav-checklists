@@ -122,7 +122,7 @@ export default function AutocompleteInput({
             ref={listRef}
             id={`${id}-listbox`}
             role="listbox"
-            className="absolute left-0 right-0 z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-surface-alt bg-surface shadow-lg"
+            className="absolute left-0 right-0 z-10 mt-1 max-h-48 overflow-y-auto rounded-lg border border-line bg-surface shadow-lg"
           >
             {filtered.map((s, i) => (
               <li

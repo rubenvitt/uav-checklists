@@ -16,7 +16,7 @@ function PillButton({ selected, onClick, children }: { selected: boolean; onClic
     <button
       onClick={onClick}
       className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-        selected ? 'bg-text text-base' : 'bg-surface-alt text-text-muted hover:text-text'
+        selected ? 'bg-accent text-on-accent' : 'bg-surface-alt text-text-muted hover:text-text'
       }`}
     >
       {children}
@@ -32,7 +32,7 @@ function CheckItem({ checked, onChange, label, desc }: { checked: boolean; onCha
     >
       <span
         className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs transition-colors ${
-          checked ? 'border-good bg-good text-white' : 'border-text-muted/30 text-transparent'
+          checked ? 'border-good bg-good text-on-fill' : 'border-text-muted/30 text-transparent'
         }`}
       >
         <PiCheck />
@@ -128,7 +128,7 @@ export default function GrcDetermination({ onGrcChange }: GrcDeterminationProps)
 
       {/* Minderungen */}
       {intrinsicGrc !== null && (
-        <div className="border-t border-surface-alt pt-3">
+        <div className="border-t border-line pt-3">
           <p className="mb-2 text-xs font-medium uppercase tracking-wider text-text-muted">
             Minderungen
           </p>

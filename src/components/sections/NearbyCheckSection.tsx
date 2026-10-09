@@ -99,7 +99,7 @@ export default function NearbyCheckSection({ categories, loading, error, locked,
               <div className="flex items-center gap-2">
                 <span className="text-base flex items-center text-text-muted">{CATEGORY_ICONS[cat.key]}</span>
                 <span className="flex-1 text-sm font-medium text-text">{cat.label}</span>
-                <span className="rounded-full bg-base px-2 py-0.5 text-xs text-text-muted">
+                <span className="bg-base px-2 py-0.5 text-xs text-text-muted">
                   {cat.items.length}
                 </span>
               </div>
@@ -120,7 +120,7 @@ export default function NearbyCheckSection({ categories, loading, error, locked,
             </div>
           ))}
 
-          <div className="border-t border-surface-alt pt-3">
+          <div className="border-t border-line pt-3">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
                 Manuelle Prüfungen
@@ -145,7 +145,7 @@ export default function NearbyCheckSection({ categories, loading, error, locked,
                   <span
                     className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs transition-colors ${
                       checked[c.key]
-                        ? 'border-good bg-good text-white'
+                        ? 'border-good bg-good text-on-fill'
                         : 'border-text-muted/30 text-transparent'
                     }`}
                   >

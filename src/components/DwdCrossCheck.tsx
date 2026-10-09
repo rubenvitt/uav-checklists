@@ -46,9 +46,9 @@ const badgeLabel: Record<MetricStatus, string> = {
 }
 
 const cardStyles: Record<MetricStatus, { card: string; badge: string; text: string }> = {
-  good: { card: 'border-good/25 bg-good-bg/40', badge: 'bg-good text-white', text: 'text-good' },
-  caution: { card: 'border-caution/25 bg-caution-bg/40', badge: 'bg-caution text-white', text: 'text-caution' },
-  warning: { card: 'border-warning/25 bg-warning-bg/40', badge: 'bg-warning text-white', text: 'text-warning' },
+  good: { card: 'border-line bg-surface-alt/40', badge: 'num border border-good/40 bg-good-bg text-good text-[11px]', text: 'text-good' },
+  caution: { card: 'border-caution/25 bg-caution-bg/40', badge: 'num border border-caution/40 bg-caution-bg text-caution text-[11px]', text: 'text-caution' },
+  warning: { card: 'border-warning/25 bg-warning-bg/40', badge: 'num border border-warning/40 bg-warning-bg text-warning text-[11px]', text: 'text-warning' },
 }
 
 const severityStatus: Record<DwdAlertSeverity, MetricStatus> = {
@@ -96,7 +96,7 @@ function Attribution() {
 
 function InfoCard({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-xl border border-surface-alt bg-surface-alt/50 px-4 py-3">
+    <div className="rounded-xl border border-line bg-surface-alt/50 px-4 py-3">
       <p className="text-sm font-semibold text-text">DWD-Abgleich</p>
       <p className="mt-1 text-xs text-text-muted">{children}</p>
     </div>
@@ -223,7 +223,7 @@ export default function DwdCrossCheck({ dwd, loading, error, openMeteo, drone }:
     <div className={`space-y-3 rounded-xl border px-4 py-3 ${styles.card}`}>
       <div className="flex items-center gap-2">
         <p className="flex-1 text-sm font-semibold text-text">DWD-Abgleich</p>
-        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${styles.badge}`}>{badgeLabel[overall]}</span>
+        <span className={`px-2 py-0.5 text-xs font-medium ${styles.badge}`}>{badgeLabel[overall]}</span>
       </div>
 
       {dwd.alerts.length > 0 ? (
@@ -261,7 +261,7 @@ export default function DwdCrossCheck({ dwd, loading, error, openMeteo, drone }:
                 const status = measuredStatus(row)
                 const unitFor = (v: number) => (row.formatUnit ? row.formatUnit(v) : row.unit)
                 return (
-                  <tr key={row.label} className="border-t border-surface-alt/60">
+                  <tr key={row.label} className="border-t border-line/60">
                     <td className="py-1 text-text-muted">{row.label}</td>
                     <td className="py-1 text-right text-text">
                       {row.model !== null ? `${row.format(row.model)} ${unitFor(row.model)}` : '–'}

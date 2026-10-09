@@ -20,11 +20,19 @@ const PHASE_LABELS: Record<MissionPhase, string> = {
   nachbereitung: 'Nachbereitung',
 }
 
+const PHASE_NR: Record<MissionPhase, string> = {
+  einsatzdaten: '01',
+  vorflugkontrolle: '02',
+  fluege: '03',
+  nachbereitung: '04',
+}
+
+/** Phasen-Chip: getönte Fläche nur, wo die Phase etwas aussagt (Flüge laufen). */
 const PHASE_COLORS: Record<MissionPhase, string> = {
-  einsatzdaten: 'bg-surface-alt text-text-muted',
-  vorflugkontrolle: 'bg-caution-bg text-caution',
-  fluege: 'bg-good-bg text-good',
-  nachbereitung: 'bg-surface-alt text-text-muted',
+  einsatzdaten: 'border-line-strong bg-surface-alt text-text-muted',
+  vorflugkontrolle: 'border-accent/40 bg-accent-bg text-accent-text',
+  fluege: 'border-good/40 bg-good-bg text-good',
+  nachbereitung: 'border-line-strong bg-surface-alt text-text-muted',
 }
 
 export default function MissionOverview() {
@@ -79,18 +87,20 @@ export default function MissionOverview() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-text">Einsätze</h2>
-          <p className="text-sm text-text-muted">
-            {activeMissions.length === 0 ? 'Keine aktiven Einsätze' : `${activeMissions.length} aktive${activeMissions.length === 1 ? 'r' : ''} Einsatz${activeMissions.length === 1 ? '' : 'e'}`}
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="eyebrow">Flugmappe</p>
+          <h1 className="text-[22px] leading-7 font-semibold text-text">Einsätze</h1>
+          <p className="num text-xs text-text-muted">
+            {activeMissions.length === 0 ? 'keine aktiven' : `${activeMissions.length} aktiv`}
+            {completedMissions.length > 0 && ` · ${completedMissions.length} abgeschlossen`}
           </p>
         </div>
         <button
           onClick={handleCreate}
-          className="flex items-center gap-2 rounded-lg bg-text px-4 py-2.5 text-sm font-medium text-base transition-colors hover:opacity-90 active:scale-95"
+          className="flex h-11 shrink-0 items-center gap-2 bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
         >
-          <PiPlus />
+          <PiPlus className="text-base" />
           Neuer Einsatz
         </button>
       </div>
@@ -99,7 +109,7 @@ export default function MissionOverview() {
         <div className="space-y-3">
           <button
             onClick={() => setArchiveOpen((v) => !v)}
-            className="flex w-full items-center justify-between gap-2 rounded-lg bg-surface px-4 py-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-alt hover:text-text active:scale-[0.99]"
+            className="flex min-h-12 w-full items-center justify-between gap-2 border border-line bg-surface px-4 text-sm font-medium text-text-muted transition-colors hover:bg-surface-alt hover:text-text"
             aria-expanded={archiveOpen}
           >
             <span className="flex items-center gap-2">
@@ -113,16 +123,29 @@ export default function MissionOverview() {
       )}
 
       {missions.length === 0 && (
-        <div className="flex flex-col items-center gap-4 rounded-xl bg-surface py-16 text-center">
-          <PiMapTrifold className="text-4xl text-text-muted" />
+        <div className="flex flex-col items-center gap-4 border border-dashed border-line-strong bg-surface px-6 py-14 text-center">
+          <PiMapTrifold className="text-4xl text-faint" />
           <div>
-            <p className="text-sm font-medium text-text">Noch keine Einsätze</p>
-            <p className="mt-1 text-xs text-text-muted">Erstelle einen neuen Einsatz, um zu beginnen.</p>
+            <p className="text-sm font-semibold text-text">Noch keine Einsätze</p>
+            <p className="mt-1 text-xs text-text-muted">Lege einen Einsatz an. Die Flugmappe führt dich von den Einsatzdaten über die Vorflugkontrolle bis zum Abschluss.</p>
           </div>
+          <button
+            onClick={handleCreate}
+            className="flex h-11 items-center gap-2 bg-accent px-4 text-sm font-semibold text-on-accent transition-colors hover:bg-accent-hover"
+          >
+            <PiPlus className="text-base" />
+            Ersten Einsatz anlegen
+          </button>
         </div>
       )}
 
-      <div className="space-y-3">
+      {activeMissions.length > 0 && (
+      <section className="border border-line bg-surface">
+        <div className="flex h-9 items-center justify-between border-b border-line bg-surface-alt/60 px-4">
+          <h2 className="eyebrow">Aktiv</h2>
+          <span className="num text-[11px] text-faint">{activeMissions.length}</span>
+        </div>
+        <div className="divide-y divide-line">
         {activeMissions.map((mission) => (
           <MissionCard
             key={mission.id}
@@ -133,13 +156,17 @@ export default function MissionOverview() {
             onSharePdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) sharePdf(r.blob, r.filename).catch(() => {}) }}
           />
         ))}
-      </div>
+        </div>
+      </section>
+      )}
 
       {completedMissions.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium text-text-muted">
-            Abgeschlossen ({completedMissions.length})
-          </h3>
+        <section className="border border-line bg-surface">
+          <div className="flex h-9 items-center justify-between border-b border-line bg-surface-alt/60 px-4">
+            <h2 className="eyebrow">Abgeschlossen</h2>
+            <span className="num text-[11px] text-faint">{completedMissions.length}</span>
+          </div>
+          <div className="divide-y divide-line">
           {completedMissions.map((mission) => (
             <MissionCard
               key={mission.id}
@@ -150,14 +177,15 @@ export default function MissionOverview() {
             onSharePdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) sharePdf(r.blob, r.filename).catch(() => {}) }}
             />
           ))}
-        </div>
+          </div>
+        </section>
       )}
 
       {deletedMissions.length > 0 && (
         <div className="space-y-3">
           <button
             onClick={() => setTrashOpen((v) => !v)}
-            className="flex w-full items-center justify-between gap-2 rounded-lg bg-surface px-4 py-2.5 text-sm font-medium text-text-muted transition-colors hover:bg-surface-alt hover:text-text active:scale-[0.99]"
+            className="flex min-h-12 w-full items-center justify-between gap-2 border border-line bg-surface px-4 text-sm font-medium text-text-muted transition-colors hover:bg-surface-alt hover:text-text"
             aria-expanded={trashOpen}
           >
             <span className="flex items-center gap-2">
@@ -186,7 +214,7 @@ export default function MissionOverview() {
       )}
 
       {showVerify && (
-        <div className="border-t border-text-muted/10 pt-2">
+        <div className="border-t border-line pt-2">
           <SignatureVerifyPanel />
         </div>
       )}
@@ -203,7 +231,7 @@ function MissionCard({ mission, onNavigate, onDelete, onDownloadPdf, onSharePdf 
 }) {
   const isCompleted = !!mission.completedAt
   const displayLabel = useMissionDisplayLabel(mission.id, mission.createdAt)
-  const iconBtnClass = 'rounded-lg p-2 text-text-muted transition-colors'
+  const iconBtnClass = 'flex h-11 w-11 items-center justify-center text-lg text-text-muted transition-colors'
 
   return (
     <div
@@ -211,35 +239,32 @@ function MissionCard({ mission, onNavigate, onDelete, onDownloadPdf, onSharePdf 
       tabIndex={0}
       onClick={onNavigate}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate() } }}
-      className={`w-full rounded-xl p-4 text-left transition-colors active:scale-[0.99] cursor-pointer ${
-        isCompleted
-          ? 'bg-surface/60 opacity-75 hover:bg-surface-alt/60'
-          : 'bg-surface hover:bg-surface-alt'
-      }`}
+      className="group w-full cursor-pointer py-2 pr-1 pl-4 text-left transition-colors hover:bg-surface-alt"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className={`text-sm font-medium truncate ${isCompleted ? 'text-text-muted' : 'text-text'}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1 py-1">
+          <p className={`truncate text-[15px] leading-5 font-semibold ${isCompleted ? 'text-text-muted' : 'text-text'}`}>
             {displayLabel}
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
             {isCompleted ? (
-              <span className="flex items-center gap-1 rounded-full bg-good-bg px-2.5 py-0.5 text-xs font-medium text-good">
+              <span className="flex items-center gap-1 border border-good/40 bg-good-bg px-1.5 py-px text-[11px] font-medium text-good">
                 <PiCheckCircle />
                 Abgeschlossen
               </span>
             ) : (
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${PHASE_COLORS[mission.phase]}`}>
+              <span className={`flex items-center gap-1.5 border px-1.5 py-px text-[11px] font-medium ${PHASE_COLORS[mission.phase]}`}>
+                <span className="num opacity-70">{PHASE_NR[mission.phase]}</span>
                 {PHASE_LABELS[mission.phase]}
               </span>
             )}
-            <span className="flex items-center gap-1 text-xs text-text-muted">
+            <span className="num flex items-center gap-1 text-[11px] text-text-muted" title="Verbleibende Aufbewahrung auf diesem Gerät">
               <PiClock />
               {getRemainingTime(mission)}
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center">
           <button
             onClick={(e) => {
               e.stopPropagation()
@@ -288,10 +313,10 @@ function DeletedMissionCard({ mission, isConfirmingPurge, onRestore, onPurge }: 
   onPurge: () => void
 }) {
   const displayLabel = useMissionDisplayLabel(mission.id, mission.createdAt)
-  const iconBtnClass = 'rounded-lg p-2 text-text-muted transition-colors'
+  const iconBtnClass = 'flex h-11 w-11 items-center justify-center text-lg text-text-muted transition-colors'
 
   return (
-    <div className="w-full rounded-xl bg-surface/60 p-4 opacity-75">
+    <div className="w-full border border-line bg-surface py-2 pr-1 pl-4 opacity-75">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-text-muted line-through">

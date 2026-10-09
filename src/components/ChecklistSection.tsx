@@ -18,10 +18,18 @@ interface ChecklistSectionProps {
   children: React.ReactNode
 }
 
+/** Status-Chip nach Lifeline Hub: getönte Fläche, getönter Text, Wort Pflicht. */
 const badgeColors: Record<MetricStatus, string> = {
-  good: 'bg-good-bg text-good',
-  caution: 'bg-caution-bg text-caution',
-  warning: 'bg-warning-bg text-warning',
+  good: 'bg-good-bg text-good border-good/40',
+  caution: 'bg-caution-bg text-caution border-caution/40',
+  warning: 'bg-warning-bg text-warning border-warning/40',
+}
+
+/** Statuskante links am Paneel — zweiter Kanal neben dem Chip-Wort. */
+const edgeColors: Record<MetricStatus, string> = {
+  good: 'bg-good',
+  caution: 'bg-caution',
+  warning: 'bg-warning',
 }
 
 export default function ChecklistSection({ title, icon, badge, loading, locked, defaultOpen = false, open: controlledOpen, onToggle, isComplete, onContinue, continueLabel, isPhaseComplete, children }: ChecklistSectionProps) {
@@ -36,15 +44,19 @@ export default function ChecklistSection({ title, icon, badge, loading, locked, 
   }
 
   return (
-    <section className={`rounded-xl bg-surface overflow-hidden${locked ? ' opacity-50' : ''}`}>
+    <section className={`relative border border-line bg-surface${locked ? ' opacity-55' : ''}`}>
+      {!locked && !loading && badge && (
+        <span className={`absolute -left-px top-0 bottom-0 w-0.5 ${edgeColors[badge.status]}`} aria-hidden="true" />
+      )}
       <button
         onClick={handleToggle}
-        className={`flex w-full items-center gap-3 px-5 py-4 text-left transition-colors ${locked ? 'cursor-not-allowed' : 'hover:bg-surface-alt'}`}
+        aria-expanded={!locked ? isOpen : undefined}
+        className={`flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left transition-colors ${locked ? 'cursor-not-allowed' : 'hover:bg-surface-alt'} ${isOpen && !locked ? 'border-b border-line' : ''}`}
       >
-        <span className="text-lg flex items-center">{icon}</span>
-        <span className="flex-1 font-semibold text-text">{title}</span>
+        <span className="flex items-center text-lg text-text-muted">{icon}</span>
+        <span className="flex-1 text-[15px] leading-5 font-semibold text-text">{title}</span>
         {locked && (
-          <span className="text-xs text-text-muted flex items-center gap-1">
+          <span className="num flex items-center gap-1 text-[11px] text-faint">
             <PiLock /> Standort wählen
           </span>
         )}
@@ -55,7 +67,7 @@ export default function ChecklistSection({ title, icon, badge, loading, locked, 
           </svg>
         )}
         {!locked && !loading && badge && (
-          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeColors[badge.status]}`}>
+          <span className={`num border px-2 py-0.5 text-[11px] font-medium ${badgeColors[badge.status]}`}>
             {badge.label}
           </span>
         )}
@@ -65,16 +77,16 @@ export default function ChecklistSection({ title, icon, badge, loading, locked, 
       </button>
       {!locked && (
         <div className={isOpen ? '' : 'hidden'}>
-          <div className="space-y-4 px-5 pt-1 pb-5">
+          <div className="space-y-4 px-4 pt-4 pb-5">
             {children}
           </div>
           {isComplete && onContinue && (
             <button
               onClick={onContinue}
-              className={`flex w-full items-center justify-center gap-2 border-t border-surface-alt py-3 text-sm font-medium transition-colors active:scale-[0.99] ${
+              className={`flex min-h-12 w-full items-center justify-center gap-2 border-t border-line text-sm font-medium transition-colors ${
                 isPhaseComplete
-                  ? 'bg-text/10 text-text hover:bg-text/15'
-                  : 'bg-good-bg/30 text-good hover:bg-good-bg/50'
+                  ? 'bg-accent text-on-accent hover:bg-accent-hover'
+                  : 'bg-accent-bg text-accent-text hover:bg-surface-alt'
               }`}
             >
               <PiCheckCircle className="text-base" />

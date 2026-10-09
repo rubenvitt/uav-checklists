@@ -16,7 +16,7 @@ interface RahmenangabenSectionProps {
 
 export default function RahmenangabenSection(props: RahmenangabenSectionProps) {
   return (
-    <div className="divide-y divide-surface-alt rounded-xl bg-surface">
+    <div className="divide-y divide-line border border-line bg-surface">
       <DroneSelector selectedDrone={props.selectedDrone} onSelect={props.onSelectDrone} />
       <PayloadSelector
         drone={getDroneById(props.selectedDrone)}
