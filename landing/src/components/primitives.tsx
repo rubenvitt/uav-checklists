@@ -113,9 +113,9 @@ export function ButtonLink({
   const base =
     'group inline-flex items-center gap-2.5 px-6 py-3.5 text-sm font-semibold tracking-tight transition-colors duration-150'
   const styles = {
-    solid: 'bg-ink text-paper hover:bg-signal',
-    outline: 'border border-ink/25 text-ink hover:border-ink hover:bg-ink hover:text-paper',
-    'ghost-dark': 'border border-paper/25 text-paper hover:border-paper hover:bg-paper hover:text-ink',
+    solid: 'bg-bedien text-white hover:bg-bedien-hover',
+    outline: 'border border-ink/30 bg-white/60 text-ink hover:border-bedien hover:text-bedien',
+    'ghost-dark': 'border border-paper/25 text-paper hover:border-bedien-hell hover:text-bedien-hell',
   }[variant]
 
   return (

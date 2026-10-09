@@ -99,10 +99,10 @@ export default function Faq() {
         <div className="border-t border-line">
           {faq.map((item) => (
             <details key={item.q} className="group border-b border-line">
-              <summary className="flex cursor-pointer list-none items-start gap-5 py-6 transition-colors hover:text-signal">
+              <summary className="flex cursor-pointer list-none items-start gap-5 py-6 transition-colors hover:text-bedien">
                 <TbPlus
                   aria-hidden
-                  className="mt-1 size-4 shrink-0 text-signal transition-transform duration-200 group-open:rotate-45"
+                  className="mt-1 size-4 shrink-0 text-bedien transition-transform duration-200 group-open:rotate-45"
                 />
                 <h3 className="display max-w-[46ch] text-lg sm:text-xl">{item.q}</h3>
               </summary>

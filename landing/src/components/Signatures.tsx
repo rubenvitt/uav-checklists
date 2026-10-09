@@ -83,13 +83,13 @@ export default function Signatures() {
 
             <div>
               <h3 className="flex items-center gap-2.5 text-base font-semibold">
-                <TbCircleX className="size-5 text-signal" />
+                <TbCircleX className="size-5 text-alarm" />
                 Was er ausdrücklich nicht leistet
               </h3>
               <ul className="mt-5 space-y-3">
                 {doesNot.map((d) => (
                   <li key={d} className="flex gap-3 text-sm leading-relaxed text-ink-3">
-                    <span aria-hidden className="mt-[0.5rem] size-1 shrink-0 bg-signal" />
+                    <span aria-hidden className="mt-[0.5rem] size-1 shrink-0 bg-alarm" />
                     {d}
                   </li>
                 ))}

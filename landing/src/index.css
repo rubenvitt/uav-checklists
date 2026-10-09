@@ -3,30 +3,37 @@
 /* Schriften werden selbst ausgeliefert — kein Abruf von Google Fonts, damit
    die Seite ohne Drittanbieter-Request auskommt. */
 @import "@fontsource-variable/archivo/wdth.css";
-@import "@fontsource-variable/ibm-plex-sans";
-@import "@fontsource/ibm-plex-mono/400.css";
-@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
 
 @theme {
-  /* Papier & Tinte — die Seite ist als Einsatzunterlage gedacht, nicht als
-     Produktseite: warmes Papierweiß, Tiefschwarzblau, ein Signalton. */
-  --color-paper: #f4f2ed;
-  --color-paper-2: #ebe7de;
-  --color-paper-3: #ded9cd;
-  --color-ink: #10161c;
-  --color-ink-2: #1c262f;
-  --color-ink-3: #3c4956;
-  --color-muted: #6b7681;
-  --color-line: #d2ccbe;
-  --color-line-dark: #2c3742;
+  /* Gestaltung „Instrumententafel" wie die App (Lifeline Hub, farbenHell /
+     farbenDunkel): neutrale Flächen, Haarlinien, Radius 0. Die Rollennamen
+     paper/ink bleiben, damit alle Abschnitte die Werte erben.
+     ROT BEDIENT NICHTS: Knöpfe und Hover sind bedien (blau), marke (rot) ist
+     nur Akzent — Bildmarke, Abschnittsnummern, Hervorhebung im Anzeigetext. */
+  --color-paper: #e9ebee;     /* grund */
+  --color-paper-2: #f4f5f7;   /* paneel */
+  --color-paper-3: #e1e4e8;   /* flaeche3 */
+  --color-ink: #0c0e11;       /* Rahmen/Kopf, in der App immer dunkel */
+  --color-ink-2: #14171b;
+  --color-ink-3: #363d45;     /* gedaempft */
+  --color-muted: #424a53;     /* schwach */
+  --color-line: #d4d8dd;
+  --color-line-dark: #22262b;
 
-  --color-signal: #d9451f;
-  --color-signal-2: #e98a1e;
-  --color-verify: #2f7a4f;
+  --color-marke: #a8071a;
+  --color-signal: #a8071a;    /* Akzent = marke */
+  --color-signal-2: #8ec2f0;  /* Akzent auf dunklem Grund = bedienText nachts */
+  --color-bedien: #154e84;
+  --color-bedien-hover: #185895;
+  --color-bedien-hell: #4d94d6;
+  --color-alarm: #b02318;
+  --color-verify: #1c6640;    /* normal */
 
   --font-display: "Archivo Variable", "Archivo", system-ui, sans-serif;
-  --font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "Archivo Variable", "Archivo", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
   --text-hero: clamp(2.6rem, 7.2vw, 5.4rem);
   --text-section: clamp(1.9rem, 4vw, 3.1rem);
@@ -60,7 +67,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-signal);
+    outline: 2px solid var(--color-bedien);
     outline-offset: 3px;
   }
 }
@@ -70,7 +77,7 @@
   .display {
     font-family: var(--font-display);
     font-variation-settings: "wdth" 92;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: -0.028em;
     line-height: 0.96;
   }
@@ -91,15 +98,15 @@
   /* Millimeterpapier-Raster als Hintergrund einzelner Flächen. */
   .grid-paper {
     background-image:
-      linear-gradient(to right, color-mix(in oklab, var(--color-line) 55%, transparent) 1px, transparent 1px),
-      linear-gradient(to bottom, color-mix(in oklab, var(--color-line) 55%, transparent) 1px, transparent 1px);
+      linear-gradient(to right, rgba(26, 95, 160, 0.09) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(26, 95, 160, 0.09) 1px, transparent 1px);
     background-size: 28px 28px;
   }
 
   .grid-paper-dark {
     background-image:
-      linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      linear-gradient(to right, rgba(77, 148, 214, 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(77, 148, 214, 0.06) 1px, transparent 1px);
     background-size: 28px 28px;
   }
 
