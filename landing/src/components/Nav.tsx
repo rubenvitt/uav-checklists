@@ -18,7 +18,7 @@ export function Mark({ className = 'size-7' }: { className?: string }) {
       <g stroke="var(--color-paper)" strokeWidth="4.5" strokeLinecap="round">
         <path d="M32 32 19 19M32 32 45 19M32 32 19 45M32 32 45 45" />
       </g>
-      <g fill="none" stroke="var(--color-signal)" strokeWidth="3.5">
+      <g fill="none" stroke="var(--color-marke)" strokeWidth="3.5">
         <circle cx="17.5" cy="17.5" r="6.5" />
         <circle cx="46.5" cy="17.5" r="6.5" />
         <circle cx="17.5" cy="46.5" r="6.5" />
@@ -85,7 +85,7 @@ export default function Nav() {
             href={site.appUrl}
             target="_blank"
             rel="noreferrer"
-            className="bg-ink px-3.5 py-2.5 text-[0.82rem] font-semibold tracking-tight whitespace-nowrap text-paper transition-colors hover:bg-signal sm:px-4 sm:text-sm"
+            className="bg-bedien px-3.5 py-2.5 text-[0.82rem] font-semibold tracking-tight whitespace-nowrap text-white transition-colors hover:bg-bedien-hover sm:px-4 sm:text-sm"
           >
             App öffnen
           </a>

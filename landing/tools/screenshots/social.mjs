@@ -21,28 +21,26 @@ const modules = path.join(landing, 'node_modules')
 
 const base64 = (p) => fs.readFileSync(p).toString('base64')
 const archivo = base64(path.join(modules, '@fontsource-variable/archivo/files/archivo-latin-wdth-normal.woff2'))
-const mono = base64(path.join(modules, '@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-500-normal.woff2'))
-const sans = base64(path.join(modules, '@fontsource-variable/ibm-plex-sans/files/ibm-plex-sans-latin-wght-normal.woff2'))
+const mono = base64(path.join(modules, '@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2'))
 const mark = fs.readFileSync(path.join(landing, 'public/favicon.svg'), 'utf8')
 
 const og = `<!doctype html><html lang="de"><head><meta charset="utf-8"><style>
 @font-face{font-family:'A';src:url(data:font/woff2;base64,${archivo}) format('woff2');font-weight:100 900}
 @font-face{font-family:'M';src:url(data:font/woff2;base64,${mono}) format('woff2');font-weight:500}
-@font-face{font-family:'S';src:url(data:font/woff2;base64,${sans}) format('woff2');font-weight:100 700}
 *{margin:0;padding:0;box-sizing:border-box}
-body{width:1200px;height:630px;background:#f4f2ed;color:#10161c;font-family:'S';position:relative;overflow:hidden}
-.grid{position:absolute;inset:0;background-image:linear-gradient(to right,rgba(210,204,190,.6) 1px,transparent 1px),linear-gradient(to bottom,rgba(210,204,190,.6) 1px,transparent 1px);background-size:36px 36px}
+body{width:1200px;height:630px;background:#e9ebee;color:#0c0e11;font-family:'A';position:relative;overflow:hidden}
+.grid{position:absolute;inset:0;background-image:linear-gradient(to right,rgba(26,95,160,.09) 1px,transparent 1px),linear-gradient(to bottom,rgba(26,95,160,.09) 1px,transparent 1px);background-size:36px 36px}
 .wrap{position:relative;padding:58px 72px 74px;height:100%;display:flex;flex-direction:column;justify-content:space-between}
 .top{display:flex;align-items:center;gap:16px}
 .top svg{width:52px;height:52px}
-.brand{font-family:'A';font-variation-settings:'wdth' 92;font-weight:700;font-size:28px;letter-spacing:-.02em}
-h1{font-family:'A';font-variation-settings:'wdth' 92;font-weight:700;font-size:80px;line-height:.95;letter-spacing:-.03em;max-width:16ch;margin-top:44px}
-.sig{color:#d9451f}
-p{font-size:22px;line-height:1.45;color:#3c4956;max-width:52ch;margin-top:24px}
-.meta{font-family:'M';font-weight:500;font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:#6b7681;display:flex;gap:18px;align-items:center}
-.meta .dot{color:#d9451f}
-.bar{position:absolute;left:0;right:0;bottom:0;height:10px;background:#10161c}
-.bar i{display:block;height:100%;width:34%;background:#d9451f}
+.brand{font-family:'A';font-variation-settings:'wdth' 92;font-weight:600;font-size:28px;letter-spacing:-.02em}
+h1{font-family:'A';font-variation-settings:'wdth' 92;font-weight:600;font-size:80px;line-height:.95;letter-spacing:-.03em;max-width:16ch;margin-top:44px}
+.sig{color:#a8071a}
+p{font-size:22px;line-height:1.45;color:#363d45;max-width:52ch;margin-top:24px}
+.meta{font-family:'M';font-weight:500;font-size:15px;letter-spacing:.16em;text-transform:uppercase;color:#424a53;display:flex;gap:18px;align-items:center}
+.meta .dot{color:#a8071a}
+.bar{position:absolute;left:0;right:0;bottom:0;height:10px;background:#0c0e11}
+.bar i{display:block;height:100%;width:34%;background:#a8071a}
 </style></head><body>
 <div class="grid"></div>
 <div class="wrap">
@@ -57,7 +55,7 @@ p{font-size:22px;line-height:1.45;color:#3c4956;max-width:52ch;margin-top:24px}
 </body></html>`
 
 const icon = `<!doctype html><html lang="de"><head><meta charset="utf-8"><style>
-*{margin:0;padding:0}body{width:180px;height:180px;background:#10161c;display:grid;place-items:center}svg{width:180px;height:180px}
+*{margin:0;padding:0}body{width:180px;height:180px;background:#0c0e11;display:grid;place-items:center}svg{width:180px;height:180px}
 </style></head><body>${mark}</body></html>`
 
 const launchOptions = process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}
@@ -75,7 +73,7 @@ for (const [html, size, file] of [
   console.log(file)
 }
 
-// Favicons mit transparenten Ecken: die Marke hat abgerundete Ecken.
+// Favicons mit transparentem Hintergrund (die Marke ist eckig).
 const favicon = (size) => `<!doctype html><html lang="de"><head><meta charset="utf-8"><style>
 *{margin:0;padding:0}body{width:${size}px;height:${size}px;background:transparent}svg{display:block;width:${size}px;height:${size}px}
 </style></head><body>${mark}</body></html>`

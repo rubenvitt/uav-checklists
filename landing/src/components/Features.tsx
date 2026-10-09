@@ -117,9 +117,9 @@ export default function Features() {
               >
                 <span
                   aria-hidden
-                  className="absolute top-0 left-0 h-px w-0 bg-signal transition-all duration-300 group-hover:w-full"
+                  className="absolute top-0 left-0 h-px w-0 bg-bedien transition-all duration-300 group-hover:w-full"
                 />
-                <Icon className="size-6 text-ink-3 transition-colors group-hover:text-signal" />
+                <Icon className="size-6 text-ink-3 transition-colors group-hover:text-bedien" />
                 <h3 className="display mt-5 text-lg">{f.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-muted">{f.body}</p>
                 {f.tag ? <p className="label mt-5 text-muted/70">{f.tag}</p> : null}

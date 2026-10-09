@@ -210,7 +210,7 @@ async function captureAll() {
 
   console.log('* Flüge')
   await go(page, `/mission/${MID}/fluege`, 3000)
-  await scrollTo(page, 'Ereignisse (', 520)
+  await scrollTo(page, 'Ereignisse', 520)
   await shot(page, 'flugbuch')
   const procedures = page.locator('button', { hasText: 'Prozeduren' }).first()
   if (await procedures.count()) {

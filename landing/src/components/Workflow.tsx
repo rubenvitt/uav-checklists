@@ -120,14 +120,14 @@ export default function Workflow() {
                     >
                       <span
                         className={`mt-0.5 font-mono text-xs tracking-widest ${
-                          isActive ? 'text-signal' : 'text-muted'
+                          isActive ? 'text-bedien' : 'text-muted'
                         }`}
                       >
                         {p.no}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2.5">
-                          <Icon className={`size-[1.15rem] ${isActive ? 'text-signal' : 'text-ink-3'}`} />
+                          <Icon className={`size-[1.15rem] ${isActive ? 'text-bedien' : 'text-ink-3'}`} />
                           <span className="display text-xl">{p.name}</span>
                         </span>
                         <span className="mt-2 block text-sm leading-relaxed text-muted">{p.summary}</span>
