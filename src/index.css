@@ -1,39 +1,162 @@
 @import "tailwindcss";
 
+/*
+ * Gestaltungssprache „Instrumententafel" aus Lifeline Hub
+ * (lifeline-hub: frontend/src/theme/tokens.ts, docs/design/2026-09-21-neuentwurf/umsetzung.md).
+ *
+ * Namen sind Rollen, nicht Farben. Die alten Rollennamen (good/caution/warning,
+ * surface, text-muted …) bleiben, damit alle Abschnitte die neue Palette ohne
+ * Umbau erben; neu sind accent (Bedienfarbe blau), line, control-border, marke,
+ * rahmen, text-2, faint und die getönten Statusflächen.
+ *
+ * ROT BEDIENT NICHTS: Primäraktionen sind accent (blau). Rot ist marke (Dekoration)
+ * oder warning (Störung, Abbruch, Notfall).
+ * Radius 0 überall, Trennung über Haarlinien. Zahlen, Zeiten, Kennungen in Mono.
+ */
 @theme {
-  --color-good: #16a34a;
-  --color-good-bg: #dcfce7;
-  --color-caution: #ca8a04;
-  --color-caution-bg: #fef9c3;
-  --color-warning: #dc2626;
-  --color-warning-bg: #fee2e2;
-  --color-surface: #ffffff;
-  --color-surface-alt: #f1f5f9;
-  --color-base: #f8fafc;
-  --color-text: #0f172a;
-  --color-text-muted: #64748b;
+  --font-sans: 'Archivo', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-weight-bold: 600;
+
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+
+  /* Tagmodus — aus der Nachtpalette abgeleitet (farbenHell) */
+  --color-base: #e9ebee;            /* grund */
+  --color-surface: #ffffff;         /* flaeche */
+  --color-surface-alt: #eef0f3;     /* flaeche2: Eingabefelder, Segmente, Kacheln im Paneel */
+  --color-surface-3: #e1e4e8;       /* flaeche3: aktive Zeile, Balkenspur */
+  --color-line: #d4d8dd;            /* linie */
+  --color-line-strong: #b9bfc6;     /* linieStark */
+  --color-control-border: #79818a;  /* steuerRahmen, WCAG 1.4.11 */
+  --color-text: #111418;
+  --color-text-2: #2b3138;
+  --color-text-muted: #363d45;      /* gedaempft */
+  --color-faint: #424a53;           /* schwach: Augenbraue, Meta */
+  --color-accent: #154e84;          /* bedien */
+  --color-accent-hover: #185895;
+  --color-accent-text: #144779;     /* bedienText */
+  --color-accent-bg: #e4edf7;       /* bedienFlaeche */
+  --color-on-accent: #ffffff;       /* aufBedien */
+  --color-on-fill: #ffffff;         /* Vordergrund auf satter Statusfläche */
+  --color-marke: #a8071a;
+  --color-good: #155234;            /* normalText */
+  --color-good-bg: #e3f1e8;         /* normalFlaeche */
+  --color-caution: #604200;         /* achtungText */
+  --color-caution-bg: #f7efd5;      /* achtungFlaeche */
+  --color-warning: #8f1c12;         /* alarmText */
+  --color-warning-bg: #f9e3e3;      /* alarmFlaeche */
+  --color-banner: #e6eef8;          /* bannerGrund */
+  --color-banner-line: #9dbbe0;     /* bannerLinie */
+
+  /* Der Rahmen (Kopfleiste) bleibt in beiden Modi dunkel — rahmenFarben */
+  --color-rahmen: #0c0e11;
+  --color-rahmen-feld: #14171b;
+  --color-rahmen-aktiv: #16191d;
+  --color-rahmen-linie: #22262b;
+  --color-rahmen-text: #e8ebee;
+  --color-rahmen-gedaempft: #a0a8b1;
 }
 
+/* Nachtbetrieb — Werte aus den Inline-Styles des Neuentwurfs (farbenDunkel) */
 .dark {
-  --color-good: #22c55e;
-  --color-good-bg: #052e16;
-  --color-caution: #eab308;
-  --color-caution-bg: #422006;
-  --color-warning: #ef4444;
-  --color-warning-bg: #450a0a;
-  --color-surface: #1e293b;
-  --color-surface-alt: #334155;
-  --color-base: #0f172a;
-  --color-text: #f1f5f9;
-  --color-text-muted: #94a3b8;
+  --color-base: #08090b;
+  --color-surface: #0f1215;
+  --color-surface-alt: #171a1f;
+  --color-surface-3: #1b1f24;
+  --color-line: #22262b;
+  --color-line-strong: #2e343a;
+  --color-control-border: #626a73;
+  --color-text: #e8ebee;
+  --color-text-2: #c6ccd2;
+  --color-text-muted: #9aa2ab;
+  --color-faint: #838b94;
+  --color-accent: #4d94d6;
+  --color-accent-hover: #7db3e8;
+  --color-accent-text: #8ec2f0;
+  --color-accent-bg: #0d1620;
+  --color-on-accent: #08090b;
+  --color-on-fill: #08090b;
+  --color-good: #7ddc4a;
+  --color-good-bg: #0d1a0a;
+  --color-caution: #e8cc3a;
+  --color-caution-bg: #1c1705;
+  --color-warning: #ff6b6b;
+  --color-warning-bg: #1c0a0d;
+  --color-banner: #0d1520;
+  --color-banner-line: #1d3a5c;
 }
 
-body {
-  margin: 0;
-  background-color: var(--color-base);
-  color: var(--color-text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
+/* Augenbraue: 10 px, 600, Versalien, gesperrt, Tertiärtext */
+@utility eyebrow {
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  color: var(--color-faint);
+}
+
+/* Datenwert: Mono mit festen Ziffernbreiten */
+@utility num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Fugenraster: Zellen mit 1-px-Fuge in Linienfarbe */
+@utility fugen {
+  gap: 1px;
+  background-color: var(--color-line);
+  border: 1px solid var(--color-line);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-base);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Steuerelemente tragen einen sichtbaren Rahmen (steuerRahmen); Utilities überschreiben ihn */
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='color'], [type='file']),
+  select,
+  textarea {
+    border: 1px solid var(--color-control-border);
+  }
+
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -1px;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  [role='button']:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  ::placeholder {
+    color: var(--color-faint);
+    opacity: 1;
+  }
 }
 
 #root {
@@ -43,16 +166,23 @@ body {
 /* Leaflet map theming */
 .leaflet-container {
   background-color: var(--color-surface-alt);
+  font-family: var(--font-sans);
+}
+
+.leaflet-bar,
+.leaflet-bar a,
+.leaflet-control-zoom a {
+  border-radius: 0 !important;
 }
 
 .dark .leaflet-tile-pane {
-  filter: brightness(0.8) contrast(1.1) saturate(0.8);
+  filter: brightness(0.75) contrast(1.1) saturate(0.7);
 }
 
 .dark .leaflet-control-zoom a {
   background-color: var(--color-surface);
   color: var(--color-text);
-  border-color: var(--color-surface-alt);
+  border-color: var(--color-line);
 }
 
 .dark .leaflet-control-zoom a:hover {

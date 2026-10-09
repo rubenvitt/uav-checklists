@@ -54,7 +54,7 @@ export default function RelocationConfirmDialog({ open, segmentNumber, onConfirm
             type="text"
             value={label}
             onChange={e => setLabel(e.target.value)}
-            className="w-full rounded-lg border border-surface-alt bg-base px-3 py-2 text-sm text-text outline-none focus:border-caution"
+            className="w-full rounded-lg border border-line bg-base px-3 py-2 text-sm text-text outline-none focus:border-caution"
             data-1p-ignore
             autoComplete="off"
           />
@@ -102,7 +102,7 @@ export default function RelocationConfirmDialog({ open, segmentNumber, onConfirm
           </button>
           <button
             onClick={() => onConfirm(label)}
-            className="flex items-center gap-1.5 rounded-lg bg-caution px-4 py-2 text-sm font-medium text-white"
+            className="flex items-center gap-1.5 rounded-lg bg-caution px-4 py-2 text-sm font-medium text-on-fill"
           >
             <PiMapPinArea className="text-sm" />
             Standort verlegen

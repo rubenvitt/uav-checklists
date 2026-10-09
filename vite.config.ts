@@ -24,8 +24,8 @@ export default defineConfig({
       name: 'Flugmappe',
       short_name: 'Flugmappe',
       description: 'Einsatzdokumentation für UAV-Trupps',
-      theme_color: '#0f172a',
-      background_color: '#0f172a',
+      theme_color: '#0c0e11',
+      background_color: '#08090b',
       display: 'standalone',
       orientation: 'portrait',
       icons: [

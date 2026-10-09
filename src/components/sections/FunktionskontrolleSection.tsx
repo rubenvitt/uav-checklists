@@ -99,7 +99,7 @@ export default function FunktionskontrolleSection({
 
       <div className="-mx-5 -mb-5">
         {/* Test items */}
-        <div className="divide-y divide-surface-alt">
+        <div className="divide-y divide-line">
           {FUNKTIONS_ITEMS.map((item) => (
             <button
               key={item.key}
@@ -109,7 +109,7 @@ export default function FunktionskontrolleSection({
               <span
                 className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs transition-colors ${
                   checked[item.key]
-                    ? 'border-good bg-good text-white'
+                    ? 'border-good bg-good text-on-fill'
                     : 'border-text-muted/30 text-transparent'
                 }`}
               >
@@ -169,7 +169,7 @@ export default function FunktionskontrolleSection({
                 disabled={!allChecked}
                 className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
                   allChecked
-                    ? 'bg-good text-white hover:bg-good/90'
+                    ? 'bg-good text-on-fill hover:bg-good/90'
                     : 'bg-surface-alt text-text-muted cursor-not-allowed'
                 }`}
               >
@@ -180,7 +180,7 @@ export default function FunktionskontrolleSection({
                 onClick={denyClearance}
                 className={`rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
                   noGoRecommended
-                    ? 'bg-warning text-white hover:bg-warning/90'
+                    ? 'bg-warning text-on-fill hover:bg-warning/90'
                     : 'border border-warning/40 bg-warning/10 text-warning hover:bg-warning/20'
                 }`}
               >

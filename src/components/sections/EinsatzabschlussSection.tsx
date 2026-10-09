@@ -365,7 +365,7 @@ export default function EinsatzabschlussSection({ open, onToggle, isComplete, on
           return (
             <div key={group.key}>
               <GroupHeader icon={group.icon} label={group.label} />
-              <div className="divide-y divide-surface-alt">
+              <div className="divide-y divide-line">
                 {group.items.map(item => (
                   <CheckItem
                     key={item.key}
@@ -568,7 +568,7 @@ function ModeButton({
       type="button"
       onClick={onClick}
       className={`flex items-center gap-1 rounded-md px-2 py-1 transition-colors ${
-        active ? 'bg-surface text-text shadow-sm' : 'text-text-muted hover:text-text'
+        active ? 'bg-surface text-text ring-1 ring-inset ring-line-strong' : 'text-text-muted hover:text-text'
       }`}
     >
       {icon}
@@ -657,7 +657,7 @@ function CheckItem({
           <span
             className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border text-[0.6rem] transition-colors ${
               isChecked
-                ? 'border-good bg-good text-white'
+                ? 'border-good bg-good text-on-fill'
                 : 'border-text-muted/30 text-transparent'
             }`}
           >

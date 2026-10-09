@@ -79,7 +79,11 @@ Each mission progresses through phases reflected in the URL (`/mission/:missionI
 ## Conventions
 
 - Component UI text is in German
-- CSS uses Tailwind utility classes with custom CSS variables for theming (`--color-good`, `--color-caution`, `--color-warning`, `--color-surface-*`, `--color-text-*` defined in `src/index.css`)
+- CSS uses Tailwind utility classes with custom CSS variables for theming, defined as **roles** in `src/index.css`. The design language is Lifeline Hub's „Instrumententafel" (see `docs/design/2026-10-09-instrumententafel/README.md`):
+  - Radius 0 everywhere (the `--radius-*` theme vars are 0), separation via hairlines (`border-line`), no shadows. Grids of tiles use the `fugen` utility (1 px joints).
+  - **Red never operates anything**: primary actions are `bg-accent text-on-accent` (blue); `warning` is for faults/emergency, `marke` is decoration only. Status chips are tinted surface + tinted text + word (`bg-good-bg text-good border-good/40`), never colour alone.
+  - Archivo for text, JetBrains Mono for numbers, times, IDs (`num` utility = mono + tabular-nums). Section/panel labels use the `eyebrow` utility (10 px, caps, tracked).
+  - The top bar (`Header` → Kopfleiste) stays dark in both themes (`--color-rahmen-*`), so `theme-color` is always `#0c0e11`. Touch targets ≥ 44 px.
 - Light/dark/system theme with sunrise/sunset-aware auto-switching (`useTheme`)
 - Collapsible sections use `ChecklistSection` component with lock/status badge support
 - Drone specs are a static registry in `src/data/drones.ts` — typed as `DroneId` union

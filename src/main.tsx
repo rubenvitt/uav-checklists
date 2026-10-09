@@ -6,6 +6,11 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools'
 import '@fontsource/caveat/400.css'
+import '@fontsource/archivo/400.css'
+import '@fontsource/archivo/500.css'
+import '@fontsource/archivo/600.css'
+import '@fontsource/jetbrains-mono/400.css'
+import '@fontsource/jetbrains-mono/500.css'
 import './index.css'
 import AppRouter from './router.tsx'
 

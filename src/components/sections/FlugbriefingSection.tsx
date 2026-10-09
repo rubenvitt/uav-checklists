@@ -49,12 +49,12 @@ export default function FlugbriefingSection({ open, onToggle, isComplete, onCont
           )}
         </div>
 
-        <div className="divide-y divide-surface-alt">
+        <div className="divide-y divide-line">
           {FLUGBRIEFING_ITEMS.map((item) => {
             const answer = getChecklistAnswer(checked[item.key])
             return (
               <button key={item.key} onClick={() => toggleCheck(item.key)} className="flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-surface-alt">
-                {answer === 'positive' ? <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border border-good bg-good text-[0.6rem] text-white"><PiCheck /></span> : answer === 'negative' ? <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border border-warning bg-warning text-[0.6rem] text-white"><PiX /></span> : <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border border-text-muted/30 text-[0.6rem] text-transparent"><PiCheck /></span>}
+                {answer === 'positive' ? <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border border-good bg-good text-[0.6rem] text-on-fill"><PiCheck /></span> : answer === 'negative' ? <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border border-warning bg-warning text-[0.6rem] text-on-fill"><PiX /></span> : <span className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded border border-text-muted/30 text-[0.6rem] text-transparent"><PiCheck /></span>}
                 <p className={`text-sm transition-colors ${isAnswered(checked[item.key]) ? 'text-text-muted' : 'text-text'}`}>{item.label}</p>
               </button>
             )

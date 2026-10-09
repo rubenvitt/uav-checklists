@@ -43,7 +43,7 @@ export default function SegmentSummarySection({ segments, flightEntries, open, o
               <div className="flex items-center gap-2">
                 <PiMapPin className="shrink-0 text-sm text-text-muted" />
                 <span className="flex-1 text-sm font-medium text-text">{seg.label}</span>
-                <span className={`rounded-full px-2 py-0.5 text-xs ${
+                <span className={`px-2 py-0.5 text-xs ${
                   seg.status === 'active' ? 'bg-good-bg text-good' : 'bg-surface text-text-muted'
                 }`}>
                   {seg.status === 'active' ? 'Aktiv' : 'Abgeschlossen'}

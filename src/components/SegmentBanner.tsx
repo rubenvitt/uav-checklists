@@ -21,7 +21,7 @@ export default function SegmentBanner({ segments, activeSegment, segmentFlightCo
 
   if (variant === 'compact') {
     return (
-      <div className="flex items-center gap-2.5 rounded-xl bg-surface px-4 py-3">
+      <div className="flex items-center gap-2.5 border border-line bg-surface px-4 py-3">
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-caution-bg text-xs font-semibold text-caution">
           {activeIndex || segments.length}
         </span>
@@ -41,7 +41,7 @@ export default function SegmentBanner({ segments, activeSegment, segmentFlightCo
   }
 
   return (
-    <div className="rounded-xl bg-surface">
+    <div className="border border-line bg-surface">
       <div className="flex items-center">
         <button
           onClick={() => setExpanded(e => !e)}
@@ -77,7 +77,7 @@ export default function SegmentBanner({ segments, activeSegment, segmentFlightCo
       </div>
 
       {expanded && completedSegments.length > 0 && (
-        <div className="border-t border-surface-alt px-4 pb-3 pt-2">
+        <div className="border-t border-line px-4 pb-3 pt-2">
           <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-text-muted">
             Bisherige Standorte
           </p>
@@ -90,7 +90,7 @@ export default function SegmentBanner({ segments, activeSegment, segmentFlightCo
                   <span className="font-medium">{i + 1}.</span>
                   <span>{seg.locationName || seg.label}</span>
                   {flightCount !== undefined && flightCount > 0 && (
-                    <span className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-surface-alt px-2 py-0.5 text-[10px] text-text-muted">
+                    <span className="ml-auto flex shrink-0 items-center gap-1 bg-surface-alt px-2 py-0.5 text-[10px] text-text-muted">
                       <PiAirplaneTakeoff className="text-xs" />
                       {flightCount} {flightCount === 1 ? 'Flug' : 'Flüge'}
                     </span>

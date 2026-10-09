@@ -154,7 +154,7 @@ export default function DigitalSignaturePanel({ getReport }: DigitalSignaturePan
               <button
                 onClick={handleArchiveDownload}
                 disabled={download.status === 'working'}
-                className="flex items-center gap-1.5 rounded-md bg-text px-2.5 py-1.5 font-medium text-base transition-colors active:scale-[0.99] disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1.5 font-medium text-on-accent hover:bg-accent-hover transition-colors active:scale-[0.99] disabled:opacity-50"
               >
                 {download.status === 'working' ? (
                   <PiCircleNotch className="animate-spin" />
@@ -183,7 +183,7 @@ export default function DigitalSignaturePanel({ getReport }: DigitalSignaturePan
           <button
             onClick={handleSign}
             disabled={sign.status === 'working'}
-            className="flex items-center gap-2 rounded-lg bg-text px-3 py-2 text-sm font-medium text-base transition-colors active:scale-[0.99] disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover transition-colors active:scale-[0.99] disabled:opacity-50"
           >
             {sign.status === 'working' ? <PiCircleNotch className="animate-spin" /> : <PiSealCheck />}
             Dokument signieren

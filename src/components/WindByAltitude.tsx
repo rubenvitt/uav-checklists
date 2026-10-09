@@ -32,7 +32,7 @@ export default function WindByAltitude({ data, maxAltitude }: WindByAltitudeProp
   const sorted = [...data].sort((a, b) => b.altitude - a.altitude)
 
   return (
-    <div className="rounded-xl bg-surface px-4 py-4">
+    <div className="border border-line bg-surface px-4 py-4">
       <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-text">
         <WiStrongWind className="text-lg" /> Wind nach Höhe
       </h3>

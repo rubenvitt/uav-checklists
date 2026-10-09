@@ -23,7 +23,7 @@ export default function MapToolbar({ activeShape, onSelectShape, onClear, featur
           type="button"
           onClick={() => onSelectShape(activeShape === type ? null : type)}
           title={SHAPE_LABELS[type]}
-          className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-sm shadow-md transition-colors hover:bg-surface-alt"
+          className="flex h-8 w-8 items-center justify-center border border-line-strong bg-surface text-sm transition-colors hover:bg-surface-alt"
           style={activeShape === type ? { backgroundColor: SHAPE_COLORS[type], color: '#fff' } : undefined}
         >
           {icon}
@@ -34,7 +34,7 @@ export default function MapToolbar({ activeShape, onSelectShape, onClear, featur
           type="button"
           onClick={onClear}
           title="Alle löschen"
-          className="mt-1 flex h-8 w-8 items-center justify-center rounded-lg bg-surface text-sm text-warning shadow-md transition-colors hover:bg-warning-bg"
+          className="mt-1 flex h-8 w-8 items-center justify-center border border-line-strong bg-surface text-sm text-warning transition-colors hover:bg-warning-bg"
         >
           <PiTrash />
         </button>

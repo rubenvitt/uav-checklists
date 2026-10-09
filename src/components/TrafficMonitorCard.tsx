@@ -105,7 +105,7 @@ export default function TrafficMonitorCard({ monitor, flightActive }: { monitor:
   const showRefresh = monitor.enabled && monitor.configured && monitor.hasLocation && monitor.errorKind !== 'no-server'
 
   return (
-    <div className="space-y-2.5 rounded-xl bg-surface p-4">
+    <div className="space-y-2.5 border border-line bg-surface p-4">
       <div className="flex items-center gap-3">
         <PiAirplaneInFlight className="shrink-0 text-lg text-text-muted" />
         <div className="min-w-0 flex-1">

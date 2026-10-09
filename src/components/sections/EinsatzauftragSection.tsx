@@ -66,7 +66,7 @@ export default function EinsatzauftragSection({ open, onToggle, isComplete, onCo
                 onClick={() => setTemplate(template === t.key ? '' : t.key)}
                 className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                   template === t.key
-                    ? 'bg-text text-base'
+                    ? 'bg-accent text-on-accent'
                     : 'bg-surface-alt text-text-muted hover:text-text'
                 }`}
               >

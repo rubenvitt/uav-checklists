@@ -81,7 +81,7 @@ export default function ProcedureCard({
 
       {/* Content */}
       {open && (
-        <div className="border-t border-surface-alt px-4 pb-4 pt-3 space-y-3">
+        <div className="border-t border-line px-4 pb-4 pt-3 space-y-3">
           {/* Beschreibung */}
           <p className="text-xs text-text-muted leading-relaxed">{procedure.description}</p>
 
@@ -108,11 +108,11 @@ export default function ProcedureCard({
             <div key={i} className="space-y-2">
               <div className="flex items-center gap-2">
                 <PiUserCircle className="text-sm text-text-muted" />
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${ROLE_COLORS[action.role] ?? 'bg-surface-alt text-text-muted'}`}>
+                <span className={`px-2 py-0.5 text-[10px] font-semibold ${ROLE_COLORS[action.role] ?? 'bg-surface-alt text-text-muted'}`}>
                   {action.role}
                 </span>
               </div>
-              <ul className="ml-1 space-y-1.5 border-l-2 border-surface-alt pl-3">
+              <ul className="ml-1 space-y-1.5 border-l-2 border-line pl-3">
                 {action.steps.map((step, j) => {
                   const isCallOut = step.startsWith('Call Out:')
                   return (

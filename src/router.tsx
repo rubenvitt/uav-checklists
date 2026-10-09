@@ -24,7 +24,7 @@ import NachbereitungPhase from './components/NachbereitungPhase'
 
 function AppFooter() {
   return (
-    <footer className="flex items-center justify-center gap-1.5 py-6 text-[11px] text-text-muted/40">
+    <footer className="flex items-center justify-center gap-1.5 border-t border-line py-5 text-[11px] text-faint">
       <PiShieldCheck className="text-sm" />
       Alle Daten bleiben lokal auf deinem Gerät.
     </footer>
@@ -36,12 +36,12 @@ function OverviewLayout() {
 
   return (
     <div className="min-h-screen bg-base text-text">
-      <div className="mx-auto max-w-2xl space-y-4 p-4">
-        <Header
-          mode="overview"
-          themeSetting={themeSetting}
-          onCycleTheme={cycleTheme}
-        />
+      <Header
+        mode="overview"
+        themeSetting={themeSetting}
+        onCycleTheme={cycleTheme}
+      />
+      <div className="mx-auto max-w-3xl space-y-4 p-4">
         <MissionOverview />
         <AppFooter />
       </div>
@@ -85,6 +85,7 @@ function MissionLayout() {
     <MissionProvider missionId={missionId}>
       <MissionLayoutInner
         missionLabel={mission.label}
+        missionCreatedAt={mission.createdAt}
         currentPhase={currentPhase}
         isCompleted={!!mission.completedAt}
       />
@@ -92,8 +93,9 @@ function MissionLayout() {
   )
 }
 
-function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
+function MissionLayoutInner({ missionLabel, missionCreatedAt, currentPhase, isCompleted }: {
   missionLabel: string
+  missionCreatedAt: number
   currentPhase: MissionPhase
   isCompleted: boolean
 }) {
@@ -128,16 +130,19 @@ function MissionLayoutInner({ missionLabel, currentPhase, isCompleted }: {
   return (
     <SegmentProvider segmentId={activeSegmentId}>
       <div className="min-h-screen bg-base text-text">
-        <div className="mx-auto max-w-2xl space-y-4 p-4">
-          <Header
+        <Header
             mode="mission"
+            missionId={missionId}
+            missionCreatedAt={missionCreatedAt}
             missionLabel={missionLabel}
+            isCompleted={isCompleted}
             themeSetting={themeSetting}
             onCycleTheme={cycleTheme}
             onRefresh={isCompleted ? undefined : handleRefresh}
             onExportPdf={currentPhase === 'vorflugkontrolle' ? () => { const r = getPdfBlobRef.current?.(); if (r) downloadPdf(r.blob, r.filename) } : undefined}
             onSharePdf={currentPhase === 'vorflugkontrolle' && canSharePdf() ? () => { const r = getPdfBlobRef.current?.(); if (r) sharePdf(r.blob, r.filename).catch(() => {}) } : undefined}
           />
+        <div className="mx-auto max-w-3xl space-y-4 p-4">
           {!isCompleted && <MissionStepper currentPhase={currentPhase} />}
           {currentPhase === 'einsatzdaten' && <EinsatzdatenPhase />}
           {currentPhase === 'vorflugkontrolle' && (

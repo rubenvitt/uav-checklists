@@ -15,7 +15,7 @@ export default function EmergencyFAB() {
         {/* Pulse ring */}
         <span className="relative flex h-14 w-14 items-center justify-center">
           <span className="absolute inset-0 rounded-full bg-warning/20 animate-ping" />
-          <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-warning text-white shadow-lg shadow-warning/30 transition-transform hover:scale-105 active:scale-95">
+          <span className="relative flex h-14 w-14 items-center justify-center rounded-full bg-warning text-on-fill shadow-lg shadow-warning/30 transition-transform hover:scale-105 active:scale-95">
             <PiSiren className="text-2xl" />
           </span>
         </span>

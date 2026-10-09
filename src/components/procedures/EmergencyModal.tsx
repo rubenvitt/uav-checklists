@@ -50,16 +50,16 @@ export default function EmergencyModal({ onClose }: { onClose: () => void }) {
         <div className="flex items-center gap-3">
           <button
             onClick={onClose}
-            className="flex items-center justify-center rounded-lg p-2.5 text-white/80 transition-colors hover:text-white hover:bg-white/10"
+            className="flex items-center justify-center rounded-lg p-2.5 text-on-fill/80 transition-colors hover:text-on-fill hover:bg-white/10"
           >
             <PiX className="text-xl" />
           </button>
           <div className="flex-1">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <h2 className="text-sm font-bold text-on-fill flex items-center gap-2">
               <PiSiren className="text-lg" />
               Notfall-Prozeduren
             </h2>
-            <p className="text-[10px] text-white/70">Emergency & Contingency</p>
+            <p className="text-[10px] text-on-fill/70">Emergency & Contingency</p>
           </div>
         </div>
 
@@ -72,7 +72,7 @@ export default function EmergencyModal({ onClose }: { onClose: () => void }) {
               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
                 expandedId === proc.id
                   ? 'bg-white text-warning'
-                  : 'bg-white/20 text-white hover:bg-white/30'
+                  : 'bg-white/20 text-on-fill hover:bg-white/30'
               }`}
             >
               {proc.id}
@@ -140,7 +140,7 @@ export default function EmergencyModal({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Prominent close button at bottom */}
-      <div className="shrink-0 border-t border-surface-alt bg-base px-4 py-3">
+      <div className="shrink-0 border-t border-line bg-base px-4 py-3">
         <button
           onClick={onClose}
           className="w-full rounded-xl bg-surface-alt py-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt/80 active:scale-[0.99]"

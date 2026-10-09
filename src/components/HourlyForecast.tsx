@@ -116,7 +116,7 @@ export default function HourlyForecast({ data, drone }: { data: HourlyForecastPo
   ]
 
   return (
-    <div className="rounded-xl bg-surface px-4 py-4">
+    <div className="border border-line bg-surface px-4 py-4">
       <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-text">
         <PiChartBar className="text-lg" /> 24-Stunden-Vorhersage
       </h3>

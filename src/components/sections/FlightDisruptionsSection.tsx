@@ -294,7 +294,7 @@ export default function FlightDisruptionsSection({ open, onToggle, isComplete, o
         onClick={handleNoDisruptions}
         className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors active:scale-[0.99] ${
           noDisruptions
-            ? 'bg-good text-white'
+            ? 'bg-good text-on-fill'
             : 'bg-surface-alt text-text hover:bg-surface-alt/80'
         }`}
       >
@@ -317,7 +317,7 @@ export default function FlightDisruptionsSection({ open, onToggle, isComplete, o
                   onClick={() => toggleCategory(cat.key)}
                   className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors active:scale-[0.98] ${
                     isActive
-                      ? 'bg-caution text-white'
+                      ? 'bg-caution text-on-fill'
                       : 'bg-surface-alt text-text-muted hover:text-text'
                   }`}
                 >
@@ -505,7 +505,7 @@ function CategoryDetailCard({
   hints?: PreflightHint[]
 }) {
   return (
-    <div className="rounded-xl bg-surface overflow-hidden">
+    <div className="border border-line bg-surface overflow-hidden">
       <div className="flex items-center gap-2 px-4 pt-3 pb-1">
         <span className="text-sm text-caution">{category.icon}</span>
         <span className="text-xs font-semibold text-text">{category.label}</span>

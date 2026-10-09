@@ -24,10 +24,9 @@ function getAutoTheme(sun: SunTimes | null): 'light' | 'dark' {
 
 function apply(resolved: 'light' | 'dark') {
   document.documentElement.classList.toggle('dark', resolved === 'dark')
-  document.querySelector('meta[name="theme-color"]')?.setAttribute(
-    'content',
-    resolved === 'dark' ? '#0f172a' : '#f8fafc',
-  )
+  // Die Kopfleiste bleibt in beiden Modi dunkel (Lifeline Hub, rahmenFarben),
+  // deshalb trägt auch die Browserleiste immer Kopf-Schwarz.
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0c0e11')
 }
 
 export function useTheme(sun: SunTimes | null = null) {

@@ -23,7 +23,7 @@ export default function FlightPurposeSelector({ value, onChange }: FlightPurpose
             onClick={() => onChange(p.id)}
             className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
               value === p.id
-                ? 'bg-text text-base'
+                ? 'bg-accent text-on-accent'
                 : 'bg-surface-alt text-text-muted hover:text-text'
             }`}
           >

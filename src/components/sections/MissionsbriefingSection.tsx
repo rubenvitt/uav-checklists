@@ -92,7 +92,7 @@ function BriefingCard({
   children?: React.ReactNode
 }) {
   return (
-    <div className="border-b border-surface-alt last:border-b-0">
+    <div className="border-b border-line last:border-b-0">
       <button
         onClick={() => onToggle(itemKey)}
         className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-alt"
@@ -100,7 +100,7 @@ function BriefingCard({
         <span
           className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border text-xs transition-colors ${
             checked
-              ? 'border-good bg-good text-white'
+              ? 'border-good bg-good text-on-fill'
               : 'border-text-muted/30 text-transparent'
           }`}
         >
@@ -217,7 +217,7 @@ export default function MissionsbriefingSection({ open, onToggle, isComplete, on
   return (
     <ChecklistSection title="Missionsbriefing" icon={<PiMegaphone />} badge={badge} open={open} onToggle={onToggle} isComplete={isComplete} onContinue={onContinue} continueLabel={continueLabel} isPhaseComplete={isPhaseComplete}>
       <div className="-mx-5 -mb-5">
-        <div className="divide-y divide-surface-alt">
+        <div className="divide-y divide-line">
 
           {/* 1. Einsatzauftrag bekannt */}
           <BriefingCard itemKey="auftrag" label="Einsatzauftrag bekannt" checked={!!checked['auftrag']} onToggle={toggleCheck}>

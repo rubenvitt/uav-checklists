@@ -42,7 +42,7 @@ export default function AuthCallback() {
           </>
         ) : (
           <>
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-surface-alt border-t-text" />
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-line border-t-text" />
             <p className="text-sm text-text-muted">Anmeldung wird abgeschlossen…</p>
           </>
         )}
