@@ -37,7 +37,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "@tanstack/devtools-vite": "^0.8.5",
     "@tanstack/react-devtools": "^0.10.13",
-    "@tanstack/react-query-devtools": "^5.104.0",
+    "@tanstack/react-query-devtools": "^5.104.3",
     "@types/babel__core": "^7.20.5",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^26.6.5",
