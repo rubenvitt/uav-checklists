@@ -32,8 +32,8 @@ importers:
         specifier: ^5.104.3
         version: 5.104.3(react@19.3.0)
       '@tanstack/react-query-persist-client':
-        specifier: ^5.104.0
-        version: 5.104.0(@tanstack/react-query@5.104.3(react@19.3.0))(react@19.3.0)
+        specifier: ^5.104.3
+        version: 5.104.3(@tanstack/react-query@5.104.3(react@19.3.0))(react@19.3.0)
       '@tanstack/react-store':
         specifier: ^0.11.2
         version: 0.11.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1714,6 +1714,9 @@ packages:
   '@tanstack/query-persist-client-core@5.104.0':
     resolution: {integrity: sha512-7XEoH8+gaARK06Uw6e97WqOfus7dtcrYxA6RUf1+OZArz1Ax7Stlcfas6XRz7V2YiOTAkGKUYsk2y43QUmpiTw==}
 
+  '@tanstack/query-persist-client-core@5.104.3':
+    resolution: {integrity: sha512-6nhc/QbMpkKeuAM81SFSdcsJ9B8dm3fGHPODbau2cRSDyqcXiSl7sXQM7POVktch/YdgIGYPIQyZOQQaRarHMA==}
+
   '@tanstack/query-sync-storage-persister@5.104.0':
     resolution: {integrity: sha512-ZwwxQfbG7tcD3VqcaxGZblH0Ahqwxkfkveiy2TC3BSCcsJX8YiEC3c8J8dQQs+3qVJtD8jUaXcZ86XvlINn09A==}
 
@@ -1733,10 +1736,10 @@ packages:
       '@types/react': ^18 || ^19
       react: ^18 || ^19
 
-  '@tanstack/react-query-persist-client@5.104.0':
-    resolution: {integrity: sha512-ZIw4PQfk/MLEJEyaxg0AQfuT0I+HGSogcWl18GjG+Yy2707TFtf3Or2yZilAJoSzBMdoZr9X2xx6T5cap0PlUg==}
+  '@tanstack/react-query-persist-client@5.104.3':
+    resolution: {integrity: sha512-Dooa5cQ2Ter+9yHD3oD6vUzY+X4VEG9l9XkilX5OWFXMAtCEC+rSXwlfwYqNEMzAVigH7AcdubeRj2Vm+rCf8g==}
     peerDependencies:
-      '@tanstack/react-query': ^5.104.0
+      '@tanstack/react-query': ^5.104.3
       react: ^18 || ^19
 
   '@tanstack/react-query@5.104.3':
@@ -5266,6 +5269,10 @@ snapshots:
     dependencies:
       '@tanstack/query-core': 5.104.0
 
+  '@tanstack/query-persist-client-core@5.104.3':
+    dependencies:
+      '@tanstack/query-core': 5.104.3
+
   '@tanstack/query-sync-storage-persister@5.104.0':
     dependencies:
       '@tanstack/query-core': 5.104.0
@@ -5293,9 +5300,9 @@ snapshots:
     transitivePeerDependencies:
       - csstype
 
-  '@tanstack/react-query-persist-client@5.104.0(@tanstack/react-query@5.104.3(react@19.3.0))(react@19.3.0)':
+  '@tanstack/react-query-persist-client@5.104.3(@tanstack/react-query@5.104.3(react@19.3.0))(react@19.3.0)':
     dependencies:
-      '@tanstack/query-persist-client-core': 5.104.0
+      '@tanstack/query-persist-client-core': 5.104.3
       '@tanstack/react-query': 5.104.3(react@19.3.0)
       react: 19.3.0
 
