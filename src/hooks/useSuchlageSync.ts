@@ -3,7 +3,7 @@ import { useAuth } from '../context/useAuth'
 import { isSuchlageConfigured, isSuchlageError, suchlage } from '../services/suchlageApi'
 import { generateId, loadMissions } from '../utils/missionStorage'
 import { getMissionField } from '../stores/missionFormStore'
-import { drainOutbox, healOutbox, isHealable, type OutboxItem, type SendOutcome } from '../utils/suchlageOutbox'
+import { drainOutbox, healOutbox, isHealable, sectionErrorText, type OutboxItem, type SendOutcome } from '../utils/suchlageOutbox'
 import {
   getSuchlageLink,
   getSuchlageOutbox,
@@ -28,12 +28,6 @@ let rerunForce: boolean | null = null
  * soll nicht parallel ein zweites Mal starten.
  */
 export const RUN_LIMIT_MS = 2 * 60_000
-
-/** Nur ein 400 ist eine dauerhafte Ablehnung des Abschnitts; 404/422 klären Zustand und Heilung. */
-function sectionErrorText(outcome: SendOutcome): string | null {
-  if (outcome.ok || outcome.status !== 400) return null
-  return 'Suchlage hat den Abschnitt abgelehnt (ungültige Angaben).'
-}
 
 /** Ausgangslisten aller Einsätze einmal abarbeiten. `true` = 401/403, alles ruht. */
 async function syncAll(force: boolean, isStopped: () => boolean): Promise<boolean> {

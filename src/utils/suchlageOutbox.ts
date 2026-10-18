@@ -229,6 +229,16 @@ export async function drainOutbox(opts: DrainOptions): Promise<{ rested: boolean
   return { rested: false, sent }
 }
 
+/**
+ * Meldung am Abschnitt, wenn Suchlage ihn ablehnt. Nur ein 400 ist dauerhaft
+ * (dann wird er auch nicht nachgelegt); 404 und 422 klären GET /missions/{id},
+ * „abgeschlossen“ und die Heilung – dafür keine Meldung.
+ */
+export function sectionErrorText(outcome: SendOutcome): string | null {
+  if (outcome.ok || outcome.status !== 400) return null
+  return 'Suchlage hat den Abschnitt abgelehnt (ungültige Angaben).'
+}
+
 export interface HealSegment {
   id: string
   createdAt: number

@@ -6,6 +6,7 @@ import {
   enqueue,
   nextDue,
   MAX_DEFERS,
+  sectionErrorText,
   healOutbox,
   sectionsToHeal,
   type OutboxItem,
@@ -301,5 +302,14 @@ describe('Foto zurückstellen', () => {
     const a = applyOutcome(items, 'id0', { ok: false, kind: 'other', status: 404, defer: true }, T0)
     expect(a.items).toEqual([])
     expect(a.removed?.sent).toBe(false)
+  })
+})
+
+describe('sectionErrorText', () => {
+  it('nur ein 400 ergibt eine dauerhafte Meldung', () => {
+    expect(sectionErrorText({ ok: false, kind: 'other', status: 400 })).toMatch(/abgelehnt/)
+    expect(sectionErrorText({ ok: false, kind: 'other', status: 404 })).toBeNull()
+    expect(sectionErrorText({ ok: false, kind: 'unprocessable', status: 422 })).toBeNull()
+    expect(sectionErrorText({ ok: true })).toBeNull()
   })
 })
