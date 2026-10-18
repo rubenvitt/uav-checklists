@@ -163,37 +163,21 @@
   min-height: 100dvh;
 }
 
-/* Leaflet map theming */
-.leaflet-container {
-  background-color: var(--color-surface-alt);
-  font-family: var(--font-sans);
+/* Einsatzkarte (MapLibre) */
+.einsatz-map[data-drawing='true'] .maplibregl-canvas {
+  cursor: crosshair;
 }
 
-.leaflet-bar,
-.leaflet-bar a,
-.leaflet-control-zoom a {
-  border-radius: 0 !important;
-}
-
-.dark .leaflet-tile-pane {
-  filter: brightness(0.75) contrast(1.1) saturate(0.7);
-}
-
-.dark .leaflet-control-zoom a {
+/* Die Quellenangabe ist sonst ein weißer Kasten, auch auf der dunklen Karte. */
+.dark .einsatz-map .maplibregl-ctrl-attrib {
   background-color: var(--color-surface);
-  color: var(--color-text);
-  border-color: var(--color-line);
-}
-
-.dark .leaflet-control-zoom a:hover {
-  background-color: var(--color-surface-alt);
-}
-
-.dark .leaflet-control-attribution {
-  background-color: var(--color-surface) !important;
   color: var(--color-text-muted);
 }
 
-.dark .leaflet-control-attribution a {
+.dark .einsatz-map .maplibregl-ctrl-attrib a {
   color: var(--color-text-muted);
+}
+
+.dark .einsatz-map .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
 }

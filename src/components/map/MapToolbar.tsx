@@ -1,4 +1,4 @@
-import { PiPolygon, PiMapPin, PiTrash } from 'react-icons/pi'
+import { PiPolygon, PiMapPin, PiTrash, PiCheck } from 'react-icons/pi'
 import type { ShapeType } from '../../types/mapData'
 import { SHAPE_LABELS, SHAPE_COLORS } from '../../types/mapData'
 
@@ -7,6 +7,9 @@ interface MapToolbarProps {
   onSelectShape: (shape: ShapeType | null) => void
   onClear: () => void
   featureCount: number
+  /** Schließt die Fläche ab; ohne Tastatur (Telefon) der einzige Weg. `null`: kein Knopf. */
+  onFinish: (() => void) | null
+  canFinish: boolean
 }
 
 const SHAPES: { type: ShapeType; icon: React.ReactNode }[] = [
@@ -14,7 +17,7 @@ const SHAPES: { type: ShapeType; icon: React.ReactNode }[] = [
   { type: 'standort', icon: <PiMapPin /> },
 ]
 
-export default function MapToolbar({ activeShape, onSelectShape, onClear, featureCount }: MapToolbarProps) {
+export default function MapToolbar({ activeShape, onSelectShape, onClear, featureCount, onFinish, canFinish }: MapToolbarProps) {
   return (
     <div className="map-toolbar absolute right-2 top-2 z-[1000] flex flex-col gap-1">
       {SHAPES.map(({ type, icon }) => (
@@ -29,6 +32,17 @@ export default function MapToolbar({ activeShape, onSelectShape, onClear, featur
           {icon}
         </button>
       ))}
+      {onFinish && (
+        <button
+          type="button"
+          onClick={onFinish}
+          disabled={!canFinish}
+          title="Fertig"
+          className="flex h-8 w-8 items-center justify-center border border-line-strong bg-accent text-sm text-on-accent transition-colors disabled:opacity-40"
+        >
+          <PiCheck />
+        </button>
+      )}
       {featureCount > 0 && (
         <button
           type="button"
