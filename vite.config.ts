@@ -88,7 +88,7 @@ export default defineConfig({
           options: {
             cacheName: 'versatiles',
             expiration: { maxEntries: 2000, maxAgeSeconds: 30 * 24 * 60 * 60 },
-            cacheableResponse: { statuses: [0, 200] },
+            cacheableResponse: { statuses: [200] },
           },
         },
       ],

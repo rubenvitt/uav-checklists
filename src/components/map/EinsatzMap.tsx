@@ -22,6 +22,8 @@ interface EinsatzMapProps {
 type Theme = 'light' | 'dark'
 
 const FIT = { padding: 40, maxZoom: 15 }
+/** Ein Tipp so nah an der ersten Ecke schließt die Fläche, statt eine fast doppelte Ecke zu setzen. */
+const CLOSE_PX = 10
 const POLYGON = ['==', ['geometry-type'], 'Polygon'] as maplibregl.FilterSpecification
 const POINT = ['==', ['geometry-type'], 'Point'] as maplibregl.FilterSpecification
 const NOT_POINT = ['!=', ['geometry-type'], 'Point'] as maplibregl.FilterSpecification
@@ -37,6 +39,13 @@ const LOCALE = {
 }
 
 const currentTheme = (): Theme => (document.documentElement.classList.contains('dark') ? 'dark' : 'light')
+
+/** Wartet, bis Kacheln, Daten und Kamera zur Ruhe gekommen sind. */
+async function settled(map: maplibregl.Map) {
+  // `idle` feuert nur nach einem Renderdurchlauf: Auf einer schon ruhenden Karte käme es nie.
+  if (map.loaded() && !map.isMoving()) return
+  await Promise.race([map.once('idle'), map.once('remove')])
+}
 
 function setStyle(map: maplibregl.Map, theme: Theme) {
   // Ohne `diff: false` gleicht MapLibre die Stile nur ab, `style.load` bleibt aus und die eigenen Ebenen fehlen.
@@ -127,11 +136,14 @@ const EinsatzMap = forwardRef<EinsatzMapHandle, EinsatzMapProps>(function Einsat
   const styleLoaded = useEffectEvent((map: maplibregl.Map) => addOverlay(map, mapData, draft))
   const initialCenter = useEffectEvent((): [number, number] => [longitude, latitude])
 
-  const clicked = useEffectEvent((p: [number, number], clickCount: number) => {
+  const clicked = useEffectEvent((e: maplibregl.MapMouseEvent) => {
     if (!draft) return
-    // Der zweite Klick eines Doppelklicks setzt keinen Eckpunkt mehr; der Doppelklick schließt ab.
-    if (clickCount > 1 && draft.shape === 'einsatzgebiet') return
-    const next = addPoint(draft, p)
+    if (draft.shape === 'einsatzgebiet') {
+      // Der zweite Klick eines Doppelklicks setzt keinen Eckpunkt mehr; der Doppelklick schließt ab.
+      if (e.originalEvent.detail > 1) return
+      if (canFinish(draft) && e.target.project(draft.points[0]).dist(e.point) <= CLOSE_PX) return finish(draft)
+    }
+    const next = addPoint(draft, [e.lngLat.lng, e.lngLat.lat])
     if (next.shape === 'standort') finish(next)
     else setDraft(next)
   })
@@ -165,7 +177,7 @@ const EinsatzMap = forwardRef<EinsatzMapHandle, EinsatzMapProps>(function Einsat
     map.keyboard.disableRotation()
     mapRef.current = map
     map.on('style.load', () => styleLoaded(map))
-    map.on('click', (e) => clicked([e.lngLat.lng, e.lngLat.lat], e.originalEvent.detail))
+    map.on('click', (e) => clicked(e))
     map.on('dblclick', () => doubleClicked())
 
     const themeObserver = new MutationObserver(() => {
@@ -252,6 +264,13 @@ const EinsatzMap = forwardRef<EinsatzMapHandle, EinsatzMapProps>(function Einsat
     captureImage: async () => {
       const map = mapRef.current
       if (!map || map.getCanvas().width === 0) throw new Error('Map not visible')
+      // Bild und Daten sollen übereinstimmen: Ein Entwurf wird abgeschlossen, wenn er reicht, sonst verworfen.
+      if (draft) {
+        if (canFinish(draft)) finish(draft)
+        else setDraft(null)
+        // React schreibt die neuen Daten im nächsten Durchlauf in die Quellen.
+        await new Promise(requestAnimationFrame)
+      }
       // Das Bild im Bericht ist immer hell, auch wenn die Seite dunkel ist.
       let shown = theme.current
       capturing.current = true
@@ -259,8 +278,8 @@ const EinsatzMap = forwardRef<EinsatzMapHandle, EinsatzMapProps>(function Einsat
         if (shown === 'dark') {
           shown = 'light'
           setStyle(map, shown)
-          await map.once('idle')
         }
+        await settled(map)
         return map.getCanvas().toDataURL('image/jpeg', 0.85)
       } finally {
         capturing.current = false
@@ -278,7 +297,14 @@ const EinsatzMap = forwardRef<EinsatzMapHandle, EinsatzMapProps>(function Einsat
     )
   }
 
-  const selectShape = (shape: ShapeType | null) => setDraft(shape ? { shape, points: [] } : null)
+  const selectShape = (shape: ShapeType | null) => {
+    // Eine Fläche mit Ecken geht nicht durch einen Werkzeugtipp verloren: erneuter Tipp schließt ab, sonst bleibt sie.
+    if (draft && draft.points.length > 0) {
+      if (shape === null) finish(draft)
+      return
+    }
+    setDraft(shape ? { shape, points: [] } : null)
+  }
 
   return (
     <div className="einsatz-map relative h-64 w-full overflow-hidden rounded-lg sm:h-80" data-drawing={drafting}>
@@ -290,7 +316,14 @@ const EinsatzMap = forwardRef<EinsatzMapHandle, EinsatzMapProps>(function Einsat
         featureCount={mapData.features.length}
         onFinish={draft?.shape === 'einsatzgebiet' ? () => finish(draft) : null}
         canFinish={draft !== null && canFinish(draft)}
+        onUndo={() => draft && setDraft(removeLastPoint(draft))}
+        canUndo={(draft?.points.length ?? 0) > 0}
       />
+      {draft && (
+        <p className="pointer-events-none absolute bottom-2 left-2 z-[1000] max-w-[calc(100%-4.5rem)] border border-line bg-surface/90 px-2 py-1 text-xs text-text">
+          {draft.shape === 'standort' ? 'Standort antippen' : 'Ecken antippen, mit ✓ abschließen'}
+        </p>
+      )}
     </div>
   )
 })
