@@ -838,6 +838,9 @@ führt ein Verweis dorthin.
   Meeresspiegel, „ü. Grund“ Höhe über dem Boden. Steht beim Flugverkehr
   „ü. NN“, fehlt die Geländehöhe; die Luftfahrzeuge fliegen dann tiefer über
   eurem Gelände, als die Zahl sagt, im Bergland oft um mehrere hundert Meter.
+  Beim **Luftdruck** heißt „auf NN reduziert“: auf Meereshöhe umgerechnet,
+  wie im Wetterbericht. Nur so lassen sich Orte in verschiedener Höhe
+  vergleichen.
 - **NOAA** – die US-Behörde für Wetter und Ozeane. Ihr Weltraumwetterdienst
   liefert den K-Index.
 - **NOTAM** (*Notice to Airmen*) – aktuelle Hinweise für die Luftfahrt, z. B.
