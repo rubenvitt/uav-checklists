@@ -166,6 +166,9 @@ export function createSuchlageClient(opts: SuchlageClientOptions) {
     listMissions: (signal?: AbortSignal) => request<FmMission[]>('/missions', { signal }),
     createMission: (body: FmMissionCreate) =>
       request<FmMission>('/missions', { method: 'POST', json: body }),
+    /** Zustand des verknüpften Einsatzes (auch abgeschlossen). */
+    mission: (id: number, fmMissionId: string, signal?: AbortSignal) =>
+      request<FmMission>(m(id), { fmMissionId, signal }),
     linkMission: (id: number, body: FmMissionLink) =>
       request<FmMission>(`${m(id)}/link`, { method: 'POST', json: body }),
     createSection: (id: number, fmMissionId: string, body: FmSectionCreate) =>

@@ -64,6 +64,15 @@ describe('suchlageApi Anfragen', () => {
     expect(init.credentials).toBe('omit')
   })
 
+  it('liest den Zustand des Einsatzes mit Einsatz-Header', async () => {
+    const { client, fetchMock } = setup({ response: () => jsonResponse(200, { id: 5, state: 'closed' }) })
+    const m = await client.mission(5, 'fm')
+    expect(m.state).toBe('closed')
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('https://suchlage.example/api/flugmappe/v1/missions/5')
+    expect((init.headers as Record<string, string>)[MISSION_HEADER]).toBe('fm')
+  })
+
   it('ohne Einsatzbezug kein Einsatz-Header', async () => {
     const { client, fetchMock } = setup({ response: () => jsonResponse(200, { name: 'A', role: 'operator', api_version: 1 }) })
     const me = await client.me()

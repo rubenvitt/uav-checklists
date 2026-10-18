@@ -43,10 +43,10 @@ export function useSuchlageFlights(sl: SuchlageMission, localFlightOpen: boolean
     retry: false,
   })
 
-  // Abgeschlossen erkennen: Die Liste offener Einsätze enthält ihn nicht mehr.
-  const open = useQuery({
-    queryKey: ['suchlage', 'missions'],
-    queryFn: ({ signal }) => suchlage.listMissions(signal),
+  // Abgeschlossen erkennen: Zustand des Einsatzes in Suchlage.
+  const mission = useQuery({
+    queryKey: ['suchlage', 'mission', id, missionId],
+    queryFn: ({ signal }) => suchlage.mission(id!, missionId, signal),
     enabled: sl.linked && id !== null && !sl.remoteEnded,
     refetchInterval: FLIGHTS_POLL_IDLE_MS,
     staleTime: 30_000,
@@ -59,8 +59,12 @@ export function useSuchlageFlights(sl: SuchlageMission, localFlightOpen: boolean
   }, [query.error, query.errorUpdatedAt, missionId, queryClient])
 
   useEffect(() => {
-    if (open.data && id !== null && !open.data.some((m) => m.id === id)) setSuchlageRemoteState(missionId, 'closed')
-  }, [open.data, id, missionId])
+    if (mission.data?.state === 'closed') setSuchlageRemoteState(missionId, 'closed')
+  }, [mission.data, missionId])
+
+  useEffect(() => {
+    if (mission.error) handleSuchlageReadError(missionId, mission.error, queryClient)
+  }, [mission.error, mission.errorUpdatedAt, missionId, queryClient])
 
   const kind = errorKindOf(query.error)
   return {

@@ -1,7 +1,7 @@
 // Einziger Einstieg für die Vertragstypen von Suchlage (`/api/flugmappe/v1`).
 // Die Dateien daneben sind Kopien aus rubenvitt/suchlage
-// (frontend/src/contract/generated/) bzw. – mit Kopf PROVISORISCH – nach dem
-// Schnittstellenplan geschrieben, bis Suchlage sie erzeugt.
+// (frontend/src/contract/generated/, erzeugt mit ts-rs). Zum Aktualisieren
+// neu kopieren, nicht von Hand ändern.
 export type { ApiError } from './ApiError'
 export type { FlightEndReason } from './FlightEndReason'
 export type { GeoPoint } from './GeoPoint'
@@ -19,4 +19,9 @@ export type { FmFlight } from './FmFlight'
 export type { FmImportFeature } from './FmImportFeature'
 export type { FmMapImport } from './FmMapImport'
 export type { FmMapImportResult } from './FmMapImportResult'
-export type { FmFeatureCollection, FmFeature, FmFeatureKind, FmFeatureProperties } from './FmFeatureCollection'
+export type { FmFeatureCollection } from './FmFeatureCollection'
+export type { FmFeatureCollectionType } from './FmFeatureCollectionType'
+export type { FmFeature } from './FmFeature'
+export type { FmFeatureType } from './FmFeatureType'
+export type { FmFeatureProperties } from './FmFeatureProperties'
+export type { FmGeometry } from './FmGeometry'

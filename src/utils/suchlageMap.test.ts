@@ -32,13 +32,13 @@ describe('buildMapImport', () => {
 })
 
 describe('toDisplayCollection', () => {
-  it('ergänzt fehlende oder ungültige Farben je Art', () => {
+  it('ersetzt leere oder ungültige Farben je Art', () => {
     const r = toDisplayCollection({
       type: 'FeatureCollection',
       features: [
-        { type: 'Feature', geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] }, properties: { kind: 'flight_track', name: null, color: null, flight_id: 1 } },
-        { type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { kind: 'map_element', name: 'P', color: 'url(evil)', flight_id: null } },
-        { type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { kind: 'map_element', name: 'Q', color: '#ff0000', flight_id: null } },
+        { type: 'Feature', geometry: { type: 'LineString', coordinates: [[0, 0], [1, 1]] }, properties: { kind: 'flight_track', flight_id: 1, name: 'Flug 1', color: '', flugmappe_section_id: null, started_at_ms: 0, ended_at_ms: null } },
+        { type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { kind: 'map_element', id: 'a', name: 'P', color: 'url(evil)' } },
+        { type: 'Feature', geometry: { type: 'Point', coordinates: [0, 0] }, properties: { kind: 'map_element', id: 'b', name: 'Q', color: '#ff0000' } },
       ],
     })
     expect(r.features.map((f) => f.properties.color)).toEqual([
