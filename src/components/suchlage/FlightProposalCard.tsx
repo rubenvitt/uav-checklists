@@ -6,6 +6,8 @@ interface FlightProposalCardProps {
   proposal: FlightProposal
   /** Beschriftung des Zusammenführens, z. B. „Mit Flug 2 zusammenführen“; `null` = bestätigen */
   mergeLabel: string | null
+  /** Nein, wenn „Bestätigen“ einen zweiten offenen Flug erzeugen würde */
+  canConfirm: boolean
   onConfirm: () => void
   onMerge: () => void
 }
@@ -15,7 +17,7 @@ function formatTime(ms: number): string {
 }
 
 /** Unbestätigter Eintrag: ein von Suchlage erkannter Flug, noch kein Teil des Flugbuchs. */
-export default function FlightProposalCard({ proposal, mergeLabel, onConfirm, onMerge }: FlightProposalCardProps) {
+export default function FlightProposalCard({ proposal, mergeLabel, canConfirm, onConfirm, onMerge }: FlightProposalCardProps) {
   const { flight, running } = proposal
   const lost = flight.ended_at_ms !== null && flight.end_reason === 'connection_lost'
   const aircraft = flight.aircraft_label?.trim() || flight.aircraft_sn
@@ -64,6 +66,10 @@ export default function FlightProposalCard({ proposal, mergeLabel, onConfirm, on
             <PiArrowsMerge className="text-base" />
             {mergeLabel}
           </button>
+        ) : !canConfirm ? (
+          <p className="flex min-h-12 items-center justify-center px-4 text-center text-xs text-text-muted">
+            Erst den offenen Flug beenden, dann bestätigen.
+          </p>
         ) : (
           <button
             type="button"

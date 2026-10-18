@@ -43,8 +43,21 @@ const iso = (ms: number) => new Date(ms).toISOString()
 export interface FlightProposal {
   flight: FmFlight
   running: boolean
-  /** Eigener Eintrag ohne Suchlage-Bezug mit Start höchstens 5 min daneben. */
+  /**
+   * Eigener Eintrag ohne Suchlage-Bezug zum Zusammenführen: Start höchstens
+   * 5 min daneben, oder – wenn der Flug offen bliebe – der offene Eintrag.
+   */
   mergeEntryId: string | null
+  /**
+   * „Bestätigen“ erlaubt. Nein, wenn daraus ein zweiter offener Eintrag würde
+   * (die Oberfläche kennt nur einen laufenden Flug).
+   */
+  canConfirm: boolean
+}
+
+/** Ein Eintrag aus diesem Flug hätte keine Landezeit (läuft noch oder Verbindungsabriss). */
+export function wouldStayOpen(f: FmFlight): boolean {
+  return !isFlightLanded(f)
 }
 
 /**
@@ -78,10 +91,23 @@ export function computeProposals(flights: readonly FmFlight[], entries: readonly
     usedEntries.add(p.entryId)
   }
 
+  // Bliebe ein Flug offen und ist lokal schon ein Flug offen, wird zusammengeführt –
+  // unabhängig vom Zeitfenster –, damit nie zwei offene Einträge entstehen.
+  const openEntry = candidates.find((e) => e.blockOn === null)
+  if (openEntry && !usedEntries.has(openEntry.id)) {
+    const flight = open.find((f) => wouldStayOpen(f) && !byFlight.has(f.id))
+    if (flight) {
+      byFlight.set(flight.id, openEntry.id)
+      usedEntries.add(openEntry.id)
+    }
+  }
+  const anyOpen = entries.some((e) => e.blockOn === null)
+
   return open.map((flight) => ({
     flight,
     running: isFlightRunning(flight),
     mergeEntryId: byFlight.get(flight.id) ?? null,
+    canConfirm: !wouldStayOpen(flight) || !anyOpen,
   }))
 }
 
@@ -110,6 +136,24 @@ export function confirmFlight(flight: FmFlight, ctx: ConfirmContext): FlightLogE
     payloads: ctx.payloads,
     suchlage: toFlightRef(flight),
   }
+}
+
+/**
+ * „Bestätigen“ als Änderung am Flugbuch, idempotent: nichts tun, wenn der Flug
+ * schon in einem Eintrag steht oder ein zweiter offener Eintrag entstünde.
+ */
+export function addConfirmedFlight(entries: FlightLogEntry[], flight: FmFlight, ctx: ConfirmContext): FlightLogEntry[] {
+  if (entries.some((e) => e.suchlage?.flightId === flight.id)) return entries
+  if (wouldStayOpen(flight) && entries.some((e) => e.blockOn === null)) return entries
+  return [...entries, confirmFlight(flight, ctx)]
+}
+
+/** Zusammenführen als Änderung am Flugbuch, idempotent (Flug schon verknüpft, Ziel hat schon einen Bezug). */
+export function applyMerge(entries: FlightLogEntry[], entryId: string, flight: FmFlight): FlightLogEntry[] {
+  if (entries.some((e) => e.suchlage?.flightId === flight.id)) return entries
+  const target = entries.find((e) => e.id === entryId)
+  if (!target || target.suchlage) return entries
+  return entries.map((e) => (e.id === entryId ? mergeFlight(e, flight) : e))
 }
 
 /** „Mit Flug N zusammenführen“: eigener Eintrag bekommt den Bezug und die Telemetrie-Zeiten. */

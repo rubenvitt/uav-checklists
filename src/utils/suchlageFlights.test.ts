@@ -3,6 +3,8 @@ import type { FlightLogEntry } from '../types/flightLog'
 import type { FmFlight } from '../types/suchlage'
 import {
   MERGE_WINDOW_MS,
+  addConfirmedFlight,
+  applyMerge,
   computeProposals,
   confirmFlight,
   hasRunningFlight,
@@ -75,6 +77,58 @@ describe('computeProposals', () => {
     const linked = entry('a', 0, 10, { suchlage: toFlightRef(flight(9, 0, 10)) })
     const p = computeProposals([flight(1, 1, 10)], [linked])
     expect(p[0].mergeEntryId).toBeNull()
+  })
+})
+
+describe('computeProposals: nie zwei offene Einträge', () => {
+  it('laufender Vorschlag bei offenem eigenem Eintrag: zusammenführen, auch außerhalb von 5 min', () => {
+    const p = computeProposals([flight(1, 30, null)], [entry('offen', 0, null)])
+    expect(p[0].mergeEntryId).toBe('offen')
+  })
+
+  it('Verbindungsabriss bei offenem Eintrag: ebenfalls zusammenführen', () => {
+    const p = computeProposals([flight(1, 30, 40, { end_reason: 'connection_lost' })], [entry('offen', 0, null)])
+    expect(p[0].mergeEntryId).toBe('offen')
+  })
+
+  it('gelandeter Vorschlag bei offenem Eintrag: bestätigen bleibt erlaubt', () => {
+    const p = computeProposals([flight(1, 30, 40)], [entry('offen', 0, null)])
+    expect(p[0]).toMatchObject({ mergeEntryId: null, canConfirm: true })
+  })
+
+  it('offener Eintrag schon aus Suchlage: zweiter laufender Flug kann nicht bestätigt werden', () => {
+    const entries = [entry('a', 0, null, { suchlage: toFlightRef(flight(9, 0, null)) })]
+    const p = computeProposals([flight(9, 0, null), flight(2, 5, null)], entries)
+    expect(p).toHaveLength(1)
+    expect(p[0]).toMatchObject({ mergeEntryId: null, canConfirm: false })
+  })
+
+  it('ohne offenen Eintrag darf ein laufender Flug bestätigt werden', () => {
+    expect(computeProposals([flight(1, 0, null)], [entry('a', -60, -50)])[0].canConfirm).toBe(true)
+  })
+})
+
+describe('addConfirmedFlight / applyMerge', () => {
+  const ctx = { id: 'neu', fernpilot: 'P', lrb: 'L', activeSegmentId: null, knownSegmentIds: [], payloads: [] }
+
+  it('bestätigt einmal; ein zweiter Tipp ändert nichts', () => {
+    const once = addConfirmedFlight([], flight(1, 0, 10), ctx)
+    expect(once).toHaveLength(1)
+    expect(addConfirmedFlight(once, flight(1, 0, 10), { ...ctx, id: 'x' })).toBe(once)
+  })
+
+  it('erzeugt keinen zweiten offenen Eintrag', () => {
+    const entries = [entry('offen', 0, null)]
+    expect(addConfirmedFlight(entries, flight(1, 30, null), ctx)).toBe(entries)
+  })
+
+  it('führt einmal zusammen; Ziel mit Bezug oder schon verknüpfter Flug: nichts', () => {
+    const entries = [entry('a', 0, null), entry('b', 20, 30)]
+    const merged = applyMerge(entries, 'a', flight(1, 1, null))
+    expect(merged[0].suchlage?.flightId).toBe(1)
+    expect(applyMerge(merged, 'b', flight(1, 1, null))).toBe(merged)
+    expect(applyMerge(merged, 'a', flight(2, 1, null))).toBe(merged)
+    expect(applyMerge(entries, 'fehlt', flight(3, 1, null))).toBe(entries)
   })
 })
 

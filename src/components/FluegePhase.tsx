@@ -24,7 +24,7 @@ import SuchlageStatusLine from './suchlage/SuchlageStatusLine'
 import SuchlageRemoteNotice from './suchlage/SuchlageRemoteNotice'
 import { useSuchlageMission } from '../hooks/useSuchlage'
 import { useSuchlageFlights } from '../hooks/useSuchlageData'
-import { computeProposals, confirmFlight, mergeFlight, needsManualLanding, syncFromSuchlage } from '../utils/suchlageFlights'
+import { addConfirmedFlight, applyMerge, computeProposals, needsManualLanding, syncFromSuchlage } from '../utils/suchlageFlights'
 import { formatDistance } from '../utils/suchlageReport'
 import type { FmFlight } from '../types/suchlage'
 
@@ -165,19 +165,20 @@ export default function FluegePhase() {
 
   function confirmSuchlageFlight(flight: FmFlight) {
     setFluegeAbgeschlossen(false)
-    const entry = confirmFlight(flight, {
+    const ctx = {
       id: generateId(),
       fernpilot: defaultFp,
       lrb: defaultLrb,
       activeSegmentId,
       knownSegmentIds: segments.map((seg) => seg.id),
       payloads: mountedPayloads,
-    })
-    setEntries((prev) => [...prev, entry])
+    }
+    // Idempotent: kein Doppel bei doppeltem Tipp, nie ein zweiter offener Eintrag.
+    setEntries((prev) => addConfirmedFlight(migrateEntries(prev), flight, ctx))
   }
 
   function mergeSuchlageFlight(entryId: string, flight: FmFlight) {
-    setEntries((prev) => prev.map((e) => (e.id === entryId ? mergeFlight(e, flight) : e)))
+    setEntries((prev) => applyMerge(migrateEntries(prev), entryId, flight))
   }
 
   function mergeLabel(entryId: string | null): string | null {
@@ -261,6 +262,7 @@ export default function FluegePhase() {
               key={p.flight.id}
               proposal={p}
               mergeLabel={mergeLabel(p.mergeEntryId)}
+              canConfirm={p.canConfirm}
               onConfirm={() => confirmSuchlageFlight(p.flight)}
               onMerge={() => p.mergeEntryId && mergeSuchlageFlight(p.mergeEntryId, p.flight)}
             />
