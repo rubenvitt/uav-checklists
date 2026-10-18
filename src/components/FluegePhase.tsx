@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useEffectEvent } from 'react'
 import { useNavigate } from 'react-router'
 import { PiAirplaneTakeoff, PiAirplaneLanding, PiTrash, PiWarning, PiInfo, PiCheck, PiCaretDown, PiSiren, PiNotePencil, PiClock, PiPencilSimple, PiCheckCircle, PiArrowRight, PiSkipForward, PiMapPinArea, PiAirplaneInFlight, PiPackage } from 'react-icons/pi'
 import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
@@ -19,6 +19,14 @@ import EmergencyFAB from './procedures/EmergencyFAB'
 import SegmentBanner from './SegmentBanner'
 import RelocationConfirmDialog from './RelocationConfirmDialog'
 import TrafficMonitorCard, { TrafficAlertBanner } from './TrafficMonitorCard'
+import FlightProposalCard from './suchlage/FlightProposalCard'
+import SuchlageStatusLine from './suchlage/SuchlageStatusLine'
+import SuchlageRemoteNotice from './suchlage/SuchlageRemoteNotice'
+import { useSuchlageMission } from '../hooks/useSuchlage'
+import { useSuchlageFlights } from '../hooks/useSuchlageData'
+import { computeProposals, confirmFlight, mergeFlight, needsManualLanding, syncFromSuchlage } from '../utils/suchlageFlights'
+import { formatDistance } from '../utils/suchlageReport'
+import type { FmFlight } from '../types/suchlage'
 
 const LANDING_STATUS_CONFIG: Record<LandingStatus, { label: string; color: string; bgColor: string; borderColor: string; icon: React.ReactNode }> = {
   ok: { label: 'In Ordnung', color: 'text-good', bgColor: 'bg-good', borderColor: 'border-good', icon: <PiCheck /> },
@@ -106,6 +114,21 @@ export default function FluegePhase() {
 
   const activeEntry = entries.find((e) => e.blockOn === null)
 
+  // Suchlage (nur bei Verknüpfung): erkannte Flüge als Vorschläge, Landung nachziehen
+  const suchlageMission = useSuchlageMission()
+  const suchlageFlights = useSuchlageFlights(suchlageMission, !!activeEntry)
+  const flightsFromSuchlage = suchlageFlights.flights
+  const applySuchlageFlights = useEffectEvent((flights: FmFlight[]) => {
+    const next = syncFromSuchlage(entries, flights)
+    if (next !== entries) setEntries(next)
+  })
+  useEffect(() => {
+    if (flightsFromSuchlage) applySuchlageFlights(flightsFromSuchlage)
+  }, [flightsFromSuchlage])
+  const proposals = flightsFromSuchlage && !suchlageMission.remoteEnded
+    ? computeProposals(flightsFromSuchlage, entries)
+    : []
+
   // Standort wie in der Vorflugkontrolle; ohne GPS/manuellen Standort den der
   // dort zuletzt abgefragten Flugverkehrsdaten
   const isFirstSegment = segments.length > 0 && activeSegment?.id === segments[0].id
@@ -138,6 +161,32 @@ export default function FluegePhase() {
       payloads: mountedPayloads,
     }
     setEntries((prev) => [...prev, entry])
+  }
+
+  function confirmSuchlageFlight(flight: FmFlight) {
+    setFluegeAbgeschlossen(false)
+    const entry = confirmFlight(flight, {
+      id: generateId(),
+      fernpilot: defaultFp,
+      lrb: defaultLrb,
+      activeSegmentId,
+      knownSegmentIds: segments.map((seg) => seg.id),
+      payloads: mountedPayloads,
+    })
+    setEntries((prev) => [...prev, entry])
+  }
+
+  function mergeSuchlageFlight(entryId: string, flight: FmFlight) {
+    setEntries((prev) => prev.map((e) => (e.id === entryId ? mergeFlight(e, flight) : e)))
+  }
+
+  function mergeLabel(entryId: string | null): string | null {
+    if (!entryId) return null
+    const entry = entries.find((e) => e.id === entryId)
+    if (!entry) return null
+    if (entry.blockOn === null) return 'Mit laufendem Flug zusammenführen'
+    const n = entries.filter((e) => e.blockOn !== null).findIndex((e) => e.id === entryId) + 1
+    return `Mit Flug ${n} zusammenführen`
   }
 
   function landFlight(id: string) {
@@ -186,6 +235,9 @@ export default function FluegePhase() {
         }, {})
       } />
 
+      <SuchlageStatusLine show={suchlageMission.linked && (suchlageMission.unreachable || suchlageFlights.unreachable)} />
+      {suchlageMission.linked && <SuchlageRemoteNotice state={suchlageMission.link?.remoteState} context="fluege" />}
+
       {/* Hinweis: Start und Landung melden */}
       <div className="flex items-start gap-3 border border-banner-line bg-banner px-4 py-3">
         <PiInfo className="mt-0.5 shrink-0 text-lg text-accent-text" />
@@ -199,6 +251,21 @@ export default function FluegePhase() {
 
       {trafficMonitor.pendingAlert && (
         <TrafficAlertBanner alert={trafficMonitor.pendingAlert} onAcknowledge={trafficMonitor.acknowledge} />
+      )}
+
+      {/* Von Suchlage erkannte, noch unbestätigte Flüge */}
+      {proposals.length > 0 && (
+        <section className="space-y-2" aria-label="Von Suchlage erkannte Flüge">
+          {proposals.map((p) => (
+            <FlightProposalCard
+              key={p.flight.id}
+              proposal={p}
+              mergeLabel={mergeLabel(p.mergeEntryId)}
+              onConfirm={() => confirmSuchlageFlight(p.flight)}
+              onMerge={() => p.mergeEntryId && mergeSuchlageFlight(p.mergeEntryId, p.flight)}
+            />
+          ))}
+        </section>
       )}
 
       {/* Aktiver Flug */}
@@ -732,6 +799,28 @@ function ActiveFlightCard({
         </span>
       </div>
 
+      {entry.suchlage && (
+        <div className="border-b border-line px-4 py-2">
+          <SuchlageFlightFacts entry={entry} />
+          {needsManualLanding(entry) && (
+            <div className="mt-1.5 border border-caution/40 bg-caution-bg px-2 py-1.5">
+              <p className="text-xs text-caution">Verbindung abgerissen – Landezeit bitte selbst eintragen.</p>
+              <label className="mt-1.5 block">
+                <span className="mb-1 block text-[10px] text-text-muted">Block On (Landung)</span>
+                <input
+                  type="datetime-local"
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) onUpdate({ blockOn: new Date(e.target.value).toISOString() })
+                  }}
+                  className="min-h-11 w-full bg-surface px-3 text-sm text-text outline-none focus:ring-2 focus:ring-text-muted"
+                />
+              </label>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Felder */}
       <div className="divide-y divide-line">
         <div className="px-4 py-3">
@@ -840,6 +929,7 @@ function CompletedFlightCard({
             {entry.fernpilot || '—'} / {entry.lrb || '—'}
             {entry.payloads && entry.payloads.length > 0 && ` · ${formatPayloadList(entry.payloads)}`}
           </p>
+          {entry.suchlage && <SuchlageFlightFacts entry={entry} />}
         </div>
         <LandingStatusBadge status={entry.landungStatus} />
         <span className={`text-text-muted transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}>
@@ -937,6 +1027,25 @@ function CompletedFlightCard({
         </div>
       )}
     </div>
+  )
+}
+
+/* ── Werte aus Suchlage ─────────────────────────────────────── */
+
+function SuchlageFlightFacts({ entry }: { entry: FlightLogEntry }) {
+  const ref = entry.suchlage
+  if (!ref) return null
+  const facts = [
+    ref.aircraftLabel?.trim() || ref.aircraftSn,
+    ref.maxElevationM !== null ? `max. ${Math.round(ref.maxElevationM)} m` : null,
+    ref.distanceM !== null ? formatDistance(ref.distanceM) : null,
+    ref.photoCount > 0 ? `${ref.photoCount} ${ref.photoCount === 1 ? 'Foto' : 'Fotos'}` : null,
+  ].filter(Boolean)
+  return (
+    <p className="flex min-w-0 items-center gap-1.5 text-xs text-text-muted">
+      <span className="num shrink-0 border border-line-strong px-1 text-[10px] tracking-wider text-faint uppercase">Suchlage</span>
+      <span className="truncate">{facts.join(' · ')}</span>
+    </p>
   )
 }
 
