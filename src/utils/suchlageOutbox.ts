@@ -210,11 +210,15 @@ export async function drainOutbox(opts: DrainOptions): Promise<{ rested: boolean
   let sent = 0
   // Schutz gegen Endlosschleifen, falls während der Runde ständig Neues kommt.
   let budget = opts.read().length + 10
+  // Ein zurückgestelltes Foto kommt in derselben Runde nicht wieder dran – sonst
+  // wären die Zurückstellungen mit `force` in Sekunden verbraucht.
+  const deferred = new Set<string>()
   while (budget-- > 0) {
     if (opts.shouldStop?.()) break
     const item = nextDue(opts.read(), opts.now(), opts.force)
-    if (!item) break
+    if (!item || deferred.has(item.id)) break
     const outcome = await opts.send(item)
+    if (!outcome.ok && outcome.defer) deferred.add(item.id)
     const applied = applyOutcome(opts.read(), item.id, outcome, opts.now())
     opts.write(applied.items)
     if (applied.removed) {

@@ -297,6 +297,14 @@ describe('Foto zurückstellen', () => {
     expect(a.items[1]).toMatchObject({ attempts: 1, notBefore: T0 + BACKOFF_BASE_MS })
   })
 
+  it('kommt in derselben Runde nicht wieder dran, auch mit force', async () => {
+    const deferOutcome: SendOutcome = { ok: false, kind: 'other', status: 404, defer: true }
+    const h = harness(build({ kind: 'photo', segmentId: 's2' }, { kind: 'close' }), [deferOutcome, deferOutcome])
+    await h.run(true)
+    expect(h.sentKinds).toEqual(['photo'])
+    expect(h.items.map((i) => [i.kind, i.attempts])).toEqual([['photo', 1], ['close', 0]])
+  })
+
   it('nach zu vielen Zurückstellungen verworfen', () => {
     const items = build({ kind: 'photo', segmentId: 's2' }).map((i) => ({ ...i, attempts: MAX_DEFERS }))
     const a = applyOutcome(items, 'id0', { ok: false, kind: 'other', status: 404, defer: true }, T0)
