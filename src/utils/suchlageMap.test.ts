@@ -54,6 +54,19 @@ describe('toDisplayCollection', () => {
 })
 
 describe('collectionBounds', () => {
+  it('umfasst Flugspuren als MultiLineString (wie von Suchlage geliefert)', () => {
+    const display = toDisplayCollection({
+      type: 'FeatureCollection',
+      features: [{
+        type: 'Feature',
+        geometry: { type: 'MultiLineString', coordinates: [[[10.01, 52.43], [10.0109, 52.4306]], [[10.012, 52.4315], [10.02, 52.44]]] },
+        properties: { kind: 'flight_track', flight_id: 6, name: 'Flug 6', color: '#00AAFF', flugmappe_section_id: null, started_at_ms: 0, ended_at_ms: 1 },
+      }],
+    })
+    expect(display.features[0].properties).toEqual({ kind: 'flight_track', name: 'Flug 6', color: '#00AAFF' })
+    expect(collectionBounds(display.features)).toEqual([[10.01, 52.43], [10.02, 52.44]])
+  })
+
   it('umfasst alle Geometrien', () => {
     expect(collectionBounds(mapData.features)).toEqual([[9, 52], [9.3, 52.3]])
     expect(collectionBounds([])).toBeNull()

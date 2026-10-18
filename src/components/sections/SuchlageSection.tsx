@@ -9,7 +9,7 @@ import { useMissionSegment } from '../../hooks/useMissionSegment'
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
 import { useMapData } from '../../hooks/useMapData'
 import { errorKindOf, useSuchlageMission } from '../../hooks/useSuchlage'
-import { isSuchlageError, suchlage } from '../../services/suchlageApi'
+import { isSuchlageError, sameMissionId, suchlage } from '../../services/suchlageApi'
 import { buildMissionLabel } from '../../utils/missionLabel'
 import { ensureDefaultSegment, getMission } from '../../utils/missionStorage'
 import { buildMapImport } from '../../utils/suchlageMap'
@@ -106,6 +106,19 @@ export default function SuchlageSection({ locationName, latitude, longitude }: S
     return `Verknüpfen fehlgeschlagen${detail ? `: ${detail}` : '.'}`
   }
 
+  /**
+   * Nach 409: Ist dieser Einsatz der Flugmappe in Suchlage schon verknüpft
+   * (z. B. Antwort beim ersten Versuch verloren), die eigene Verknüpfung übernehmen.
+   */
+  async function findOwnLink(): Promise<FmMission | null> {
+    try {
+      const list = await suchlage.listMissions()
+      return list.find((m) => sameMissionId(m.link?.flugmappe_mission_id, missionId)) ?? null
+    } catch {
+      return null
+    }
+  }
+
   async function connect(target: FmMission | 'new', confirmTakeOver = false) {
     const segment = activeSegment ?? ensureDefaultSegment(missionId)
     if (!segment) return
@@ -113,22 +126,30 @@ export default function SuchlageSection({ locationName, latitude, longitude }: S
     setError(null)
     const sectionLocation = location.trim() || null
     try {
-      const mission = target === 'new'
-        ? await suchlage.createMission({
-            name: name.trim() || defaultName,
-            location: sectionLocation,
-            section_label: segment.label,
-            section_location: sectionLocation,
-            flugmappe_mission_id: missionId,
-            flugmappe_section_id: segment.id,
-          })
-        : await suchlage.linkMission(target.id, {
-            flugmappe_mission_id: missionId,
-            flugmappe_section_id: segment.id,
-            section_label: segment.label,
-            section_location: sectionLocation,
-            take_over: confirmTakeOver,
-          })
+      let mission: FmMission
+      try {
+        mission = target === 'new'
+          ? await suchlage.createMission({
+              name: name.trim() || defaultName,
+              location: sectionLocation,
+              section_label: segment.label,
+              section_location: sectionLocation,
+              flugmappe_mission_id: missionId,
+              flugmappe_section_id: segment.id,
+            })
+          : await suchlage.linkMission(target.id, {
+              flugmappe_mission_id: missionId,
+              flugmappe_section_id: segment.id,
+              section_label: segment.label,
+              section_location: sectionLocation,
+              take_over: confirmTakeOver,
+            })
+      } catch (e) {
+        // 409 kann heißen: schon mit genau diesem Einsatz verknüpft (Antwort verloren).
+        const own = errorKindOf(e) === 'conflict' ? await findOwnLink() : null
+        if (!own) throw e
+        mission = own
+      }
       const link: SuchlageLink = {
         suchlageMissionId: mission.id,
         missionName: mission.name,
@@ -157,7 +178,7 @@ export default function SuchlageSection({ locationName, latitude, longitude }: S
   }
 
   function choose(m: FmMission) {
-    const linkedElsewhere = m.link !== null && m.link.flugmappe_mission_id !== missionId
+    const linkedElsewhere = m.link !== null && !sameMissionId(m.link.flugmappe_mission_id, missionId)
     if (linkedElsewhere) setTakeOver(m)
     else void connect(m)
   }
@@ -240,7 +261,7 @@ export default function SuchlageSection({ locationName, latitude, longitude }: S
               <ul className="divide-y divide-line border border-line">
                 {missions.map((m) => {
                   const chip = STATE_CHIP[m.state]
-                  const elsewhere = m.link !== null && m.link.flugmappe_mission_id !== missionId
+                  const elsewhere = m.link !== null && !sameMissionId(m.link.flugmappe_mission_id, missionId)
                   return (
                     <li key={m.id} className="flex items-center gap-3 px-4 py-3">
                       <div className="min-w-0 flex-1">

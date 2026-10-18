@@ -2,10 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../context/useAuth'
 import { useMissionPersistedState } from './useMissionPersistedState'
 import {
-  isAuthErrorKind,
+  isRestingErrorKind,
   isSuchlageConfigured,
   isSuchlageError,
-  isTransientErrorKind,
   suchlage,
   type SuchlageErrorKind,
 } from '../services/suchlageApi'
@@ -25,9 +24,9 @@ export interface SuchlageStatus {
   /** Probe `GET /me` gelungen. */
   available: boolean
   me: FmMe | null
-  /** Netzfehler/Zeitlimit/Schnittstelle aus bei der Probe. */
+  /** Netzfehler/Zeitlimit bei der Probe. */
   unreachable: boolean
-  /** 401/403: Suchlage-Teile ruhen still bis zur nächsten Anmeldung. */
+  /** 401/403 oder 503 (Schnittstelle aus): Suchlage-Teile ruhen still. */
   resting: boolean
 }
 
@@ -45,17 +44,17 @@ export function useSuchlage(): SuchlageStatus {
     queryFn: ({ signal }) => suchlage.me(signal),
     enabled,
     staleTime: SUCHLAGE_ME_STALE_MS,
-    retry: (count, error) => count < 2 && isTransientErrorKind(errorKindOf(error) ?? 'other'),
+    retry: (count, error) => count < 2 && errorKindOf(error) === 'offline',
     meta: { persist: false },
   })
   const kind = errorKindOf(query.error)
-  const resting = enabled && kind !== null && isAuthErrorKind(kind)
+  const resting = enabled && kind !== null && isRestingErrorKind(kind)
   const me = enabled && !resting ? query.data ?? null : null
   return {
     enabled,
     available: me !== null,
     me,
-    unreachable: enabled && kind !== null && isTransientErrorKind(kind),
+    unreachable: enabled && kind === 'offline',
     resting,
   }
 }

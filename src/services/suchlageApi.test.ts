@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { MISSION_HEADER, SuchlageError, classifyStatus, createSuchlageClient, suchlage } from './suchlageApi'
+import { MISSION_HEADER, SuchlageError, classifyStatus, createSuchlageClient, isRestingErrorKind, sameMissionId, suchlage } from './suchlageApi'
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -145,5 +145,21 @@ describe('suchlageApi Fehlerklassen', () => {
     })
     const err = await caught(client.me())
     expect(err.kind).toBe('offline')
+  })
+})
+
+describe('suchlageApi Hilfen', () => {
+  it('401/403 und 503 (Schnittstelle aus) lassen die Teile ruhen, Netzfehler nicht', () => {
+    expect(isRestingErrorKind('unauthorized')).toBe(true)
+    expect(isRestingErrorKind('forbidden')).toBe(true)
+    expect(isRestingErrorKind('unavailable')).toBe(true)
+    expect(isRestingErrorKind('offline')).toBe(false)
+    expect(isRestingErrorKind('conflict')).toBe(false)
+  })
+
+  it('vergleicht Einsatz-UUIDs ohne Groß-/Kleinschreibung', () => {
+    expect(sameMissionId('0F6B2A1E-5D43-4C8E-9B7A-2E1F3C4D5A6B', '0f6b2a1e-5d43-4c8e-9b7a-2e1f3c4d5a6b')).toBe(true)
+    expect(sameMissionId('a', 'b')).toBe(false)
+    expect(sameMissionId(null, 'a')).toBe(false)
   })
 })

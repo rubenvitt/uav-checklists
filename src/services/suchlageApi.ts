@@ -69,6 +69,19 @@ export function isAuthErrorKind(kind: SuchlageErrorKind): boolean {
   return kind === 'unauthorized' || kind === 'forbidden'
 }
 
+/**
+ * Suchlage-Teile ruhen still (keine Fehlermeldung): 401/403 bis zur nächsten
+ * Anmeldung, 503 solange die Schnittstelle in Suchlage ausgeschaltet ist.
+ */
+export function isRestingErrorKind(kind: SuchlageErrorKind): boolean {
+  return isAuthErrorKind(kind) || kind === 'unavailable'
+}
+
+/** Einsatz-IDs vergleichen: Suchlage speichert die UUID klein. */
+export function sameMissionId(a: string | null | undefined, b: string | null | undefined): boolean {
+  return !!a && !!b && a.toLowerCase() === b.toLowerCase()
+}
+
 /** Netz weg, Zeitlimit, Proxyfehler oder Schnittstelle aus: später erneut versuchen. */
 export function isTransientErrorKind(kind: SuchlageErrorKind): boolean {
   return kind === 'offline' || kind === 'unavailable'

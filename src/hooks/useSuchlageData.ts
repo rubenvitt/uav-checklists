@@ -3,7 +3,7 @@ import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-quer
 import { useMissionId } from '../context/useMissionId'
 import { useSegmentPersistedState } from './useSegmentPersistedState'
 import { errorKindOf, type SuchlageMission } from './useSuchlage'
-import { isAuthErrorKind, isSuchlageError, isTransientErrorKind, suchlage } from '../services/suchlageApi'
+import { isRestingErrorKind, isSuchlageError, suchlage } from '../services/suchlageApi'
 import { setSuchlageRemoteState } from '../utils/suchlageStore'
 import { hasRunningFlight } from '../utils/suchlageFlights'
 import type { FmFeatureCollection, FmFlight } from '../types/suchlage'
@@ -12,14 +12,14 @@ export const FLIGHTS_POLL_RUNNING_MS = 15_000
 export const FLIGHTS_POLL_IDLE_MS = 60_000
 export const MAP_POLL_MS = 60_000
 
-/** Lesefehler auswerten: 404 → Einsatz weg, 409 → von anderer Flugmappe übernommen, 401/403 → Probe neu. */
+/** Lesefehler auswerten: 404 → Einsatz weg, 409 → von anderer Flugmappe übernommen, 401/403/503 → Probe neu (Teile ruhen). */
 export function handleSuchlageReadError(missionId: string, error: unknown, queryClient: QueryClient): void {
   const kind = errorKindOf(error)
   if (!kind) return
   const status = isSuchlageError(error) ? error.status : null
   if (status === 404) setSuchlageRemoteState(missionId, 'gone')
   else if (kind === 'conflict') setSuchlageRemoteState(missionId, 'replaced')
-  else if (isAuthErrorKind(kind)) void queryClient.invalidateQueries({ queryKey: ['suchlage', 'me'] })
+  else if (isRestingErrorKind(kind)) void queryClient.invalidateQueries({ queryKey: ['suchlage', 'me'] })
 }
 
 /**
@@ -69,7 +69,7 @@ export function useSuchlageFlights(sl: SuchlageMission, localFlightOpen: boolean
   const kind = errorKindOf(query.error)
   return {
     flights: sl.linked ? query.data ?? null : null,
-    unreachable: sl.linked && kind !== null && isTransientErrorKind(kind),
+    unreachable: sl.linked && kind === 'offline',
   }
 }
 
@@ -111,7 +111,7 @@ export function useSuchlageMap(sl: SuchlageMission, segmentId: string | null) {
     map: query.data ?? stored?.data ?? null,
     loadedAt: query.data ? query.dataUpdatedAt : stored?.loadedAt ?? null,
     loading: query.isPending && query.fetchStatus === 'fetching' && !stored,
-    unreachable: kind !== null && isTransientErrorKind(kind),
+    unreachable: kind === 'offline',
     refetch: () => void query.refetch(),
   }
 }
