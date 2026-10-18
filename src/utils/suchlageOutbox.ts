@@ -55,7 +55,19 @@ export type NewOutboxItem =
 
 export type SendOutcome =
   | { ok: true }
-  | { ok: false; kind: SuchlageErrorKind; status: number | null }
+  | {
+      ok: false
+      kind: SuchlageErrorKind
+      status: number | null
+      /**
+       * Noch nicht möglich, später schon (Foto, dessen Abschnitt in Suchlage noch
+       * angelegt wird): zurückstellen statt verwerfen, der Rest läuft weiter.
+       */
+      defer?: boolean
+    }
+
+/** Höchstzahl Zurückstellungen eines Eintrags, danach wird er verworfen. */
+export const MAX_DEFERS = 20
 
 /** Was die Runde nach einem Eintrag tun soll. */
 export type OutboxEffect =
@@ -148,6 +160,16 @@ export function applyOutcome(items: OutboxItem[], id: string, outcome: SendOutco
     }
   }
 
+  if (outcome.defer) {
+    const attempts = item.attempts + 1
+    if (attempts > MAX_DEFERS) return { items: without, effect: 'continue', removed: { item, sent: false } }
+    // Hinter alles andere, aber vor den Abschluss; Backoff, damit er nicht sofort wiederkommt.
+    const moved = { ...item, attempts, notBefore: now + backoffMs(attempts), lastError: kind }
+    const closeAt = without.findIndex((i) => i.kind === 'close')
+    const at = closeAt < 0 ? without.length : closeAt
+    return { items: [...without.slice(0, at), moved, ...without.slice(at)], effect: 'continue' }
+  }
+
   if (kind === 'offline' || kind === 'unavailable') return retry()
   // 5xx ohne eigene Klasse: vorübergehend behandeln.
   if (status !== null && status >= 500) return retry()
@@ -214,22 +236,61 @@ export interface HealSegment {
   locationName?: string
 }
 
+interface HealLink {
+  linkedAt: number
+  sections: Record<string, true>
+  sectionErrors?: Record<string, string>
+}
+
 /**
- * Selbstheilung: Abschnitte, die nach dem Verknüpfen entstanden sind, in
- * Suchlage aber fehlen und für die nichts wartet (z. B. weil ein Eintrag
- * verloren ging). Ältere Abschnitte nicht – sonst würde ein alter Abschnitt
- * in Suchlage zum aktiven. Abschnitte mit Fehler (400) auch nicht, sonst
- * entstünde eine Schleife. Reihenfolge wie angelegt.
+ * Kann dieser Abschnitt nachgelegt werden? Nur, wenn er nach dem Verknüpfen
+ * entstand, in Suchlage fehlt, keinen Fehler (400) hat und **neuer** ist als
+ * der neueste dort bekannte – in Suchlage ist der neueste Abschnitt der
+ * aktive, ein älterer darf ihn nie ablösen.
  */
-export function sectionsToHeal(
-  segments: readonly HealSegment[],
-  link: { linkedAt: number; sections: Record<string, true>; sectionErrors?: Record<string, string> },
-  items: readonly OutboxItem[],
-): NewOutboxItem[] {
+export function isHealable(segment: HealSegment, segments: readonly HealSegment[], link: HealLink): boolean {
+  if (segment.createdAt < link.linkedAt || link.sections[segment.id] || link.sectionErrors?.[segment.id]) return false
+  const newestKnown = Math.max(-Infinity, ...segments.filter((s) => link.sections[s.id]).map((s) => s.createdAt))
+  return segment.createdAt > newestKnown
+}
+
+/** Abschnitte, die nachzulegen sind (ohne wartenden Eintrag), in Anlegereihenfolge. */
+export function sectionsToHeal(segments: readonly HealSegment[], link: HealLink, items: readonly OutboxItem[]): NewOutboxItem[] {
   const waiting = new Set(items.flatMap((i) => (i.kind === 'section' ? [i.segmentId] : [])))
   return segments
-    .filter((s) => s.createdAt >= link.linkedAt && !link.sections[s.id] && !waiting.has(s.id) && !link.sectionErrors?.[s.id])
+    .filter((s) => !waiting.has(s.id) && isHealable(s, segments, link))
     .slice()
     .sort((a, b) => a.createdAt - b.createdAt)
     .map((s) => ({ kind: 'section' as const, segmentId: s.id, label: s.label, location: s.locationName ?? null }))
+}
+
+/**
+ * Selbstheilung in die Liste einfügen: jeder nachgelegte Abschnitt kommt vor
+ * das erste Foto desselben Abschnitts, vor jeden wartenden Abschnitt eines
+ * neueren Segments und vor den Abschluss – sonst ans Ende. Liefert dieselbe
+ * Liste, wenn nichts zu heilen ist.
+ */
+export function healOutbox(
+  segments: readonly HealSegment[],
+  link: HealLink,
+  items: OutboxItem[],
+  now: number,
+  newId: () => string,
+): OutboxItem[] {
+  const heal = sectionsToHeal(segments, link, items)
+  if (heal.length === 0) return items
+  const created = new Map(segments.map((s) => [s.id, s.createdAt]))
+  let next = items
+  // Neueste zuerst einfügen: ein älterer landet dann vor dem schon eingefügten neueren.
+  for (const entry of [...heal].reverse()) {
+    if (entry.kind !== 'section') continue
+    const own = created.get(entry.segmentId) ?? 0
+    const at = next.findIndex((i) =>
+      i.kind === 'close'
+      || (i.kind === 'photo' && i.segmentId === entry.segmentId)
+      || (i.kind === 'section' && (created.get(i.segmentId) ?? 0) > own))
+    const item: OutboxItem = { ...entry, id: newId(), createdAt: now, attempts: 0, notBefore: 0 }
+    next = at < 0 ? [...next, item] : [...next.slice(0, at), item, ...next.slice(at)]
+  }
+  return next
 }

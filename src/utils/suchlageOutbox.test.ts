@@ -5,6 +5,8 @@ import {
   drainOutbox,
   enqueue,
   nextDue,
+  MAX_DEFERS,
+  healOutbox,
   sectionsToHeal,
   type OutboxItem,
   type SendOutcome,
@@ -236,7 +238,7 @@ describe('drainOutbox', () => {
   })
 })
 
-describe('sectionsToHeal', () => {
+describe('sectionsToHeal / healOutbox', () => {
   const link = { linkedAt: 1000, sections: { s1: true as const } }
   const segs = [
     { id: 's0', createdAt: 500, label: 'Vorher' },
@@ -244,6 +246,8 @@ describe('sectionsToHeal', () => {
     { id: 's3', createdAt: 3000, label: 'Standort 3', locationName: 'Deich' },
     { id: 's2', createdAt: 2000, label: 'Standort 2' },
   ]
+  let n = 0
+  const newId = () => `h${n++}`
 
   it('legt fehlende Abschnitte nach dem Verknüpfen nach, in Reihenfolge', () => {
     expect(sectionsToHeal(segs, link, [])).toEqual([
@@ -255,5 +259,47 @@ describe('sectionsToHeal', () => {
   it('nicht, wenn schon einer wartet oder der Abschnitt einen Fehler hat', () => {
     const items = build({ kind: 'section', segmentId: 's2', label: 'x', location: null })
     expect(sectionsToHeal(segs, { ...link, sectionErrors: { s3: 'abgelehnt' } }, items)).toEqual([])
+  })
+
+  it('nie älter als der neueste in Suchlage bekannte Abschnitt', () => {
+    // s3 ist schon in Suchlage, s2 fehlt: s2 würde dort sonst zum aktiven.
+    expect(sectionsToHeal(segs, { linkedAt: 1000, sections: { s1: true, s3: true } }, [])).toEqual([])
+  })
+
+  it('setzt den geheilten Abschnitt vor das wartende Foto desselben Abschnitts und vor den Abschluss', () => {
+    const items = build({ kind: 'photo', segmentId: 's1' }, { kind: 'photo', segmentId: 's3' }, { kind: 'close' })
+    const healed = healOutbox(segs, link, items, T0, newId)
+    expect(healed.map((i) => `${i.kind}:${'segmentId' in i ? i.segmentId : ''}`)).toEqual([
+      'photo:s1', 'section:s2', 'section:s3', 'photo:s3', 'close:',
+    ])
+  })
+
+  it('vor einen wartenden Abschnitt eines neueren Segments', () => {
+    const items = build({ kind: 'section', segmentId: 's3', label: 'S3', location: null })
+    const healed = healOutbox(segs, link, items, T0, newId)
+    expect(healed.map((i) => (i.kind === 'section' ? i.segmentId : i.kind))).toEqual(['s2', 's3'])
+  })
+
+  it('ohne etwas zu heilen dieselbe Liste', () => {
+    const items = build({ kind: 'close' })
+    expect(healOutbox(segs, { linkedAt: 1000, sections: { s1: true, s2: true, s3: true } }, items, T0, newId)).toBe(items)
+  })
+})
+
+describe('Foto zurückstellen', () => {
+  it('ein zurückgestelltes Foto rückt vor den Abschluss, der Rest läuft weiter', () => {
+    const items = build({ kind: 'photo', segmentId: 's2' }, { kind: 'photo', segmentId: 's1' }, { kind: 'close' })
+    const a = applyOutcome(items, 'id0', { ok: false, kind: 'other', status: 404, defer: true }, T0)
+    expect(a.effect).toBe('continue')
+    expect(a.removed).toBeUndefined()
+    expect(a.items.map((i) => i.id)).toEqual(['id1', 'id0', 'id2'])
+    expect(a.items[1]).toMatchObject({ attempts: 1, notBefore: T0 + BACKOFF_BASE_MS })
+  })
+
+  it('nach zu vielen Zurückstellungen verworfen', () => {
+    const items = build({ kind: 'photo', segmentId: 's2' }).map((i) => ({ ...i, attempts: MAX_DEFERS }))
+    const a = applyOutcome(items, 'id0', { ok: false, kind: 'other', status: 404, defer: true }, T0)
+    expect(a.items).toEqual([])
+    expect(a.removed?.sent).toBe(false)
   })
 })

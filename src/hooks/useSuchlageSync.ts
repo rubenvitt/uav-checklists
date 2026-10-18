@@ -3,7 +3,7 @@ import { useAuth } from '../context/useAuth'
 import { isSuchlageConfigured, isSuchlageError, suchlage } from '../services/suchlageApi'
 import { generateId, loadMissions } from '../utils/missionStorage'
 import { getMissionField } from '../stores/missionFormStore'
-import { drainOutbox, enqueue, sectionsToHeal, type OutboxItem, type SendOutcome } from '../utils/suchlageOutbox'
+import { drainOutbox, healOutbox, isHealable, type OutboxItem, type SendOutcome } from '../utils/suchlageOutbox'
 import {
   getSuchlageLink,
   getSuchlageOutbox,
@@ -22,15 +22,17 @@ const LOCK_NAME = 'flugmappe-suchlage-sync'
 let syncRunning = false
 /** Während eines Laufs angefordert: `null` = nichts, sonst stärkstes `force`. */
 let rerunForce: boolean | null = null
-/** Gesamtlimit je Lauf: danach Sperre frei, auch wenn eine Anfrage hängt. */
+/**
+ * Nach dieser Zeit beginnt ein Lauf keinen weiteren Eintrag mehr. Er wird nicht
+ * abgebrochen: jeder Aufruf ist selbst zeitbegrenzt, und ein laufender Upload
+ * soll nicht parallel ein zweites Mal starten.
+ */
 export const RUN_LIMIT_MS = 2 * 60_000
 
-function sectionErrorText(outcome: SendOutcome): string {
-  if (outcome.ok) return ''
-  if (outcome.status === 400) return 'Suchlage hat den Abschnitt abgelehnt (ungültige Angaben).'
-  if (outcome.kind === 'unprocessable') return 'Der Einsatz ist in Suchlage abgeschlossen.'
-  if (outcome.status === 404) return 'Der Einsatz wurde in Suchlage nicht gefunden.'
-  return `Suchlage hat den Abschnitt abgelehnt${outcome.status ? ` (Fehler ${outcome.status})` : ''}.`
+/** Nur ein 400 ist eine dauerhafte Ablehnung des Abschnitts; 404/422 klären Zustand und Heilung. */
+function sectionErrorText(outcome: SendOutcome): string | null {
+  if (outcome.ok || outcome.status !== 400) return null
+  return 'Suchlage hat den Abschnitt abgelehnt (ungültige Angaben).'
 }
 
 /** Ausgangslisten aller Einsätze einmal abarbeiten. `true` = 401/403, alles ruht. */
@@ -45,9 +47,9 @@ async function syncAll(force: boolean, isStopped: () => boolean): Promise<boolea
     let items = getSuchlageOutbox(mission.id)
     // Selbstheilung: nach dem Verknüpfen entstandene Abschnitte, die in Suchlage fehlen.
     if (!mission.deletedAt && !link.remoteState) {
-      const heal = sectionsToHeal(mission.segments, link, items)
-      if (heal.length > 0) {
-        for (const entry of heal) items = enqueue(items, entry, Date.now(), generateId())
+      const healed = healOutbox(mission.segments, link, items, Date.now(), generateId)
+      if (healed !== items) {
+        items = healed
         setSuchlageOutbox(mission.id, items)
       }
     }
@@ -68,10 +70,11 @@ async function syncAll(force: boolean, isStopped: () => boolean): Promise<boolea
       shouldStop: isStopped,
       onRemoved: ({ item, sent }, outcome) => {
         if (item.kind !== 'section') return
+        const error = sent ? null : sectionErrorText(outcome)
         updateSuchlageLink(mission.id, (l) => {
           const sectionErrors = { ...l.sectionErrors }
           if (sent) delete sectionErrors[item.segmentId]
-          else sectionErrors[item.segmentId] = sectionErrorText(outcome)
+          else if (error) sectionErrors[item.segmentId] = error
           return {
             ...l,
             sections: sent ? { ...l.sections, [item.segmentId]: true } : l.sections,
@@ -103,6 +106,17 @@ async function sendItem(missionId: string, item: OutboxItem): Promise<SendOutcom
         break
       }
       case 'photo': {
+        // Abschnitt in Suchlage noch nicht angelegt: zurückstellen, wenn er noch kommt
+        // (wartender Eintrag oder Heilung), sonst verwerfen – senden gäbe nur 404.
+        if (!link.sections[item.segmentId]) {
+          const segments = loadMissions().find((m) => m.id === missionId)?.segments ?? []
+          const segment = segments.find((sg) => sg.id === item.segmentId)
+          const waiting = getSuchlageOutbox(missionId).some((i) => i.kind === 'section' && i.segmentId === item.segmentId)
+          const coming = waiting || (!!segment && isHealable(segment, segments, link))
+          return coming
+            ? { ok: false, kind: 'other', status: 404, defer: true }
+            : { ok: false, kind: 'other', status: 404 }
+        }
         const photo = getMissionField<string>(missionId, `seg:${item.segmentId}:einsatzkarte:photo`, '')
         if (!photo) break // inzwischen entfernt: nichts zu senden
         const jpeg = await dataUrlToJpegBlob(photo)
@@ -148,18 +162,12 @@ export function useSuchlageSync(): void {
       rerunForce = null
       try {
         const body = async () => {
-          // Watchdog: hängt etwas, wird die Sperre trotzdem nach RUN_LIMIT_MS frei.
-          // Danach hört der hängende Lauf am nächsten Eintrag auf (kein Doppelsenden).
+          // Nach RUN_LIMIT_MS keinen neuen Eintrag mehr beginnen; den laufenden zu Ende
+          // bringen (jeder Aufruf hat sein eigenes Zeitlimit).
           let expired = false
-          let timer: ReturnType<typeof setTimeout> | undefined
-          const limit = new Promise<void>((resolve) => {
-            timer = setTimeout(() => { expired = true; resolve() }, RUN_LIMIT_MS)
-          })
+          const timer = setTimeout(() => { expired = true }, RUN_LIMIT_MS)
           try {
-            await Promise.race([
-              syncAll(force, () => stopped || expired).then((r) => { rested = r }),
-              limit,
-            ])
+            rested = await syncAll(force, () => stopped || expired)
           } finally {
             clearTimeout(timer)
           }
