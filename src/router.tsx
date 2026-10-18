@@ -6,6 +6,7 @@ import { MissionProvider } from './context/MissionContext'
 import { useMissionId } from './context/useMissionId'
 import { SegmentProvider } from './context/SegmentContext'
 import { AuthProvider } from './context/AuthContext'
+import { useSuchlageSync } from './hooks/useSuchlageSync'
 import AuthCallback from './components/AuthCallback'
 import { getMission, isMissionExpired, updateMissionPhase, canAccessPhase } from './utils/missionStorage'
 import { useMissionSegment } from './hooks/useMissionSegment'
@@ -157,6 +158,12 @@ function MissionLayoutInner({ missionLabel, missionCreatedAt, currentPhase, isCo
   )
 }
 
+/** Arbeitet die Suchlage-Ausgangslisten ab, auch auf der Übersicht (rendert nichts). */
+function SuchlageSyncHost() {
+  useSuchlageSync()
+  return null
+}
+
 export default function AppRouter() {
   useEffect(() => {
     migrateOldData()
@@ -166,6 +173,7 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <SuchlageSyncHost />
         <Routes>
           <Route path="/" element={<OverviewLayout />} />
           <Route path="/auth/callback" element={<AuthCallback />} />

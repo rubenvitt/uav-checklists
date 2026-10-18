@@ -13,6 +13,9 @@ import EinsatzauftragSection from './sections/EinsatzauftragSection'
 import TruppstaerkeSection from './sections/TruppstaerkeSection'
 import EinsatzkarteSection from './sections/EinsatzkarteSection'
 import MissionsbriefingSection from './sections/MissionsbriefingSection'
+import SuchlageSection from './sections/SuchlageSection'
+import SuchlageStatusLine from './suchlage/SuchlageStatusLine'
+import { useSuchlageMission } from '../hooks/useSuchlage'
 
 export default function EinsatzdatenPhase() {
   const missionId = useMissionId()
@@ -27,8 +30,12 @@ export default function EinsatzdatenPhase() {
   useMissionKIndex()
   useMissionNearby(geo.latitude, geo.longitude)
 
+  // Suchlage: nur bei Konfiguration + Anmeldung; verknüpft kommt die Karte aus Suchlage
+  const suchlageMission = useSuchlageMission()
+  const locationName = activeSegment?.locationName || geo.manualName?.split(',')[0].trim() || geocode.city || ''
+
   // Auto-expand logic
-  const completeness = useEinsatzdatenCompleteness()
+  const completeness = useEinsatzdatenCompleteness(suchlageMission.linked)
   const sections = completeness.map(s =>
     s.id === 'einsatzkarte' ? { ...s, locked: !hasLocation } : s
   )
@@ -45,6 +52,7 @@ export default function EinsatzdatenPhase() {
           variant="compact"
         />
       )}
+      <SuchlageStatusLine show={suchlageMission.linked && suchlageMission.unreachable} />
       <LocationBar
         city={geocode.city}
         country={geocode.country}
@@ -59,6 +67,7 @@ export default function EinsatzdatenPhase() {
       <EinsatzdetailsSection open={openState.einsatzdetails} onToggle={() => toggle('einsatzdetails')} isComplete={isComplete.einsatzdetails} onContinue={() => continueToNext('einsatzdetails')} />
       <EinsatzauftragSection open={openState.einsatzauftrag} onToggle={() => toggle('einsatzauftrag')} isComplete={isComplete.einsatzauftrag} onContinue={() => continueToNext('einsatzauftrag')} />
       <TruppstaerkeSection open={openState.truppstaerke} onToggle={() => toggle('truppstaerke')} isComplete={isComplete.truppstaerke} onContinue={() => continueToNext('truppstaerke')} />
+      <SuchlageSection locationName={locationName} latitude={geo.latitude} longitude={geo.longitude} />
       <EinsatzkarteSection
         latitude={geo.latitude}
         longitude={geo.longitude}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import type { User } from 'oidc-client-ts'
 import {
   getUserManager,
@@ -59,8 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  // Expose the current access token to the framework-free signApi.
-  useEffect(() => {
+  // Expose the current access token to the framework-free clients (signApi,
+  // suchlageApi). Layout effect: it must be in place before the children's
+  // passive effects (e.g. queries that start on mount) run with the new user.
+  useLayoutEffect(() => {
     setAccessTokenProvider(() => user?.access_token ?? null)
     return () => setAccessTokenProvider(null)
   }, [user])
