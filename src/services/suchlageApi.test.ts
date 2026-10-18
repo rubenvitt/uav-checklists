@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { MISSION_HEADER, SuchlageError, classifyStatus, createSuchlageClient, isRestingErrorKind, sameMissionId, suchlage } from './suchlageApi'
+import { MISSION_HEADER, SECTION_LABEL_MAX, SuchlageError, clampSectionLabel, classifyStatus, createSuchlageClient, isRestingErrorKind, sameMissionId, suchlage } from './suchlageApi'
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -149,6 +149,15 @@ describe('suchlageApi Fehlerklassen', () => {
 })
 
 describe('suchlageApi Zeitlimits', () => {
+  it('ein hängender Inhalt nach den Kopfzeilen läuft ins Zeitlimit (offline)', async () => {
+    const hanging = new Response(new ReadableStream({ start() { /* liefert nie */ } }), { status: 200 })
+    const client = createSuchlageClient({
+      baseUrl: 'https://s.example', getToken: () => 't', fetch: (async () => hanging) as unknown as typeof fetch, timeoutMs: 20,
+    })
+    const err = await caught(client.me())
+    expect(err.kind).toBe('offline')
+  })
+
   it('Kartenfoto hat ein eigenes, längeres Zeitlimit', async () => {
     const fetchMock = vi.fn((_url: string, init: RequestInit) => new Promise<Response>((resolve, rej) => {
       const t = setTimeout(() => resolve(new Response(null, { status: 204 })), 30)
@@ -164,6 +173,15 @@ describe('suchlageApi Zeitlimits', () => {
 })
 
 describe('suchlageApi Hilfen', () => {
+  it('kürzt Abschnittsbezeichnungen auf 120 Zeichen, auch beim Senden', async () => {
+    expect(clampSectionLabel('  Standort 2 ')).toBe('Standort 2')
+    expect(Array.from(clampSectionLabel('ä'.repeat(130)))).toHaveLength(SECTION_LABEL_MAX)
+    const { client, fetchMock } = setup({ response: () => jsonResponse(200, {}) })
+    await client.createSection(1, 'fm', { flugmappe_section_id: 's', label: 'x'.repeat(200), location: null })
+    const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1]
+    expect(JSON.parse(init.body as string).label).toHaveLength(SECTION_LABEL_MAX)
+  })
+
   it('401/403 und 503 (Schnittstelle aus) lassen die Teile ruhen, Netzfehler nicht', () => {
     expect(isRestingErrorKind('unauthorized')).toBe(true)
     expect(isRestingErrorKind('forbidden')).toBe(true)

@@ -89,6 +89,15 @@ export function isTransientErrorKind(kind: SuchlageErrorKind): boolean {
   return kind === 'offline' || kind === 'unavailable'
 }
 
+/** Höchstlänge einer Abschnittsbezeichnung in Suchlage (sonst 400). */
+export const SECTION_LABEL_MAX = 120
+
+/** Bezeichnung auf {@link SECTION_LABEL_MAX} Zeichen kürzen (Unicode-Zeichen, nicht UTF-16-Einheiten). */
+export function clampSectionLabel(label: string): string {
+  const chars = Array.from(label.trim())
+  return chars.length > SECTION_LABEL_MAX ? chars.slice(0, SECTION_LABEL_MAX).join('') : chars.join('')
+}
+
 export function normalizeBaseUrl(raw: string | undefined | null): string | null {
   if (!raw || raw.trim() === '') return null
   return raw.trim().replace(/\/+$/, '')
@@ -137,40 +146,52 @@ export function createSuchlageClient(opts: SuchlageClientOptions) {
     }
 
     const ctrl = new AbortController()
+    // Das Zeitlimit umfasst Kopf **und** Inhalt: ein hängender Body darf nichts blockieren.
     const timer = setTimeout(() => ctrl.abort(), ro.timeoutMs ?? timeoutMs)
     const onAbort = () => ctrl.abort()
     ro.signal?.addEventListener('abort', onAbort)
+    const aborted = new Promise<never>((_resolve, reject) => {
+      ctrl.signal.addEventListener('abort', () => reject(new SuchlageError('offline', null)), { once: true })
+    })
+    aborted.catch(() => {})
+    const withinLimit = <R,>(p: Promise<R>) => Promise.race([p, aborted])
     const doFetch = opts.fetch ?? globalThis.fetch
-    let res: Response
     try {
-      res = await doFetch(`${baseUrl}${SUCHLAGE_API_PREFIX}${path}`, {
-        method: ro.method ?? 'GET',
-        headers,
-        body,
-        signal: ctrl.signal,
-        // Bearer statt Cookies: keine Anmeldedaten des Browsers mitschicken.
-        credentials: 'omit',
-      })
-    } catch {
-      throw new SuchlageError('offline', null)
+      let res: Response
+      try {
+        res = await withinLimit(doFetch(`${baseUrl}${SUCHLAGE_API_PREFIX}${path}`, {
+          method: ro.method ?? 'GET',
+          headers,
+          body,
+          signal: ctrl.signal,
+          // Bearer statt Cookies: keine Anmeldedaten des Browsers mitschicken.
+          credentials: 'omit',
+        }))
+      } catch {
+        throw new SuchlageError('offline', null)
+      }
+
+      if (!res.ok) {
+        let message: string | null = null
+        try {
+          const data = (await withinLimit(res.json())) as { error?: unknown }
+          if (typeof data?.error === 'string') message = data.error
+        } catch { /* kein JSON oder Zeitlimit: Status reicht */ }
+        throw new SuchlageError(classifyStatus(res.status), res.status, message)
+      }
+      if (ro.expect === 'none' || res.status === 204) {
+        void res.body?.cancel().catch(() => {})
+        return undefined as T
+      }
+      try {
+        return (await withinLimit(res.json())) as T
+      } catch (e) {
+        if (isSuchlageError(e)) throw e
+        throw new SuchlageError('other', res.status, 'Antwort von Suchlage nicht lesbar')
+      }
     } finally {
       clearTimeout(timer)
       ro.signal?.removeEventListener('abort', onAbort)
-    }
-
-    if (!res.ok) {
-      let message: string | null = null
-      try {
-        const data = (await res.json()) as { error?: unknown }
-        if (typeof data?.error === 'string') message = data.error
-      } catch { /* kein JSON */ }
-      throw new SuchlageError(classifyStatus(res.status), res.status, message)
-    }
-    if (ro.expect === 'none' || res.status === 204) return undefined as T
-    try {
-      return (await res.json()) as T
-    } catch {
-      throw new SuchlageError('other', res.status, 'Antwort von Suchlage nicht lesbar')
     }
   }
 
@@ -184,14 +205,14 @@ export function createSuchlageClient(opts: SuchlageClientOptions) {
     me: (signal?: AbortSignal) => request<FmMe>('/me', { signal }),
     listMissions: (signal?: AbortSignal) => request<FmMission[]>('/missions', { signal }),
     createMission: (body: FmMissionCreate) =>
-      request<FmMission>('/missions', { method: 'POST', json: body }),
+      request<FmMission>('/missions', { method: 'POST', json: { ...body, section_label: clampSectionLabel(body.section_label) } }),
     /** Zustand des verknüpften Einsatzes (auch abgeschlossen). */
     mission: (id: number, fmMissionId: string, signal?: AbortSignal) =>
       request<FmMission>(m(id), { fmMissionId, signal }),
     linkMission: (id: number, body: FmMissionLink) =>
-      request<FmMission>(`${m(id)}/link`, { method: 'POST', json: body }),
+      request<FmMission>(`${m(id)}/link`, { method: 'POST', json: { ...body, section_label: clampSectionLabel(body.section_label) } }),
     createSection: (id: number, fmMissionId: string, body: FmSectionCreate) =>
-      request<FmMission>(`${m(id)}/sections`, { method: 'POST', json: body, fmMissionId }),
+      request<FmMission>(`${m(id)}/sections`, { method: 'POST', json: { ...body, label: clampSectionLabel(body.label) }, fmMissionId }),
     flights: (id: number, fmMissionId: string, signal?: AbortSignal) =>
       request<FmFlight[]>(`${m(id)}/flights`, { fmMissionId, signal }),
     map: (id: number, fmMissionId: string, fmSectionId?: string | null, signal?: AbortSignal) =>
