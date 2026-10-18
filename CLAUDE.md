@@ -13,6 +13,7 @@ pnpm dev        # Start Vite dev server
 pnpm build      # TypeScript check + Vite production build
 pnpm lint       # ESLint
 pnpm preview    # Preview production build
+pnpm test       # Vitest (Unit-Tests unter src/**/*.test.ts)
 ```
 
 Package manager is **pnpm**.
