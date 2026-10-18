@@ -25,6 +25,7 @@ Package manager is **pnpm**.
 - React Router 7 (BrowserRouter, two routes: overview `/` and mission `/mission/:missionId/:phase`)
 - TanStack React Query (weather/geo data caching, persisted to localStorage)
 - jsPDF for PDF report export
+- maplibre-gl 6 (Worker über `src/components/map/maplibreWorker.ts`, `?worker&url`) for the Einsatzkarte, basemap from VersaTiles
 - vite-plugin-pwa with Workbox (NetworkFirst for weather + K-index APIs)
 - React Compiler (`babel-plugin-react-compiler`) enabled — auto-memoization, avoid manual `useMemo`/`useCallback` where the compiler handles it
 
@@ -76,6 +77,7 @@ Each mission progresses through phases reflected in the URL (`/mission/:missionI
 | Overpass/OSM (nearby) | `overpassApi.ts` | localStorage: 1h |
 | adsb.lol / adsb.fi (live traffic, via `server/` proxy `/adsb/point/...` — no CORS upstream; a Cloudflare Worker/Pages Function does not work: CF egress gets 429/403) | `adsbApi.ts` | TanStack Query: 30s stale, 60s refetch (30s during a flight, 5min when no server) + snapshot per segment; SW NetworkOnly. `useTrafficMonitor` (Flüge phase) turns new low-level traffic into banner/notification + auto `EventNote` (`source: 'adsb'`) |
 | Nominatim (geocode) | `geocodeApi.ts` | TanStack Query |
+| VersaTiles (basemap tiles + glyphs) | `components/map/basemapStyle.ts` | SW CacheFirst 30 Tage |
 
 ## Conventions
 
