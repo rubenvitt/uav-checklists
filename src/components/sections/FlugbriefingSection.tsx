@@ -1,7 +1,7 @@
 import { PiCheck, PiChecks, PiArrowCounterClockwise, PiUsersThree, PiX } from 'react-icons/pi'
 import { useSegmentPersistedState } from '../../hooks/useSegmentPersistedState'
 import type { MetricStatus } from '../../types/assessment'
-import { getChecklistAnswer, getNextChecklistAnswer, isAnswered, type ChecklistState } from '../../utils/checklistState'
+import { confirmOpenItems, getChecklistAnswer, getNextChecklistAnswer, isAnswered, type ChecklistState } from '../../utils/checklistState'
 import ChecklistSection from '../ChecklistSection'
 import { FLUGBRIEFING_ITEMS } from '../../data/flugbriefingItems'
 
@@ -29,9 +29,7 @@ export default function FlugbriefingSection({ open, onToggle, isComplete, onCont
   }
 
   function confirmAll() {
-    const all: ChecklistState = {}
-    for (const item of FLUGBRIEFING_ITEMS) all[item.key] = 'positive'
-    setChecked(all)
+    setChecked((prev) => confirmOpenItems(prev, FLUGBRIEFING_ITEMS.map((item) => item.key)))
   }
 
   return (
@@ -43,8 +41,7 @@ export default function FlugbriefingSection({ open, onToggle, isComplete, onCont
             <button onClick={() => setChecked({})} className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs text-text-muted hover:text-text transition-colors"><PiArrowCounterClockwise className="text-xs" />Zurücksetzen</button>
           ) : (
             <button onClick={confirmAll} className="flex w-full items-center justify-center gap-2 rounded-lg bg-good/10 px-4 py-2.5 text-sm font-medium text-good transition-colors hover:bg-good/20">
-              <PiChecks className="text-[1rem]" />Alle positiv
-              {answeredCount > 0 && <span className="text-good/60">({totalCount - answeredCount} offen)</span>}
+              <PiChecks className="text-[1rem]" />{answeredCount > 0 ? <>Offene positiv <span className="text-good/60">({totalCount - answeredCount})</span></> : 'Alle positiv'}
             </button>
           )}
         </div>

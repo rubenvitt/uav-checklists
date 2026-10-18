@@ -21,3 +21,16 @@ export function getNextChecklistAnswer(value: ChecklistState[string]): Checklist
   if (answer === 'positive') return 'negative'
   return undefined
 }
+
+export function isNegativeAnswer(value: ChecklistState[string]): boolean {
+  return getChecklistAnswer(value) === 'negative'
+}
+
+/** Sets every still-open item to positive; existing answers (incl. Mängel) stay untouched. */
+export function confirmOpenItems(prev: ChecklistState, keys: readonly string[]): ChecklistState {
+  const next = { ...prev }
+  for (const key of keys) {
+    if (!isAnswered(next[key])) next[key] = 'positive'
+  }
+  return next
+}

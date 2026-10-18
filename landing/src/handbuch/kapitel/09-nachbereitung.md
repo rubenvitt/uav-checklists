@@ -71,9 +71,9 @@ Drohne noch vor euch steht. Sie hat acht Punkte:
 
 Ihr bewertet die Punkte wie in der Vorflugkontrolle: einmal tippen heißt
 **positiv**, zweimal **negativ** (Mangel), dreimal wieder offen. **Alle
-positiv** setzt alle Punkte auf positiv, auch negative (siehe
-[Positiv, negativ, offen](#vorflug-freigabe-positiv-negativ-offen)). Neu
-sind hier die Bemerkungen:
+positiv** setzt nur die offenen Punkte auf positiv, ein Mangel bleibt stehen
+(siehe [Positiv, negativ, offen](#vorflug-freigabe-positiv-negativ-offen)).
+Neu sind hier die Bemerkungen:
 
 1. Bei einem Mangel tippt rechts auf das Sprechblasen-Symbol
    (**Bemerkung hinzufügen**) und schreibt kurz, was los ist. Das **×**
@@ -416,14 +416,24 @@ Auf jeder Seite steht unten Seitenzahl, „UAV Missionsbericht“ und der
 Erstellungszeitpunkt. Habt ihr verlegt, wiederholen sich die Kapitel 2 und 3
 für jeden Standort, jeweils mit einem Balken mit Standortname davor.
 
-![Seite des Berichts mit 4.2 Nachflugkontrolle (7 von 8 bestätigt, Akku-Punkt mit Bemerkung), 4.3 Einsatzabschluss, Kapitel 5 Wartung & Pflege und Kapitel 6 Ergebnis](handbuch/nachbereitung-pdf-nachbereitung.webp "Die Nachbereitung im Bericht. Grüner Punkt heißt bestätigt, leerer Kreis heißt nicht bestätigt.")
+![Seite des Berichts mit 4.2 Nachflugkontrolle („7 von 8 bestätigt“, rot „1 Mangel“, Akku-Punkt mit rotem Kreuz, dem Wort „MANGEL“ und der Notiz darunter), 4.3 Einsatzabschluss, Kapitel 5 Wartung & Pflege und Kapitel 6 Ergebnis](handbuch/nachbereitung-pdf-nachbereitung.webp "Die Nachbereitung im Bericht. Grüner Kreis mit Haken heißt bestätigt, rotes Kreuz mit „MANGEL“ heißt negativ, leerer Kreis heißt nicht bewertet.")
 ![Letzte Seite des Berichts: „Unterschriften“ mit der gezeichneten Unterschrift „R. Vitt“ über „Führungskraft UAS, R. Vitt“ und der getippten Unterschrift „M. Brinkmann“ über „Einsatzleitung, M. Brinkmann“](handbuch/nachbereitung-pdf-unterschriften.webp "Die Unterschriften stehen über der Linie, darunter „Ort, Datum“ sowie Funktion und Name.")
 
-> [!WICHTIG]
-> In der Nachflugkontrolle des Berichts erscheint ein **negativ** bewerteter
-> Punkt genauso als leerer Kreis wie ein nicht geprüfter. Darüber steht
-> nur „7 von 8 bestätigt“. Schreibt deshalb zu jedem Mangel eine Bemerkung.
-> Sie steht im Bericht direkt unter dem Punkt.
+In den Prüflisten des Berichts (2.6 Technische Checklisten und
+4.2 Nachflugkontrolle) hat jeder Punkt eines von drei Zeichen:
+
+- **grüner Kreis mit Haken**: positiv, bestätigt
+- **rotes Kreuz und das Wort MANGEL** vor dem Punkt: negativ bewertet
+- **leerer Kreis**: nicht bewertet
+
+Über jeder Liste steht z. B. „7 von 8 bestätigt“ und, falls es Mängel gibt,
+rot „1 Mangel“. Dasselbe gilt für das Zwischenstand-PDF aus der Kopfleiste
+der Vorflugkontrolle.
+
+> [!TIPP]
+> Schreibt zu jedem Mangel in der Nachflugkontrolle eine Bemerkung. Sie steht
+> im Bericht als „Notiz:“ direkt unter dem Punkt, und wer den Bericht liest,
+> weiß, was los war.
 
 ## Einsatz abschließen
 

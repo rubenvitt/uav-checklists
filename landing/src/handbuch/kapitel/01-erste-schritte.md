@@ -339,19 +339,19 @@ nach:
 2. noch einmal: **Mangel**, rotes Kreuz
 3. noch einmal: wieder **offen**, leeres Kästchen
 
-**Alle positiv** setzt alle Punkte des Abschnitts auf „in Ordnung“, auch
-solche, die ihr als Mangel markiert habt. In Klammern steht, wie viele noch
+**Alle positiv** setzt die noch offenen Punkte des Abschnitts auf „in
+Ordnung“. Ein Mangel bleibt dabei stehen. Ist schon etwas bewertet, heißt
+der Knopf **Offene positiv** und zeigt in Klammern, wie viele Punkte noch
 offen sind. Sind alle Punkte beantwortet, wird daraus **Zurücksetzen**.
 Ausführlich steht das unter
 [Positiv, negativ, offen](#vorflug-freigabe-positiv-negativ-offen).
 
-![Der aufgeklappte Abschnitt „UAV“ mit dem gelben Abzeichen „4/10“: drei Punkte mit grünem Haken, „Rotoren ohne Beschädigungen“ mit rotem Kreuz, sechs Punkte noch offen; oben der Knopf „Alle positiv (6 offen)“.](handbuch/erste-schritte-abschnitt-offen.webp "Eine angefangene Prüfliste: 4 von 10 Punkten beantwortet, ein Mangel ist markiert. Das Abzeichen zeigt den Stand auch im zugeklappten Zustand.")
+![Der aufgeklappte Abschnitt „UAV“ mit dem gelben Abzeichen „4/10“: drei Punkte mit grünem Haken, „Rotoren ohne Beschädigungen“ mit rotem Kreuz, sechs Punkte noch offen; oben der Knopf „Offene positiv (6)“.](handbuch/erste-schritte-abschnitt-offen.webp "Eine angefangene Prüfliste: 4 von 10 Punkten beantwortet, ein Mangel ist markiert. Das Abzeichen zeigt den Stand auch im zugeklappten Zustand.")
 
 > [!ACHTUNG]
-> **Alle positiv** ist eine Abkürzung für den Fall, dass ihr die Punkte am
-> Gerät tatsächlich geprüft habt und alles in Ordnung ist. Ein markierter
-> Mangel ist danach nicht mehr zu sehen. Bei einem Mangel bewertet die
-> Punkte einzeln.
+> **Alle positiv** ist eine Abkürzung für den Fall, dass ihr die offenen
+> Punkte am Gerät tatsächlich geprüft habt und sie in Ordnung sind. Der Knopf
+> prüft nichts für euch: Tippt ihn erst, wenn ihr durch seid.
 
 ## Statusfarben und Abzeichen
 

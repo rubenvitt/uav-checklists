@@ -19,7 +19,7 @@ import { computeFollowupSuggestions, type FollowupContext } from './followupSugg
 import { AUFSTIEGSORT_ITEMS, UAV_ITEMS, RC_ITEMS } from '../data/technischeKontrolleItems'
 import { FLUGBRIEFING_ITEMS } from '../data/flugbriefingItems'
 import { FUNKTIONS_ITEMS } from '../data/funktionskontrolleItems'
-import { isPositiveAnswer } from './checklistState'
+import { isNegativeAnswer, isPositiveAnswer } from './checklistState'
 
 const PREFIX = 'uav-form:'
 const TTL = 56 * 60 * 60 * 1000
@@ -297,15 +297,15 @@ function collectSegmentData(
   const checklistGroups: ChecklistGroupData[] = [
     {
       title: 'Aufstiegsort',
-      items: AUFSTIEGSORT_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(aufstiegsortChecked[i.key]) })),
+      items: AUFSTIEGSORT_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(aufstiegsortChecked[i.key]), negative: isNegativeAnswer(aufstiegsortChecked[i.key]) })),
     },
     {
       title: 'Flugbriefing',
-      items: FLUGBRIEFING_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(flugbriefingChecked[i.key]) })),
+      items: FLUGBRIEFING_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(flugbriefingChecked[i.key]), negative: isNegativeAnswer(flugbriefingChecked[i.key]) })),
     },
     {
       title: 'Funktionskontrolle (3 m Aufstieg)',
-      items: FUNKTIONS_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(funktionstestChecked[i.key]) })),
+      items: FUNKTIONS_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(funktionstestChecked[i.key]), negative: isNegativeAnswer(funktionstestChecked[i.key]) })),
     },
   ]
 
@@ -407,11 +407,11 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
   const globalChecklistGroups: ChecklistGroupData[] = [
     {
       title: 'UAV',
-      items: UAV_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(uavChecked[i.key]) })),
+      items: UAV_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(uavChecked[i.key]), negative: isNegativeAnswer(uavChecked[i.key]) })),
     },
     {
       title: 'Remote Controller (A und B)',
-      items: RC_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(rcChecked[i.key]) })),
+      items: RC_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(rcChecked[i.key]), negative: isNegativeAnswer(rcChecked[i.key]) })),
     },
   ]
 
@@ -718,6 +718,7 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
         items: POST_FLIGHT_LABELS.map((item): PostFlightInspectionItem => ({
           label: item.label,
           checked: isPositiveAnswer(postflightChecked[item.key]),
+          negative: isNegativeAnswer(postflightChecked[item.key]),
           note: postflightNotes[item.key]?.trim() || undefined,
         })),
         remarks: postflightRemarks,
