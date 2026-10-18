@@ -73,9 +73,10 @@ ihr auf **GPS** tippt.
 [→ Einsatzdaten: Standort ändern oder zurück auf GPS](#einsatzdaten-standort-aendern-oder-zurueck-auf-gps)
 
 **Welche Koordinaten versteht die App?**\
-UTM-Ref (MGRS) wie auf BOS-Lagekarten, UTM, Grad/Minuten/Sekunden und
-Dezimalgrad. **Nicht** richtig versteht sie Grad mit Dezimalminuten
-(`52°23.4'`). Prüft vor dem Antippen immer die Grad-Angabe im Vorschlag.
+UTM-Ref (MGRS) wie auf BOS-Lagekarten, UTM, Grad/Minuten/Sekunden, Grad mit
+Dezimalminuten (`52°23.4'N 9°41.8'E`) und Dezimalgrad. Die Himmelsrichtung
+darf vor oder hinter der Zahl stehen. Prüft vor dem Antippen immer die
+Grad-Angabe im Vorschlag.
 [→ Einsatzdaten: Welche Koordinatenformate gehen?](#einsatzdaten-koordinatenformate)
 
 **Warum sind Wetter, Umgebung und SORA gesperrt?**\
@@ -402,7 +403,8 @@ Geräteeinstellungen.
 | **Kein GPS-Zugriff — bitte gib den Einsatzort ein:** | Die Standortfreigabe wurde abgelehnt, die Ortung ist aus, oder das Gerät hat nach 10 Sekunden keine Position. | Ort, Adresse oder Koordinaten von Hand eingeben. Die Freigabe lässt sich in den Einstellungen des Geräts bzw. Browsers nachholen. |
 | **Standort wird ermittelt...** bleibt stehen | Das Gerät sucht noch eine Position. | Höchstens 10 Sekunden warten. Dann auf den Stift tippen oder die Seite neu laden und den Ort von Hand eingeben. |
 | Die Adresssuche findet nichts | Die Ortssuche braucht Netz, oder der Suchbegriff ist zu lang. | Kürzeren Begriff probieren (Ort, Straße mit Ort) oder Koordinaten eingeben. Die erkennt die App auch ohne Netz. |
-| Der Einsatzort liegt viele Kilometer daneben | Die Koordinate war in Grad mit Dezimalminuten oder mit vorangestelltem Buchstaben (`N52°…`) geschrieben. | Mit dem Stift neu eingeben, vorher umrechnen oder UTM-Ref nehmen. Immer die Grad-Angabe im Vorschlag prüfen. |
+| Der Einsatzort liegt viele Kilometer daneben | Die Koordinate wurde falsch abgeschrieben, oder bei Grad-Angaben ohne Himmelsrichtung stand die Länge zuerst. | Mit dem Stift neu eingeben, möglichst mit `N` und `E`. Immer die Grad-Angabe im Vorschlag prüfen. |
+| Bei einer Koordinate erscheint kein blauer Vorschlag | Die App kann die Eingabe nicht eindeutig lesen, z. B. weil Breite und Länge in verschiedenen Formaten stehen oder eine Himmelsrichtung fehlt. | Beide Werte im selben Format und mit `N`/`E` eingeben oder UTM-Ref nehmen. |
 | Schloss und **Standort wählen** an mehreren Abschnitten | Es ist noch kein Einsatzort gesetzt. | In der Leiste **Einsatzort** den Ort festlegen oder GPS erlauben. |
 | Die Einsatzkarte bleibt leer oder grau | Für dieses Gebiet sind keine Kartenteile auf dem Gerät, und es gibt kein Netz. | Auf Empfang warten oder im Reiter **Kartenfoto** ein Foto der Lagekarte hinterlegen. |
 | **Karte nicht verfügbar: Dieser Browser bietet kein WebGL 2.** | Gerät oder Browser kann die Karte nicht darstellen. | Reiter **Kartenfoto** nehmen. Alles andere funktioniert normal. |
@@ -701,6 +703,8 @@ führt ein Verweis dorthin.
 - **GPS / GNSS** – Satellitenortung. GNSS ist der Oberbegriff für alle
   Satellitensysteme, GPS das bekannteste. Wird durch starke
   Erdmagnetfeld-Störungen (K-Index) ungenauer.
+- **Grad, Dezimalminuten** – Koordinaten wie `52°23.4'N 9°41.8'E`, wie viele
+  GPS-Geräte sie anzeigen. In der App **Grad/Dezimalminuten**.
 - **Grad, Minuten, Sekunden** – Koordinaten wie `52°23'26"N 9°41'52"E`. In
   der App **Grad/Min./Sek.**
 - **GRC** (*Ground Risk Class*) – das Bodenrisiko: Wie wahrscheinlich trifft
