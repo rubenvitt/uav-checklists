@@ -57,7 +57,13 @@ export const ADSB_NEWCOMER = { hex: '3d0a52', r: 'D-HNWX', t: 'H145', category: 
 export async function createSession({ out }) {
   fs.mkdirSync(out, { recursive: true })
 
-  const launchOptions = process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}
+  // Deutsche Oberfläche auch für Datums-/Zeitfelder: `locale` allein reicht
+  // dafür unter Linux nicht, Chromium nimmt sie aus Startoption und Umgebung.
+  const launchOptions = {
+    args: ['--lang=de-DE'],
+    env: { ...process.env, LANG: 'de_DE.UTF-8', LANGUAGE: 'de', LC_ALL: 'de_DE.UTF-8' },
+    ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}),
+  }
   const proxyUrl = process.env.HTTPS_PROXY ?? process.env.https_proxy
   const proxy = proxyUrl ? { server: proxyUrl, bypass: 'localhost,127.0.0.1' } : undefined
 
