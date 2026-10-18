@@ -84,11 +84,12 @@ export default defineConfig({
           },
         },
         {
-          urlPattern: /^https:\/\/[abc]\.tile\.openstreetmap\.org\/.*/i,
+          urlPattern: /^https:\/\/tiles\.versatiles\.org\/.*/i,
           handler: 'CacheFirst',
           options: {
-            cacheName: 'osm-tiles',
-            expiration: { maxEntries: 500, maxAgeSeconds: 7 * 24 * 60 * 60 },
+            cacheName: 'versatiles',
+            expiration: { maxEntries: 2000, maxAgeSeconds: 30 * 24 * 60 * 60 },
+            cacheableResponse: { statuses: [200] },
           },
         },
       ],

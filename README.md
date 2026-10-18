@@ -49,8 +49,8 @@ Live-Flugverkehr im Umkreis von 10 km aus Community-ADS-B-Daten ([adsb.lol](http
 
 ### Interaktive Einsatzkarte
 
-- Leaflet-Karte mit [Geoman](https://geoman.io/)-Zeichenwerkzeugen (Polygon, Kreis, Marker, Linie)
-- Automatische Flächenberechnung für Polygone
+- [MapLibre](https://maplibre.org/)-Karte mit [VersaTiles](https://versatiles.org/)-Basiskarte und eigenen Zeichenwerkzeugen: Einsatzgebiet (Fläche) und Standort (Punkt); eine Fläche wird mit „Fertig“, Doppelklick oder Enter abgeschlossen
+- Automatische Flächenberechnung für das Einsatzgebiet
 - Snapshot-Speicherung als Bild für den PDF-Export
 - Alternativ: Foto-Upload als Einsatzkarte
 
@@ -65,7 +65,7 @@ Umfassender Einsatzbericht mit allen erfassten Daten:
 
 ### Weitere Features
 
-- **Offline-fähig** — Service Worker mit Workbox (NetworkFirst für APIs, CacheFirst für Kartenkacheln)
+- **Offline-fähig** — Service Worker mit Workbox (NetworkFirst für APIs, CacheFirst für Kartenkacheln und Glyphen)
 - **Dark/Light/System-Theme** — mit automatischer Umschaltung bei Sonnenauf-/untergang
 - **Datenschutz** — kein Backend, keine Cloud, alle Daten in localStorage
 - **Auto-Cleanup** — aktive Einsätze 56h, abgeschlossene 24h, dann automatische Löschung
@@ -81,8 +81,7 @@ Umfassender Einsatzbericht mit allen erfassten Daten:
 | [Tailwind CSS](https://tailwindcss.com/) 4 | Utility-First CSS |
 | [React Router](https://reactrouter.com/) 7 | Client-Side Routing |
 | [TanStack Query](https://tanstack.com/query) 5 | Server-State Management und Caching |
-| [React Leaflet](https://react-leaflet.js.org/) 5 | Kartenintegration |
-| [Leaflet Geoman](https://geoman.io/) | Zeichenwerkzeuge für die Karte |
+| [MapLibre GL JS](https://maplibre.org/) 6 | Karte mit VersaTiles-Basiskarte und eigenen Zeichenwerkzeugen |
 | [jsPDF](https://github.com/parallax/jsPDF) | PDF-Generierung |
 | [React Compiler](https://react.dev/learn/react-compiler) | Auto-Memoization |
 | [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) | PWA mit Workbox Service Worker |
@@ -156,7 +155,7 @@ src/
 │   │   ├── TruppstaerkeSection    # Personalverwaltung
 │   │   ├── RahmenangabenSection   # Drohne und Flughöhe
 │   │   └── ExternalToolsSection   # Links zu externen Diensten
-│   ├── map/               # Leaflet-Karte mit Geoman-Zeichentools
+│   ├── map/               # MapLibre-Karte mit Zeichenwerkzeugen
 │   ├── *Phase.tsx          # Phasen-Komponenten (Einsatzdaten, Vorflug, Flüge, Nachbereitung)
 │   ├── MissionOverview.tsx # Einsatzübersicht (Start, Liste, Löschen)
 │   └── MissionStepper.tsx  # Phasen-Navigation
@@ -178,7 +177,7 @@ src/
 | [Overpass](https://overpass-api.de/) | Nahegelegene Infrastruktur (OSM) | localStorage 8 h |
 | [adsb.lol](https://adsb.lol/) / [adsb.fi](https://adsb.fi/) über Backend-Proxy | Live-Flugverkehr (ADS-B, ODbL) | TanStack Query 30 s, Refetch 60 s, Snapshot je Einsatzabschnitt; Service Worker NetworkOnly |
 | [Nominatim](https://nominatim.openstreetmap.org/) | Reverse Geocoding | TanStack Query |
-| [OpenStreetMap Tiles](https://www.openstreetmap.org/) | Kartenkacheln | Service Worker CacheFirst 7 Tage |
+| [VersaTiles](https://versatiles.org/) (`tiles.versatiles.org`) | Kartenkacheln und Glyphen (OSM-Daten) | Service Worker CacheFirst 30 Tage |
 
 Alle APIs sind öffentlich zugänglich und erfordern keine API-Keys.
 
