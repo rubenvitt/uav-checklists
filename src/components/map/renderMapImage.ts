@@ -51,21 +51,32 @@ export async function renderMapImage(data: DisplayCollection, opts: RenderMapIma
     }
     const m = map
     await new Promise<void>((resolve, reject) => {
-      const abort = () => reject(new DOMException('abgebrochen', 'AbortError'))
+      // Nach dem Bild (oder Abbruch/Fehler/Entfernen) keine Prüfungen mehr einplanen.
+      let done = false
+      const abort = () => {
+        done = true
+        reject(new DOMException('abgebrochen', 'AbortError'))
+      }
       if (opts.signal?.aborted) return abort()
       opts.signal?.addEventListener('abort', abort, { once: true })
       let styleReady = false
+      const finish = () => {
+        if (done) return
+        done = true
+        resolve()
+      }
+      m.once('remove', () => { done = true })
       m.once('style.load', () => {
         styleReady = true
         addSuchlageOverlay(m, data)
         if (bounds) m.fitBounds(bounds, { padding: 50, maxZoom: 16, animate: false })
-        m.once('idle', () => resolve())
+        m.once('idle', finish)
         // Schlagen Kacheln fehl (offline), plant MapLibre keinen weiteren Frame und
         // `idle` bleibt aus: sobald alles geladen oder gescheitert ist, selbst zeichnen.
         const poll = () => {
-          if (opts.signal?.aborted) return
+          if (done || opts.signal?.aborted) return
           if (m.loaded() && m.areTilesLoaded() && !m.isMoving()) {
-            m.once('render', () => resolve())
+            m.once('render', finish)
             m.triggerRepaint()
           } else {
             setTimeout(poll, 150)
@@ -77,7 +88,9 @@ export async function renderMapImage(data: DisplayCollection, opts: RenderMapIma
       m.on('error', (ev) => {
         // Kachelfehler (offline) sind kein Abbruch: die Formen stehen dann auf leerem Grund.
         // Nur ohne Stil gibt es kein Bild.
-        if (!styleReady) reject(ev.error ?? new Error('Karte nicht geladen'))
+        if (styleReady) return
+        done = true
+        reject(ev.error ?? new Error('Karte nicht geladen'))
       })
     })
     return m.getCanvas().toDataURL('image/jpeg', 0.85)

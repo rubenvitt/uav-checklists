@@ -75,7 +75,13 @@ export default function DigitalSignaturePanel({ getReport }: DigitalSignaturePan
 
   async function handleSign() {
     setSign({ status: 'working' })
-    const report = await getReport()
+    let report: ReportResult
+    try {
+      report = await getReport()
+    } catch {
+      setSign({ status: 'error', message: 'Das PDF konnte nicht erzeugt werden.' })
+      return
+    }
     if (!report) {
       setSign({ status: 'error', message: 'Das PDF konnte nicht erzeugt werden.' })
       return

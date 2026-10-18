@@ -23,6 +23,8 @@ export const SUCHLAGE_API_PREFIX = '/api/flugmappe/v1'
 /** Bindet einsatzbezogene Aufrufe an diesen Einsatz der Flugmappe. */
 export const MISSION_HEADER = 'X-Flugmappe-Einsatz'
 export const REQUEST_TIMEOUT_MS = 10_000
+/** Kartenfoto bis 8 MiB über ein schwaches Mobilfunknetz: deutlich mehr Zeit. */
+export const UPLOAD_TIMEOUT_MS = 60_000
 
 export type SuchlageErrorKind =
   | 'offline'
@@ -97,6 +99,7 @@ export interface SuchlageClientOptions {
   getToken: () => string | null
   fetch?: typeof fetch
   timeoutMs?: number
+  uploadTimeoutMs?: number
 }
 
 interface RequestOptions {
@@ -108,11 +111,14 @@ interface RequestOptions {
   contentType?: string
   signal?: AbortSignal
   expect?: 'json' | 'none'
+  /** Zeitlimit für diesen Aufruf (Standard: Client-Zeitlimit) */
+  timeoutMs?: number
 }
 
 export function createSuchlageClient(opts: SuchlageClientOptions) {
   const baseUrl = normalizeBaseUrl(opts.baseUrl)
   const timeoutMs = opts.timeoutMs ?? REQUEST_TIMEOUT_MS
+  const uploadTimeoutMs = opts.uploadTimeoutMs ?? UPLOAD_TIMEOUT_MS
 
   async function request<T>(path: string, ro: RequestOptions = {}): Promise<T> {
     if (!baseUrl) throw new SuchlageError('unavailable', null, 'Suchlage ist nicht konfiguriert')
@@ -131,7 +137,7 @@ export function createSuchlageClient(opts: SuchlageClientOptions) {
     }
 
     const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs)
+    const timer = setTimeout(() => ctrl.abort(), ro.timeoutMs ?? timeoutMs)
     const onAbort = () => ctrl.abort()
     ro.signal?.addEventListener('abort', onAbort)
     const doFetch = opts.fetch ?? globalThis.fetch
@@ -202,6 +208,7 @@ export function createSuchlageClient(opts: SuchlageClientOptions) {
         contentType: 'image/jpeg',
         fmMissionId,
         expect: 'none',
+        timeoutMs: uploadTimeoutMs,
       }),
     closeMission: (id: number, fmMissionId: string) =>
       request<FmMission>(`${m(id)}/close`, { method: 'POST', fmMissionId }),

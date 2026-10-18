@@ -148,6 +148,21 @@ describe('suchlageApi Fehlerklassen', () => {
   })
 })
 
+describe('suchlageApi Zeitlimits', () => {
+  it('Kartenfoto hat ein eigenes, längeres Zeitlimit', async () => {
+    const fetchMock = vi.fn((_url: string, init: RequestInit) => new Promise<Response>((resolve, rej) => {
+      const t = setTimeout(() => resolve(new Response(null, { status: 204 })), 30)
+      init.signal?.addEventListener('abort', () => { clearTimeout(t); rej(new DOMException('aborted', 'AbortError')) })
+    }))
+    const client = createSuchlageClient({
+      baseUrl: 'https://s.example', getToken: () => 't', fetch: fetchMock as unknown as typeof fetch, timeoutMs: 5, uploadTimeoutMs: 1000,
+    })
+    await expect(client.uploadPhoto(1, 'fm', 'seg', new Blob([]))).resolves.toBeUndefined()
+    const err = await caught(client.me())
+    expect(err.kind).toBe('offline')
+  })
+})
+
 describe('suchlageApi Hilfen', () => {
   it('401/403 und 503 (Schnittstelle aus) lassen die Teile ruhen, Netzfehler nicht', () => {
     expect(isRestingErrorKind('unauthorized')).toBe(true)
