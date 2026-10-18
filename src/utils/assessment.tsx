@@ -44,6 +44,28 @@ function findMaxWind(windByAltitude: WindAtAltitude[], maxAltitude: number) {
   }
 }
 
+/**
+ * Bewertet wird der auf Meereshöhe reduzierte Druck (wie im Wetterbericht), der Stationsdruck
+ * steht als Notiz darunter. Ältere Snapshots haben nur den Stationsdruck: dann ohne Bewertung.
+ */
+function buildPressureMetric(weather: WeatherData): MetricAssessment {
+  const base = { key: 'pressure', label: 'Luftdruck', unit: 'hPa', icon: <WiBarometer /> } as const
+  if (weather.pressureMsl == null) {
+    return {
+      ...base,
+      value: formatPressure(weather.pressure),
+      status: 'good',
+      detail: 'Standortdruck, ohne Bewertung',
+    }
+  }
+  return {
+    ...base,
+    value: formatPressure(weather.pressureMsl),
+    status: evaluatePressure(weather.pressureMsl),
+    detail: `auf NN reduziert · Standort ${formatPressure(weather.pressure)} hPa`,
+  }
+}
+
 const ALERT_SEVERITY_RANK: Record<DwdAlertSeverity, number> = { minor: 0, moderate: 1, severe: 2, extreme: 3 }
 
 /** DWD-Ereignisnamen kommen in Großbuchstaben („SCHWERES GEWITTER") → „Schweres Gewitter" */
@@ -163,14 +185,7 @@ export function computeAssessment(
       status: evaluateHumidity(weather.humidity),
       icon: <WiHumidity />,
     },
-    {
-      key: 'pressure',
-      label: 'Luftdruck',
-      value: formatPressure(weather.pressure),
-      unit: 'hPa',
-      status: evaluatePressure(weather.pressure),
-      icon: <WiBarometer />,
-    },
+    buildPressureMetric(weather),
     {
       key: 'dewPoint',
       label: 'Taupunkt',

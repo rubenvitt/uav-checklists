@@ -50,6 +50,10 @@ export function evaluateHumidity(percent: number): MetricStatus {
   return 'good'
 }
 
+/**
+ * Bewertet den auf Meereshöhe (NN) reduzierten Luftdruck (`pressure_msl`), nicht den Stationsdruck:
+ * Der sinkt mit der Höhe um rund 12 hPa je 100 m und läge schon ab ca. 300 m ü. NN dauerhaft unter 980 hPa.
+ */
 export function evaluatePressure(hPa: number): MetricStatus {
   if (hPa < 950 || hPa > 1070) return 'warning'
   if (hPa < 980 || hPa > 1050) return 'caution'

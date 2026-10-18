@@ -102,10 +102,10 @@ export default function HourlyForecast({ data, drone }: { data: HourlyForecastPo
       status: (p) => evaluateVisibility(p.visibility / 1000),
     },
     {
-      label: 'Druck',
+      label: 'Druck NN',
       icon: <WiBarometer />,
-      render: (p) => `${Math.round(p.pressure)}`,
-      status: (p) => evaluatePressure(p.pressure),
+      render: (p) => `${Math.round(p.pressureMsl ?? p.pressure)}`,
+      status: (p) => (p.pressureMsl == null ? 'good' : evaluatePressure(p.pressureMsl)),
     },
     {
       label: 'Taupunkt',

@@ -81,8 +81,8 @@ export function generateRecommendations(
       case 'pressure':
         recommendations.push(
           isWarning
-            ? `Extremer Luftdruck. Flugverhalten kann stark beeinträchtigt sein.`
-            : `Ungewöhnlicher Luftdruck. Flugeigenschaften können leicht abweichen.`,
+            ? `Extremer Luftdruck (auf Meereshöhe). Ausgeprägtes Tief oder Hoch – Flugverhalten kann stark beeinträchtigt sein.`
+            : `Ungewöhnlicher Luftdruck (auf Meereshöhe). Auf Sturmtief oder Wetterumschwung achten, Flugeigenschaften können leicht abweichen.`,
         )
         break
       case 'dwdAlert':

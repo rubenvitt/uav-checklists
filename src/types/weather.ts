@@ -8,7 +8,10 @@ export interface WeatherData {
   precipitation: number
   precipitationProbability: number
   visibility: number
+  /** Luftdruck am Standort (Stationsdruck, höhenabhängig) in hPa */
   pressure: number
+  /** Auf Meereshöhe (NN) reduzierter Luftdruck in hPa — Grundlage der Bewertung. Fehlt bei älteren Snapshots. */
+  pressureMsl?: number
   dewPoint: number
   cloudCover: number
   windDirection: number
@@ -39,7 +42,10 @@ export interface HourlyForecastPoint {
   humidity: number
   precipitationProbability: number
   visibility: number
+  /** Luftdruck am Standort (Stationsdruck) in hPa */
   pressure: number
+  /** Auf Meereshöhe (NN) reduzierter Luftdruck in hPa. Fehlt bei älteren Snapshots. */
+  pressureMsl?: number
   dewPoint: number
   weatherCode: number
 }
