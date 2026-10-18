@@ -39,6 +39,7 @@ import FlugbriefingSection from './sections/FlugbriefingSection'
 import { FLUGBRIEFING_ITEMS } from '../data/flugbriefingItems'
 import FunktionskontrolleSection from './sections/FunktionskontrolleSection'
 import { FUNKTIONS_ITEMS } from '../data/funktionskontrolleItems'
+import { isNegativeAnswer, isPositiveAnswer, type ChecklistState } from '../utils/checklistState'
 
 interface VorflugkontrollePhaseProps {
   setGetPdfBlob: (fn: () => { blob: Blob; filename: string }) => void
@@ -267,34 +268,34 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
         : readStorage<string>(`${segPrefix}einsatzkarte:snapshot`, '', missionId)
 
       // Technische Vorflugkontrolle Checklisten (segment-specific where applicable)
-      const aufstiegsortChecked = readStorage<Record<string, boolean>>(`${segPrefix}techcheck:aufstiegsort`, {}, missionId)
-      const uavChecked = readStorage<Record<string, boolean>>('techcheck:uav', {}, missionId)
-      const rcChecked = readStorage<Record<string, boolean>>('techcheck:rc', {}, missionId)
-      const flugbriefingChecked = readStorage<Record<string, boolean>>(`${segPrefix}flugbriefing:checked`, {}, missionId)
-      const funktionstestChecked = readStorage<Record<string, boolean>>(`${segPrefix}techcheck:funktionstest`, {}, missionId)
+      const aufstiegsortChecked = readStorage<ChecklistState>(`${segPrefix}techcheck:aufstiegsort`, {}, missionId)
+      const uavChecked = readStorage<ChecklistState>('techcheck:uav', {}, missionId)
+      const rcChecked = readStorage<ChecklistState>('techcheck:rc', {}, missionId)
+      const flugbriefingChecked = readStorage<ChecklistState>(`${segPrefix}flugbriefing:checked`, {}, missionId)
+      const funktionstestChecked = readStorage<ChecklistState>(`${segPrefix}techcheck:funktionstest`, {}, missionId)
       const flugfreigabe = readStorage<string | null>(`${segPrefix}flugfreigabe`, null, missionId)
       const flugentscheidung = readStorage<{ status: 'granted' | 'denied'; timestamp: string } | null>(`${segPrefix}flugentscheidung`, null, missionId)
 
       const checklistGroups: ChecklistGroupData[] = [
         {
           title: 'Aufstiegsort',
-          items: AUFSTIEGSORT_ITEMS.map((i) => ({ label: i.label, checked: !!aufstiegsortChecked[i.key] })),
+          items: AUFSTIEGSORT_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(aufstiegsortChecked[i.key]), negative: isNegativeAnswer(aufstiegsortChecked[i.key]) })),
         },
         {
           title: 'UAV',
-          items: UAV_ITEMS.map((i) => ({ label: i.label, checked: !!uavChecked[i.key] })),
+          items: UAV_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(uavChecked[i.key]), negative: isNegativeAnswer(uavChecked[i.key]) })),
         },
         {
           title: 'Remote Controller (A und B)',
-          items: RC_ITEMS.map((i) => ({ label: i.label, checked: !!rcChecked[i.key] })),
+          items: RC_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(rcChecked[i.key]), negative: isNegativeAnswer(rcChecked[i.key]) })),
         },
         {
           title: 'Flugbriefing',
-          items: FLUGBRIEFING_ITEMS.map((i) => ({ label: i.label, checked: !!flugbriefingChecked[i.key] })),
+          items: FLUGBRIEFING_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(flugbriefingChecked[i.key]), negative: isNegativeAnswer(flugbriefingChecked[i.key]) })),
         },
         {
           title: 'Funktionskontrolle (3 m Aufstieg)',
-          items: FUNKTIONS_ITEMS.map((i) => ({ label: i.label, checked: !!funktionstestChecked[i.key] })),
+          items: FUNKTIONS_ITEMS.map((i) => ({ label: i.label, checked: isPositiveAnswer(funktionstestChecked[i.key]), negative: isNegativeAnswer(funktionstestChecked[i.key]) })),
         },
       ]
 

@@ -185,9 +185,10 @@ ARC ergibt sich nur aus den Fragen.
 [→ SORA: Luftrisikominimierung](#vorflug-sora-luftrisikominimierung)
 
 **Was macht „Alle positiv“ genau?**\
-Der Knopf setzt **jeden** Punkt des Abschnitts auf positiv, auch Punkte, die
-ihr vorher als Mangel markiert habt. Tippt ihn nur, wenn wirklich alles
-geprüft und in Ordnung ist. Bei einem Mangel bewertet die Punkte einzeln.
+Der Knopf setzt die noch **offenen** Punkte des Abschnitts auf positiv.
+Punkte, die ihr schon bewertet habt, bleiben, wie sie sind; ein Mangel
+bleibt also stehen. Sobald etwas bewertet ist, heißt der Knopf **Offene
+positiv**. Tippt ihn nur, wenn ihr die offenen Punkte wirklich geprüft habt.
 [→ Flugfreigabe: Alle positiv und Zurücksetzen](#vorflug-freigabe-alle-positiv-und-zuruecksetzen)
 
 **Einen Punkt aus Versehen auf negativ gesetzt?**\
@@ -313,10 +314,11 @@ Das kommt auf iPhone und iPad vor. Nehmt **Teilen** oder **In neuem Tab
 öffnen**. Das PDF selbst ist vollständig.
 [→ Nachbereitung: Die Dokument-Vorschau](#nachbereitung-die-dokument-vorschau)
 
-**Im Bericht sieht ein Mangel aus wie ein ungeprüfter Punkt.**\
-Das stimmt: In der Nachflugkontrolle des Berichts erscheinen beide als leerer
-Kreis. Schreibt deshalb zu jedem Mangel eine Bemerkung. Sie steht im Bericht
-direkt unter dem Punkt.
+**Wie erkenne ich einen Mangel im Bericht?**\
+An dem roten Kreuz und dem Wort **MANGEL** vor dem Punkt. Ein nicht
+bewerteter Punkt hat nur einen leeren Kreis. Über der Liste steht zusätzlich,
+wie viele Mängel es gibt. Eine Bemerkung zum Mangel steht als „Notiz:“
+direkt darunter.
 [→ Nachbereitung: Was im Bericht steht](#nachbereitung-was-im-bericht-steht)
 
 **Die App schlägt „Wetter“ als Störung vor, obwohl das Wetter gut war.**\
@@ -484,9 +486,10 @@ führt ein Verweis dorthin.
   Luftfahrthandbuch. Im Teil ENR 5.1 stehen Sperr- und Beschränkungsgebiete.
 - **Alarmzeit** – die Uhrzeit, zu der ihr alarmiert wurdet. Feld in den
   Einsatzdetails.
-- **Alle positiv** – Knopf in den Prüflisten, der jeden Punkt des Abschnitts
-  auf positiv setzt, auch vorher negative. Nur tippen, wenn wirklich alles
-  geprüft ist. [→ Flugfreigabe](#vorflug-freigabe-alle-positiv-und-zuruecksetzen)
+- **Alle positiv** – Knopf in den Prüflisten, der alle noch offenen Punkte
+  des Abschnitts auf positiv setzt; bewertete Punkte und Mängel bleiben. Heißt
+  **Offene positiv**, sobald etwas bewertet ist. Nur tippen, wenn die offenen
+  Punkte wirklich geprüft sind. [→ Flugfreigabe](#vorflug-freigabe-alle-positiv-und-zuruecksetzen)
 - **Allgemeinverfügung** – eine behördliche Regelung, die für alle gilt. Hier:
   die Grundlage, auf der unter festgelegten Bedingungen ohne einzelne Freigabe
   in einer Kontrollzone geflogen werden darf. Die Fundstellen stehen im Anhang

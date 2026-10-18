@@ -102,12 +102,14 @@ export interface AnmeldungItem {
 
 export interface ChecklistGroupData {
   title: string
-  items: Array<{ label: string; checked: boolean }>
+  /** `negative` marks a Mangel (answered negatively) – distinct from an open item. */
+  items: Array<{ label: string; checked: boolean; negative?: boolean }>
 }
 
 export interface PostFlightInspectionItem {
   label: string
   checked: boolean
+  negative?: boolean
   note?: string
 }
 
@@ -393,25 +395,45 @@ export function generateReport(data: ReportData) {
     y += 3
   }
 
-  function drawCheckItem(label: string, checked: boolean, note?: string) {
+  function drawCheckItem(label: string, checked: boolean, note?: string, negative = false) {
     checkPageBreak(note ? 11 : 6)
 
     doc.setFontSize(FONTS.body)
 
+    const cx = margin + 3.5
+    const cy = y - 1.2
+    let labelX = margin + 8
     if (checked) {
-      // Green filled circle
+      // Green filled circle with white tick
       setFill(COLORS.good)
-      doc.circle(margin + 3.5, y - 1.2, 1.5, 'F')
+      doc.circle(cx, cy, 1.5, 'F')
+      doc.setDrawColor(255, 255, 255)
+      doc.setLineWidth(0.35)
+      doc.line(cx - 0.8, cy, cx - 0.25, cy + 0.6)
+      doc.line(cx - 0.25, cy + 0.6, cx + 0.8, cy - 0.6)
+    } else if (negative) {
+      // Red filled circle with white cross + the word "Mangel" (never colour alone)
+      setFill(COLORS.warning)
+      doc.circle(cx, cy, 1.5, 'F')
+      doc.setDrawColor(255, 255, 255)
+      doc.setLineWidth(0.35)
+      doc.line(cx - 0.65, cy - 0.65, cx + 0.65, cy + 0.65)
+      doc.line(cx - 0.65, cy + 0.65, cx + 0.65, cy - 0.65)
+
+      doc.setFont('helvetica', 'bold')
+      setColor(COLORS.warning)
+      doc.text('MANGEL', labelX, y)
+      labelX += doc.getTextWidth('MANGEL') + 2
     } else {
       // Gray outlined circle
       setDraw(COLORS.textLight)
       doc.setLineWidth(0.3)
-      doc.circle(margin + 3.5, y - 1.2, 1.5, 'S')
+      doc.circle(cx, cy, 1.5, 'S')
     }
 
     doc.setFont('helvetica', 'normal')
-    setColor(checked ? COLORS.text : COLORS.textMuted)
-    doc.text(label, margin + 8, y)
+    setColor(checked || negative ? COLORS.text : COLORS.textMuted)
+    doc.text(label, labelX, y)
     y += 4.5
 
     if (note) {
@@ -419,10 +441,28 @@ export function generateReport(data: ReportData) {
       doc.setFontSize(FONTS.small)
       doc.setFont('helvetica', 'italic')
       setColor(COLORS.textLight)
-      const noteLines = doc.splitTextToSize(`\u2192 ${sanitizeForPdf(note)}`, contentWidth - 14)
+      // Helvetica (WinAnsi) has no arrow glyph, so keep the prefix ASCII.
+      const noteLines = doc.splitTextToSize(`Notiz: ${sanitizeForPdf(note)}`, contentWidth - 14)
       doc.text(noteLines, margin + 10, y)
       y += noteLines.length * 4
     }
+  }
+
+  function drawCheckSummary(items: Array<{ checked: boolean; negative?: boolean }>) {
+    const positive = items.filter((i) => i.checked).length
+    const negative = items.filter((i) => !i.checked && i.negative).length
+    checkPageBreak(7)
+    doc.setFontSize(FONTS.small)
+    doc.setFont('helvetica', 'normal')
+    setColor(COLORS.textMuted)
+    const summary = `${positive} von ${items.length} best\u00e4tigt`
+    doc.text(summary, margin, y)
+    if (negative > 0) {
+      doc.setFont('helvetica', 'bold')
+      setColor(COLORS.warning)
+      doc.text(`${negative} ${negative === 1 ? 'Mangel' : 'M\u00e4ngel'}`, margin + doc.getTextWidth(summary) + 3, y)
+    }
+    y += 5
   }
 
   function drawMetricRow(label: string, value: string, status: MetricStatus, detail?: string) {
@@ -745,17 +785,10 @@ export function generateReport(data: ReportData) {
   function drawChecklistGroups(groups: ChecklistGroupData[]) {
     for (const group of groups) {
       drawGroupTitle(group.title)
-      const groupChecked = group.items.filter((i) => i.checked).length
-      const groupTotal = group.items.length
-      checkPageBreak(7)
-      doc.setFontSize(FONTS.small)
-      doc.setFont('helvetica', 'normal')
-      setColor(COLORS.textMuted)
-      doc.text(`${groupChecked} von ${groupTotal} best\u00e4tigt`, margin, y)
-      y += 5
+      drawCheckSummary(group.items)
 
       for (const item of group.items) {
-        drawCheckItem(item.label, item.checked)
+        drawCheckItem(item.label, item.checked, undefined, item.negative)
       }
     }
   }
@@ -1259,17 +1292,10 @@ export function generateReport(data: ReportData) {
     const pfi = data.postFlightInspection
     drawSubHeader('4.2', 'Nachflugkontrolle')
 
-    const pfiChecked = pfi.items.filter(i => i.checked).length
-    const pfiTotal = pfi.items.length
-    checkPageBreak(7)
-    doc.setFontSize(FONTS.small)
-    doc.setFont('helvetica', 'normal')
-    setColor(COLORS.textMuted)
-    doc.text(`${pfiChecked} von ${pfiTotal} best\u00e4tigt`, margin, y)
-    y += 5
+    drawCheckSummary(pfi.items)
 
     for (const item of pfi.items) {
-      drawCheckItem(item.label, item.checked, item.note)
+      drawCheckItem(item.label, item.checked, item.note, item.negative)
     }
 
     if (pfi.remarks) {
