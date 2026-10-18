@@ -1,12 +1,21 @@
 import { useRef, useState, useCallback, useEffect, lazy, Suspense, type ChangeEvent } from 'react'
-import { PiMapTrifold, PiCamera, PiX, PiFloppyDisk } from 'react-icons/pi'
+import { PiMapTrifold, PiCamera, PiX, PiFloppyDisk, PiArrowSquareOut } from 'react-icons/pi'
 import ChecklistSection from '../ChecklistSection'
+import SuchlageRemoteNotice from '../suchlage/SuchlageRemoteNotice'
 import { useMapData } from '../../hooks/useMapData'
 import { useSegmentPersistedState } from '../../hooks/useSegmentPersistedState'
+import { useSuchlageMission } from '../../hooks/useSuchlage'
+import { useSuchlageMap } from '../../hooks/useSuchlageData'
+import { useMissionId } from '../../context/useMissionId'
+import { useSegmentId } from '../../context/useSegmentId'
+import { suchlage } from '../../services/suchlageApi'
+import { enqueueSuchlage } from '../../utils/suchlageStore'
+import { toDisplayCollection } from '../../utils/suchlageMap'
 import { SHAPE_LABELS, SHAPE_COLORS } from '../../types/mapData'
 import type { EinsatzMapHandle } from '../map/EinsatzMap'
 
 const EinsatzMap = lazy(() => import('../map/EinsatzMap'))
+const SuchlageMapView = lazy(() => import('../map/SuchlageMapView'))
 
 export type EinsatzkarteMode = 'map' | 'photo'
 
@@ -74,6 +83,12 @@ export default function EinsatzkarteSection({ latitude, longitude, locked, open,
   const [capturing, setCapturing] = useState(false)
   const mapRef = useRef<EinsatzMapHandle>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const missionId = useMissionId()
+  const segmentId = useSegmentId()
+  // Verknüpft mit Suchlage: Karte nur zum Ansehen aus Suchlage, gezeichnet wird dort.
+  const sl = useSuchlageMission()
+  const suchlageMap = useSuchlageMap(sl, segmentId)
+  const suchlageDisplay = toDisplayCollection(suchlageMap.map)
 
   // Auto-set Standort marker from configured location
   useEffect(() => {
@@ -122,11 +137,13 @@ export default function EinsatzkarteSection({ latitude, longitude, locked, open,
       const dataUrl = reader.result as string
       const resized = await resizeImage(dataUrl, 1600)
       setPhoto(resized)
+      // Verknüpft: zusätzlich als Kartenfoto des Abschnitts nach Suchlage (über die Ausgangsliste).
+      if (segmentId) enqueueSuchlage(missionId, { kind: 'photo', segmentId })
     }
     reader.readAsDataURL(file)
     // Reset input so re-selecting the same file triggers change
     e.target.value = ''
-  }, [setPhoto])
+  }, [setPhoto, missionId, segmentId])
 
   const handleRemovePhoto = useCallback(() => {
     setPhoto('')
@@ -135,11 +152,16 @@ export default function EinsatzkarteSection({ latitude, longitude, locked, open,
   const featureCount = mapData.features.length
   const hasSnapshot = snapshot !== ''
   const hasPhoto = photo !== ''
-  const badge = mode === 'map' && hasSnapshot
-    ? { label: 'Gespeichert', status: 'good' as const }
-    : mode === 'photo' && hasPhoto
-      ? { label: 'Foto', status: 'good' as const }
-      : undefined
+  const linked = sl.linked
+  const hasSuchlageMap = suchlageMap.map !== null
+  const badge = mode === 'map' && linked && hasSuchlageMap
+    ? { label: 'Aus Suchlage', status: 'good' as const }
+    : mode === 'map' && !linked && hasSnapshot
+      ? { label: 'Gespeichert', status: 'good' as const }
+      : mode === 'photo' && hasPhoto
+        ? { label: 'Foto', status: 'good' as const }
+        : undefined
+  const suchlageUrl = suchlage.webUrl()
 
   return (
     <ChecklistSection
@@ -165,7 +187,7 @@ export default function EinsatzkarteSection({ latitude, longitude, locked, open,
               : 'text-text-muted hover:text-text'
           }`}
         >
-          Karte zeichnen
+          {linked ? 'Karte aus Suchlage' : 'Karte zeichnen'}
         </button>
         <button
           type="button"
@@ -183,8 +205,50 @@ export default function EinsatzkarteSection({ latitude, longitude, locked, open,
         </button>
       </div>
 
+      {/* Map mode, verknüpft: Karte aus Suchlage nur zum Ansehen */}
+      {mode === 'map' && linked && (
+        <>
+          {hasSuchlageMap ? (
+            <Suspense
+              fallback={
+                <div className="flex h-64 items-center justify-center bg-surface-alt sm:h-80">
+                  <span className="text-sm text-text-muted">Karte wird geladen...</span>
+                </div>
+              }
+            >
+              <SuchlageMapView data={suchlageDisplay} latitude={latitude} longitude={longitude} />
+            </Suspense>
+          ) : (
+            <div className="flex h-40 items-center justify-center bg-surface-alt p-4 text-center text-sm text-text-muted">
+              {suchlageMap.loading ? 'Karte wird aus Suchlage geladen …' : 'Noch keine Karte aus Suchlage geladen.'}
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">
+            {suchlageMap.loadedAt !== null && (
+              <span>
+                Stand <span className="num">{new Date(suchlageMap.loadedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</span>
+                {suchlageMap.unreachable && ' · Suchlage nicht erreichbar'}
+              </span>
+            )}
+            <span>Gezeichnet wird in Suchlage; die Karte im Bericht wird beim Erstellen frisch geladen.</span>
+          </div>
+          {suchlageUrl && (
+            <a
+              href={suchlageUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-11 w-full items-center justify-center gap-2 border border-line-strong bg-surface px-4 text-sm font-medium text-text-2 hover:border-control-border hover:text-text"
+            >
+              In Suchlage bearbeiten
+              <PiArrowSquareOut />
+            </a>
+          )}
+          <SuchlageRemoteNotice state={sl.link?.remoteState} context="karte" />
+        </>
+      )}
+
       {/* Map mode */}
-      {mode === 'map' && latitude !== null && longitude !== null && (
+      {mode === 'map' && !linked && latitude !== null && longitude !== null && (
         <>
           <Suspense
             fallback={
@@ -268,7 +332,7 @@ export default function EinsatzkarteSection({ latitude, longitude, locked, open,
         </>
       )}
 
-      {mode === 'map' && (latitude === null || longitude === null) && (
+      {mode === 'map' && !linked && (latitude === null || longitude === null) && (
         <p className="text-sm text-text-muted">Standort wird benötigt, um die Karte anzuzeigen.</p>
       )}
 
@@ -311,6 +375,10 @@ export default function EinsatzkarteSection({ latitude, longitude, locked, open,
             onChange={handleFileChange}
             className="hidden"
           />
+
+          {hasPhoto && linked && (
+            <p className="text-xs text-text-muted">Das Foto geht zusätzlich als Kartenfoto dieses Abschnitts an Suchlage.</p>
+          )}
 
           {hasPhoto && (
             <button
