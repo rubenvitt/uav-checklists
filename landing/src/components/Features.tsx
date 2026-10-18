@@ -55,7 +55,7 @@ const features: Feature[] = [
   {
     icon: TbMap2,
     title: 'Einsatzkarte zum Zeichnen',
-    body: 'Leaflet-Karte mit Zeichenwerkzeugen für Polygone, Kreise, Linien und Marker. Flächen werden berechnet, der Kartenausschnitt wandert als Bild in den Bericht. Alternativ ein Foto der Lagekarte.',
+    body: 'Karte auf Basis von OpenStreetMap: Einsatzgebiet als Fläche einzeichnen, Standorte setzen. Die Fläche wird berechnet, der Kartenausschnitt wandert als Bild in den Bericht. Alternativ ein Foto der Lagekarte.',
   },
   {
     icon: TbPhone,
