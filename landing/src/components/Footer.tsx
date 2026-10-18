@@ -3,7 +3,8 @@ import { site } from '../site.config'
 import { ButtonLink, CropMarks } from './primitives'
 import { Mark } from './Nav'
 
-export default function Footer() {
+/** `base` ist das Präfix zur Startseite: leer auf der Startseite, `../` im Handbuch. */
+export default function Footer({ base = '' }: { base?: string }) {
   return (
     <>
       <section className="relative overflow-hidden bg-ink py-20 text-paper sm:py-28">
@@ -87,10 +88,11 @@ export default function Footer() {
               <div>
                 <span className="label text-paper-3/40">Seite</span>
                 <ul className="mt-4 space-y-2.5 text-sm">
-                  <li><a href="#ablauf" className="link-underline">Ablauf</a></li>
-                  <li><a href="#funktionen" className="link-underline">Funktionen</a></li>
-                  <li><a href="#daten" className="link-underline">Datenhaltung</a></li>
-                  <li><a href="#installation" className="link-underline">Installation</a></li>
+                  <li><a href={`${base}#ablauf`} className="link-underline">Ablauf</a></li>
+                  <li><a href={`${base}#funktionen`} className="link-underline">Funktionen</a></li>
+                  <li><a href={`${base}#daten`} className="link-underline">Datenhaltung</a></li>
+                  <li><a href={`${base}#installation`} className="link-underline">Installation</a></li>
+                  <li><a href={`${base}handbuch/`} className="link-underline">Handbuch</a></li>
                 </ul>
               </div>
             </div>

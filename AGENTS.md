@@ -99,3 +99,10 @@ Its own commands: `cd landing && pnpm install && pnpm dev|build`.
 Screenshots under `landing/public/screenshots/` are regenerated with the
 scripts in `landing/tools/screenshots/` against a running `pnpm dev`.
 See `landing/README.md`.
+
+The **user handbook** for Einsatzkräfte lives on that site at `/handbuch/`:
+Markdown chapters in `landing/src/handbuch/kapitel/` (writing rules in
+`landing/src/handbuch/README.md`), screenshots from
+`landing/tools/screenshots/handbuch/<slug>.mjs`. When a change alters what a
+user sees or does in the app (labels, checklist items, thresholds, flows),
+update the matching chapter and, if needed, its screenshots.

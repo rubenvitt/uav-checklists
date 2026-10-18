@@ -1,0 +1,276 @@
+/* Handbuch: Satz der aus Markdown erzeugten Kapitel (siehe handbuch.plugin.ts).
+   Gleiche Gestaltung wie die Startseite — Haarlinien, Radius 0, keine Schatten. */
+
+/* Kachelraster mit 1-px-Fugen, wie `fugen` in der App. */
+.fugen {
+  gap: 1px;
+  background-color: var(--color-line);
+  border: 1px solid var(--color-line);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.hb-inhalt {
+  max-width: 70ch;
+  font-size: 1.04rem;
+  line-height: 1.7;
+  color: var(--color-ink-2);
+}
+
+.hb-inhalt > * + * {
+  margin-top: 1.1em;
+}
+
+.hb-inhalt h3,
+.hb-inhalt h4 {
+  position: relative;
+  scroll-margin-top: 7rem;
+  font-family: var(--font-display);
+  font-variation-settings: "wdth" 92;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.hb-inhalt h3 {
+  margin-top: 2.6em;
+  padding-top: 0.9em;
+  border-top: 1px solid var(--color-line);
+  font-size: 1.45rem;
+}
+
+.hb-inhalt h4 {
+  margin-top: 1.9em;
+  font-size: 1.12rem;
+}
+
+.hb-inhalt h5 {
+  margin-top: 1.5em;
+  font-weight: 600;
+}
+
+.hb-anker {
+  position: absolute;
+  left: -1.1em;
+  color: var(--color-line);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.hb-inhalt :is(h3, h4):hover .hb-anker {
+  opacity: 1;
+}
+
+.hb-inhalt a:not(.hb-anker):not(.hb-bild a) {
+  color: var(--color-bedien);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+.hb-inhalt strong {
+  font-weight: 650;
+  color: var(--color-ink);
+}
+
+.hb-inhalt code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--color-paper-3);
+  padding: 0.05em 0.3em;
+}
+
+.hb-inhalt kbd {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  border: 1px solid var(--color-line);
+  background: var(--color-paper-2);
+  padding: 0.05em 0.35em;
+}
+
+.hb-inhalt ul,
+.hb-inhalt ol {
+  padding-left: 1.4em;
+}
+
+.hb-inhalt ul {
+  list-style: square;
+}
+
+.hb-inhalt ol {
+  list-style: decimal;
+}
+
+.hb-inhalt li + li {
+  margin-top: 0.35em;
+}
+
+.hb-inhalt li::marker {
+  color: var(--color-signal);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.hb-inhalt hr {
+  border: 0;
+  border-top: 1px solid var(--color-line);
+  margin: 2.4em 0;
+}
+
+/* Tabellen: Haarlinien, waagerecht scrollbar auf dem Handy. */
+.hb-tabelle {
+  overflow-x: auto;
+  border: 1px solid var(--color-line);
+  background: var(--color-paper-2);
+}
+
+.hb-tabelle table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.93rem;
+  line-height: 1.5;
+}
+
+.hb-tabelle th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  background: var(--color-paper-3);
+}
+
+.hb-tabelle th,
+.hb-tabelle td {
+  padding: 0.6em 0.85em;
+  border-bottom: 1px solid var(--color-line);
+  vertical-align: top;
+}
+
+.hb-tabelle tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Hinweiskästen: getönte Fläche + Wort, nie nur Farbe. */
+.hb-hinweis {
+  border: 1px solid var(--color-line);
+  border-left: 3px solid var(--hb-ton, var(--color-bedien));
+  background: color-mix(in oklab, var(--hb-ton, var(--color-bedien)) 7%, var(--color-paper-2));
+  padding: 0.9em 1.15em;
+}
+
+.hb-hinweis > * + * {
+  margin-top: 0.6em;
+}
+
+.hb-hinweis-titel {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--hb-ton, var(--color-bedien));
+}
+
+.hb-hinweis[data-art="tipp"] { --hb-ton: var(--color-bedien); }
+.hb-hinweis[data-art="wichtig"] { --hb-ton: #8a5a00; }
+.hb-hinweis[data-art="achtung"] { --hb-ton: var(--color-alarm); }
+.hb-hinweis[data-art="hintergrund"] { --hb-ton: var(--color-muted); }
+.hb-hinweis[data-art="im-einsatz"] { --hb-ton: var(--color-verify); }
+
+/* Abbildungen: Haarlinienrahmen, auf Handybreite begrenzt, mehrere nebeneinander. */
+.hb-bilder {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.6em;
+  margin-bottom: 0.4em;
+  grid-template-columns: minmax(0, 22rem);
+}
+
+.hb-bilder[data-anzahl="2"],
+.hb-bilder[data-anzahl="3"] {
+  grid-template-columns: repeat(2, minmax(0, 18rem));
+}
+
+@media (min-width: 64rem) {
+  .hb-bilder[data-anzahl="3"] {
+    grid-template-columns: repeat(3, minmax(0, 15rem));
+  }
+}
+
+@media (max-width: 30rem) {
+  .hb-bilder[data-anzahl] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.hb-bild a {
+  display: block;
+  border: 1px solid var(--color-line);
+  background: var(--color-paper-2);
+  padding: 0.35rem;
+  transition: border-color 150ms;
+}
+
+.hb-bild a:hover {
+  border-color: var(--color-bedien);
+}
+
+.hb-bild img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.hb-bild figcaption {
+  margin-top: 0.55rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+/* Druck: nur der Text, Kapitel auf neuer Seite, Bilder nicht zerteilen. */
+@media print {
+  body {
+    background: white;
+  }
+
+  header.sticky {
+    display: none;
+  }
+
+  .hb-kapitel {
+    break-before: page;
+    border: 0;
+  }
+
+  .hb-inhalt {
+    max-width: none;
+    font-size: 10.5pt;
+  }
+
+  .hb-bilder,
+  .hb-hinweis,
+  .hb-tabelle {
+    break-inside: avoid;
+  }
+
+  .hb-bilder {
+    grid-template-columns: repeat(3, minmax(0, 13rem)) !important;
+  }
+
+  .hb-inhalt a:not(.hb-anker):not(.hb-bild a)[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: var(--color-muted);
+  }
+
+  .hb-anker {
+    display: none;
+  }
+}

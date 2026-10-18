@@ -15,6 +15,7 @@ Eine Web-App, die einen Drohneneinsatz von der Alarmierung bis zum unterschriebe
 Läuft im Browser. Keine Installation nötig — auf Wunsch als App auf dem Homescreen. Kostenlos und quelloffen.
 
 - Anwendung öffnen: <https://app.flugmappe.de>
+- Handbuch für Einsatzkräfte: <https://flugmappe.de/handbuch/> (Markdown: <https://flugmappe.de/handbuch/index.md>)
 - Quellcode: <https://github.com/rubenvitt/uav-checklists>
 - Fehler und Wünsche: <https://github.com/rubenvitt/uav-checklists/issues>
 
@@ -211,6 +212,10 @@ Die vollständige Beschreibung steht im Repository unter [server/](https://githu
 
 Nein. Sie strukturiert und dokumentiert, was ohnehin geprüft werden muss, und hält das Ergebnis fest. Die fachliche Entscheidung trifft weiterhin die verantwortliche Person, und behördliche Genehmigungen, NOTAM-Prüfung und Flugverkehrskontrollfreigaben laufen unverändert über die zuständigen Stellen. Die App verlinkt sie nur an der passenden Stelle.
 
+### Gibt es eine Anleitung für unsere Einsatzkräfte?
+
+Ja: Das [Handbuch](https://flugmappe.de/handbuch/) erklärt jeden Schritt vom Anlegen des Einsatzes bis zum unterschriebenen PDF-Bericht, mit Bildern aus der App und ohne Technikwissen vorauszusetzen. Es lässt sich auch drucken oder als PDF ins Fahrzeug legen.
+
 ### Funktioniert das mit unseren Drohnen?
 
 Mitgeliefert sind Profile für die DJI Matrice 350 RTK und die Matrice 200. Ein weiteres Profil ist eine Handvoll Zahlen — Windgrenze, Temperaturbereich, IP-Schutzart, Dienstgipfelhöhe, Abflugmasse — in `src/data/drones.ts`. Danach bewertet die App das Wetter gegen genau diese Werte.
@@ -240,6 +245,7 @@ Das Projekt ist aus dem Bedarf einer einzelnen Einheit entstanden — Rückmeldu
 Legt einen Übungseinsatz an und schaut, ob es passt. Es braucht keine Anmeldung und keine Absprache. Ein Einsatz ist in zehn Sekunden angelegt, und wenn er nicht gebraucht wird, löscht er sich von selbst.
 
 - Anwendung öffnen: <https://app.flugmappe.de>
+- Handbuch für Einsatzkräfte: <https://flugmappe.de/handbuch/> (Markdown: <https://flugmappe.de/handbuch/index.md>)
 - Quellcode ansehen: <https://github.com/rubenvitt/uav-checklists>
 
 ---
