@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
@@ -14,7 +14,24 @@ const adsbDevProxy = {
   rewrite: (path: string) => path.replace(/^\/adsb\/point\//, '/v2/point/'),
 }
 
-export default defineConfig({
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/**
+ * Suchlage (optional, VITE_SUCHLAGE_URL zur Build-Zeit): Anfragen tragen ein
+ * Bearer-Token und dürfen nie im Service-Worker-Cache landen. Ohne Adresse
+ * gibt es keine Regel – das öffentliche Repo enthält keine Suchlage-Adresse.
+ */
+function suchlageNoCacheRule(mode: string) {
+  const raw = loadEnv(mode, process.cwd(), 'VITE_').VITE_SUCHLAGE_URL?.trim().replace(/\/+$/, '')
+  if (!raw) return []
+  return [{
+    urlPattern: new RegExp(`^${escapeRegExp(raw)}/`, 'i'),
+    handler: 'NetworkOnly' as const,
+    options: { cacheName: 'suchlage-no-cache' },
+  }]
+}
+
+export default defineConfig(({ mode }) => ({
   plugins: [devtools(), react(), babel({
     presets: [reactCompilerPreset()],
   }), tailwindcss(), VitePWA({
@@ -39,6 +56,7 @@ export default defineConfig({
       navigateFallback: '/index.html',
       globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
       runtimeCaching: [
+        ...suchlageNoCacheRule(mode),
         {
           // Signature backend (sign/verify/archive + auth-bound stored
           // signature): NEVER cached. Workbox only caches GET responses anyway,
@@ -107,4 +125,4 @@ export default defineConfig({
   preview: {
     proxy: { '/adsb/point': adsbDevProxy },
   },
-})
+}))
