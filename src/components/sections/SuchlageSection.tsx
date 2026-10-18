@@ -252,8 +252,10 @@ export default function SuchlageSection({ locationName, latitude, longitude }: S
           )}
           {outbox.length > 0 && (
             <p className="text-xs text-text-muted">
-              <span className="num">{outbox.length}</span> {outbox.length === 1 ? 'Änderung wartet' : 'Änderungen warten'} auf
-              Übertragung an Suchlage.
+              <span className="num">{outbox.length}</span>{' '}
+              {remote === 'gone' || remote === 'replaced'
+                ? `${outbox.length === 1 ? 'Änderung ist' : 'Änderungen sind'} pausiert, solange der Einsatz in Suchlage ${remote === 'gone' ? 'nicht gefunden wird' : 'mit einer anderen Flugmappe verknüpft ist'}.`
+                : `${outbox.length === 1 ? 'Änderung wartet' : 'Änderungen warten'} auf Übertragung an Suchlage.`}
             </p>
           )}
           <p className="text-xs text-faint">

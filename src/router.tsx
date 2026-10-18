@@ -108,9 +108,18 @@ function MissionLayoutInner({ missionLabel, missionCreatedAt, currentPhase, isCo
   // Zwischen-PDF der Vorflugkontrolle: bei Verknüpfung vorher die Suchlage-Karte
   // zeichnen (Zeitlimit wie beim Bericht; ohne Verknüpfung sofort fertig).
   const suchlageStatus = useSuchlage()
+  // Läuft schon eine Erstellung, starten weitere Tipps keinen zweiten Lauf.
+  // Ref statt State: wirkt auch bei zwei Tipps vor dem nächsten Rendern.
+  const preparingPdf = useRef(false)
   const buildPreflightPdf = async () => {
-    await prepareSuchlageReportMaps(missionId, suchlageStatus.enabled && !suchlageStatus.resting)
-    return getPdfBlobRef.current?.()
+    if (preparingPdf.current) return undefined
+    preparingPdf.current = true
+    try {
+      await prepareSuchlageReportMaps(missionId, suchlageStatus.enabled && !suchlageStatus.resting)
+      return getPdfBlobRef.current?.()
+    } finally {
+      preparingPdf.current = false
+    }
   }
   const { setting: themeSetting, cycle: cycleTheme } = useTheme(null)
   const getPdfBlobRef = useRef<(() => { blob: Blob; filename: string }) | null>(null)

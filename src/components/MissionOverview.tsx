@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { PiPlus, PiTrash, PiClock, PiMapTrifold, PiFilePdf, PiCheckCircle, PiShareNetwork, PiArchive, PiCaretDown, PiArrowCounterClockwise } from 'react-icons/pi'
@@ -44,22 +44,26 @@ export default function MissionOverview() {
   const suchlageStatus = useSuchlage()
   // Einsatz, dessen Bericht gerade erstellt wird: Knöpfe gesperrt, kein zweiter Lauf.
   const [preparingId, setPreparingId] = useState<string | null>(null)
+  // Ref zusätzlich zum State: sperrt auch zwei Tipps vor dem nächsten Rendern.
+  const preparing = useRef(false)
   const buildReport = async (missionId: string) => {
+    preparing.current = true
     setPreparingId(missionId)
     try {
       await prepareSuchlageReportMaps(missionId, suchlageStatus.enabled && !suchlageStatus.resting)
       return generateMissionReport(missionId, queryClient)
     } finally {
+      preparing.current = false
       setPreparingId(null)
     }
   }
   const downloadReport = async (missionId: string) => {
-    if (preparingId) return
+    if (preparing.current) return
     const r = await buildReport(missionId)
     if (r) downloadPdf(r.blob, r.filename)
   }
   const shareReport = async (missionId: string) => {
-    if (preparingId) return
+    if (preparing.current) return
     const r = await buildReport(missionId)
     if (r) await sharePdfOrDownload(r.blob, r.filename)
   }
