@@ -95,7 +95,7 @@ function calmScenario(seed, now) {
   const weather = {
     current: {
       temperature: 13.2, windSpeed: 12, windGusts: 26, humidity: 62, precipitation: 0,
-      precipitationProbability: 0, visibility: 25000, pressure: 1018, dewPoint: 6.1, cloudCover: 40, windDirection: 250,
+      precipitationProbability: 0, visibility: 25000, pressure: 1012, pressureMsl: 1018, dewPoint: 6.1, cloudCover: 40, windDirection: 250,
     },
     sun: { sunrise: '07:51', sunset: '18:20' },
     windByAltitude: windByAltitude(120, [
@@ -113,7 +113,8 @@ function calmScenario(seed, now) {
         humidity: 62 + 26 * Math.max(0, t - 0.4),
         precipitationProbability: Math.round(t < 0.3 ? 0 : (t - 0.3) * 60),
         visibility: 25000 - 12000 * Math.max(0, t - 0.5),
-        pressure: 1018 - 6 * t,
+        pressure: 1012 - 6 * t,
+        pressureMsl: 1018 - 6 * t,
         dewPoint: temperature - Math.max(1.5, 7.1 - 6 * t),
         weatherCode: t < 0.3 ? 2 : t < 0.6 ? 3 : 80,
       }
@@ -140,7 +141,7 @@ function stormScenario(seed, now) {
   const weather = {
     current: {
       temperature: 9.4, windSpeed: 35, windGusts: 62, humidity: 78, precipitation: 0.4,
-      precipitationProbability: 70, visibility: 6000, pressure: 991, dewPoint: 6.0, cloudCover: 100, windDirection: 240,
+      precipitationProbability: 70, visibility: 6000, pressure: 985, pressureMsl: 991, dewPoint: 6.0, cloudCover: 100, windDirection: 240,
     },
     sun: { sunrise: '07:51', sunset: '18:20' },
     windByAltitude: windByAltitude(120, [
@@ -159,7 +160,8 @@ function stormScenario(seed, now) {
         humidity: lerp(78, 70, u),
         precipitationProbability: Math.round(lerp(70, 5, u)),
         visibility: lerp(6000, 20000, u),
-        pressure: lerp(991, 1004, u),
+        pressure: lerp(985, 998, u),
+        pressureMsl: lerp(991, 1004, u),
         dewPoint: temperature - lerp(3.4, 5.5, u),
         weatherCode: u < 0.35 ? 63 : u < 0.7 ? 80 : 3,
       }

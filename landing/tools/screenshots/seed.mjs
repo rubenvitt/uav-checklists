@@ -48,6 +48,17 @@ export function buildStorage(now) {
   ls[`uav-manual-location:${MID}:seg:${SEG}`] = JSON.stringify(loc)
   ls[`uav-manual-location:${MID}`] = JSON.stringify(loc)
 
+  // Einsatzkarte: Standort wie nach dem ersten Öffnen, dazu ein Einsatzgebiet
+  const area = [[9.6926, 52.3899], [9.7004, 52.3899], [9.7004, 52.3838], [9.6926, 52.3838], [9.6926, 52.3899]]
+  put('einsatzkarte', {
+    type: 'FeatureCollection',
+    features: [
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [loc.longitude, loc.latitude] }, properties: { shapeType: 'standort', createdAt: 1 } },
+      { type: 'Feature', geometry: { type: 'Polygon', coordinates: [area] }, properties: { shapeType: 'einsatzgebiet', createdAt: 2 } },
+    ],
+  })
+  seg('einsatzkarte:autoStandort', true)
+
   // Einsatzdetails
   put('flugAnlass', 'einsatz')
   put('einsatzstichwort', 'Hochwasser — Deichkontrolle Abschnitt Nord')

@@ -202,7 +202,7 @@ Werte stammen direkt aus der App.
 | **Niederschlag** (Wahrscheinlichkeit) | 0 % und kein Niederschlag | 1 bis 30 % | über 30 % (ohne Schutzart: sobald es regnet) |
 | **Sichtweite** | ab 5 km | 1 bis unter 5 km | unter 1 km |
 | **Luftfeuchtigkeit** | unter 80 % | 80 bis 90 % | über 90 % |
-| **Luftdruck** | 980 bis 1050 hPa | 950 bis unter 980 oder über 1050 bis 1070 hPa | unter 950 oder über 1070 hPa |
+| **Luftdruck** (auf Meereshöhe reduziert) | 980 bis 1050 hPa | 950 bis unter 980 oder über 1050 bis 1070 hPa | unter 950 oder über 1070 hPa |
 | **Taupunkt** (Abstand zur Lufttemperatur) | mehr als 4 °C | 2 bis 4 °C | unter 2 °C |
 | **Wetterwarnung (DWD)** | keine Warnung | Wetterwarnung oder markante Warnung | Unwetterwarnung oder extreme Unwetterwarnung |
 
@@ -257,10 +257,13 @@ behalten. Kleine Sichtweiten zeigt die App in Metern an.
 **Luftfeuchtigkeit.** Sehr feuchte Luft kann an der Elektronik kondensieren.
 Nach Flügen in feuchter Luft die Drohne trocknen lassen.
 
-**Luftdruck.** Ungewöhnlich hoher oder tiefer Luftdruck kann das Flugverhalten
-verändern. Die App zeigt den Luftdruck **am Standort**, nicht den auf
-Meereshöhe umgerechneten Wert aus dem Wetterbericht. In höher gelegenen
-Gegenden ist er deshalb von Natur aus niedriger.
+**Luftdruck.** Ungewöhnlich tiefer Luftdruck zeigt ein kräftiges Tief mit
+Sturm und Wetterumschwung an, ungewöhnlich hoher Druck ist selten. Die Kachel
+zeigt und bewertet den auf **Meereshöhe (NN) reduzierten** Luftdruck, also den
+Wert, den auch der Wetterbericht nennt. Darunter steht klein der Luftdruck
+**am Standort**. Der ist in höher gelegenen Gegenden von Natur aus niedriger,
+rund 12 hPa je 100 m: In 700 m Höhe sind 935 hPa am Standort ein ganz
+normaler Wert. Er geht deshalb nicht in die Bewertung ein.
 
 **Taupunkt.** Der Taupunkt ist die Temperatur, bei der die Feuchtigkeit in
 der Luft als Wasser ausfällt. Liegt die Lufttemperatur nur noch wenige Grad
@@ -438,7 +441,7 @@ links bleibt stehen.
 
 Oben steht die Uhrzeit mit einem Wettersymbol (Sonne, Wolken, Nebel, Regen,
 Schnee, Gewitter). Darunter acht Zeilen: **Temperatur**, **Wind**, **Böen**,
-**Feuchte**, **Niederschl.**, **Sicht**, **Druck** und **Taupunkt**. Jede
+**Feuchte**, **Niederschl.**, **Sicht**, **Druck NN** und **Taupunkt**. Jede
 Zelle ist grün, gelb oder rot nach denselben Grenzwerten wie die Kacheln.
 
 Drei Unterschiede zu den Kacheln:
@@ -447,6 +450,8 @@ Drei Unterschiede zu den Kacheln:
   der Höhe kann es deutlich stärker wehen.
 - Der Niederschlag wird nur nach der Wahrscheinlichkeit bewertet.
 - K-Index und DWD-Warnungen fehlen in der Vorhersage.
+
+Der Druck steht auch hier auf Meereshöhe reduziert, wie auf der Kachel.
 
 > [!IM EINSATZ]
 > Nutzt die Vorhersage für die Frage: Wie lange geht es noch? Seht ihr in
