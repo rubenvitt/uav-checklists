@@ -8,7 +8,7 @@ import { readStorage } from '../hooks/usePersistedState'
 import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
 import { useMissions } from '../hooks/useMissions'
 import { generateMissionReport } from '../utils/generateMissionReport'
-import { downloadPdf, sharePdf, canSharePdf } from '../utils/generateReport'
+import { downloadPdf, sharePdfOrDownload, canSharePdf } from '../utils/generateReport'
 import { useAutoExpand } from '../hooks/useAutoExpand'
 import { useNachbereitungCompleteness } from '../hooks/useSectionCompleteness'
 import { useAuth } from '../context/useAuth'
@@ -88,11 +88,8 @@ export default function NachbereitungPhase() {
   const handleSharePdf = async () => {
     const result = await getReport()
     if (!result) return
-    sharePdf(result.blob, result.filename).catch((e: unknown) => {
-      // Nach dem Laden der Suchlage-Karte kann die Nutzergeste abgelaufen sein: dann herunterladen.
-      if (e instanceof DOMException && e.name === 'NotAllowedError') downloadPdf(result.blob, result.filename)
-      /* sonst: abgebrochen */
-    })
+    // Nach dem Laden der Suchlage-Karte kann die Nutzergeste abgelaufen sein: dann herunterladen.
+    await sharePdfOrDownload(result.blob, result.filename)
   }
 
   // Auto-expand logic — must be called unconditionally (Rules of Hooks)

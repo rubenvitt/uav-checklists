@@ -12,7 +12,7 @@ import { getRemainingTime } from '../utils/missionStorage'
 import { generateMissionReport } from '../utils/generateMissionReport'
 import { prepareSuchlageReportMaps } from '../utils/suchlageReportMap'
 import { useSuchlage } from '../hooks/useSuchlage'
-import { downloadPdf, sharePdf, canSharePdf } from '../utils/generateReport'
+import { downloadPdf, sharePdfOrDownload, canSharePdf } from '../utils/generateReport'
 import type { Mission, MissionPhase } from '../types/mission'
 
 const PHASE_LABELS: Record<MissionPhase, string> = {
@@ -42,17 +42,26 @@ export default function MissionOverview() {
   const queryClient = useQueryClient()
   // Verknüpft mit Suchlage: Karte für den Bericht frisch laden (ohne Verknüpfung sofort fertig).
   const suchlageStatus = useSuchlage()
+  // Einsatz, dessen Bericht gerade erstellt wird: Knöpfe gesperrt, kein zweiter Lauf.
+  const [preparingId, setPreparingId] = useState<string | null>(null)
   const buildReport = async (missionId: string) => {
-    await prepareSuchlageReportMaps(missionId, suchlageStatus.enabled && !suchlageStatus.resting)
-    return generateMissionReport(missionId, queryClient)
+    setPreparingId(missionId)
+    try {
+      await prepareSuchlageReportMaps(missionId, suchlageStatus.enabled && !suchlageStatus.resting)
+      return generateMissionReport(missionId, queryClient)
+    } finally {
+      setPreparingId(null)
+    }
   }
   const downloadReport = async (missionId: string) => {
+    if (preparingId) return
     const r = await buildReport(missionId)
     if (r) downloadPdf(r.blob, r.filename)
   }
   const shareReport = async (missionId: string) => {
+    if (preparingId) return
     const r = await buildReport(missionId)
-    if (r) sharePdf(r.blob, r.filename).catch(() => {})
+    if (r) await sharePdfOrDownload(r.blob, r.filename)
   }
   const { missions, create, remove, restore, purge, clean } = useMissions()
   const { configured, isAuthenticated, isAdmin } = useAuth()
@@ -170,6 +179,7 @@ export default function MissionOverview() {
             onDelete={() => remove(mission.id)}
             onDownloadPdf={() => void downloadReport(mission.id)}
             onSharePdf={() => void shareReport(mission.id)}
+            pdfBusy={preparingId !== null}
           />
         ))}
         </div>
@@ -190,7 +200,8 @@ export default function MissionOverview() {
               onNavigate={() => navigate(`/mission/${mission.id}/nachbereitung`)}
               onDelete={() => remove(mission.id)}
               onDownloadPdf={() => void downloadReport(mission.id)}
-            onSharePdf={() => void shareReport(mission.id)}
+              onSharePdf={() => void shareReport(mission.id)}
+              pdfBusy={preparingId !== null}
             />
           ))}
           </div>
@@ -238,12 +249,14 @@ export default function MissionOverview() {
   )
 }
 
-function MissionCard({ mission, onNavigate, onDelete, onDownloadPdf, onSharePdf }: {
+function MissionCard({ mission, onNavigate, onDelete, onDownloadPdf, onSharePdf, pdfBusy = false }: {
   mission: Mission
   onNavigate: () => void
   onDelete: () => void
   onDownloadPdf: () => void
   onSharePdf: () => void
+  /** Ein Bericht wird gerade erstellt (z. B. Suchlage-Karte lädt) */
+  pdfBusy?: boolean
 }) {
   const isCompleted = !!mission.completedAt
   const displayLabel = useMissionDisplayLabel(mission.id, mission.createdAt)
@@ -286,7 +299,8 @@ function MissionCard({ mission, onNavigate, onDelete, onDownloadPdf, onSharePdf 
               e.stopPropagation()
               onDownloadPdf()
             }}
-            className={`${iconBtnClass} hover:bg-surface-alt hover:text-text`}
+            disabled={pdfBusy}
+            className={`${iconBtnClass} hover:bg-surface-alt hover:text-text disabled:opacity-40`}
             aria-label="PDF herunterladen"
             title="PDF herunterladen"
           >
@@ -298,7 +312,8 @@ function MissionCard({ mission, onNavigate, onDelete, onDownloadPdf, onSharePdf 
                 e.stopPropagation()
                 onSharePdf()
               }}
-              className={`${iconBtnClass} hover:bg-surface-alt hover:text-text`}
+              disabled={pdfBusy}
+              className={`${iconBtnClass} hover:bg-surface-alt hover:text-text disabled:opacity-40`}
               aria-label="PDF teilen"
               title="PDF teilen"
             >

@@ -1587,6 +1587,19 @@ export function sharePdf(blob: Blob, filename: string) {
   return navigator.share({ files: [file], title: 'UAV Missionsbericht' })
 }
 
+/**
+ * Teilen; hat der Browser die Nutzergeste schon verworfen (z. B. weil vorher
+ * die Suchlage-Karte geladen wurde: NotAllowedError), stattdessen herunterladen.
+ * Abbrechen durch den Nutzer (AbortError) ist kein Fehler.
+ */
+export async function sharePdfOrDownload(blob: Blob, filename: string): Promise<void> {
+  try {
+    await sharePdf(blob, filename)
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'NotAllowedError') downloadPdf(blob, filename)
+  }
+}
+
 export function canSharePdf() {
   if (!navigator.canShare) return false
   const testFile = new File([''], 'test.pdf', { type: 'application/pdf' })
