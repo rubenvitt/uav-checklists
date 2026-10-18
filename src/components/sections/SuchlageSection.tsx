@@ -149,8 +149,9 @@ export default function SuchlageSection({ locationName, latitude, longitude }: S
               take_over: confirmTakeOver,
             })
       } catch (e) {
-        // 409 kann heißen: dieser Einsatz der Flugmappe ist in Suchlage schon verknüpft
-        // (z. B. Antwort beim ersten Versuch verloren). Nur übernehmen, wenn es passt.
+        // Ein wiederholtes Anlegen eines eigenen offenen Einsatzes liefert 200 (siehe unten).
+        // 409 heißt: diese Einsatz-UUID ist mit einem fremd angelegten/übernommenen Einsatz
+        // verknüpft – oder ein anderer läuft. Eigene Verknüpfung nur übernehmen, wenn sie passt.
         const own = errorKindOf(e) === 'conflict' ? await findOwnLink() : null
         if (!own) throw e
         if (target !== 'new' && own.id !== target.id) {
@@ -161,7 +162,7 @@ export default function SuchlageSection({ locationName, latitude, longitude }: S
         mission = own
         adopted = true
       }
-      // Neu angelegt, aber Suchlage liefert einen vorhandenen (eigenen) Einsatz zurück.
+      // Neu angelegt, aber Suchlage liefert den schon vorhandenen eigenen Einsatz (200).
       if (target === 'new' && !adopted && mission.name !== requestedName) adopted = true
       if (adopted) setNotice(`Dieser Einsatz war in Suchlage schon mit „${mission.name}“ verknüpft – Verknüpfung übernommen.`)
       const sections: Record<string, true> = adopted ? {} : { [segment.id]: true }
