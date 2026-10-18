@@ -15,6 +15,7 @@ import { assessTraffic } from '../utils/trafficAssessment'
 import { TRAFFIC_SEARCH_RADIUS_KM } from '../data/thresholds'
 import { useMissionPersistedState, clearMissionFormStorageByPrefix } from '../hooks/useMissionPersistedState'
 import { useSegmentPersistedState } from '../hooks/useSegmentPersistedState'
+import { getSuchlageMapImage } from '../utils/suchlageReportMap'
 import { readStorage } from '../hooks/usePersistedState'
 import { computeAssessment } from '../utils/assessment'
 import { useAutoExpand } from '../hooks/useAutoExpand'
@@ -267,7 +268,7 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
         ? readStorage<string>(`${segPrefix}einsatzkarte:photo`, '', missionId)
         : readStorage<string>(`${segPrefix}einsatzkarte:snapshot`, '', missionId))
         // Mit Suchlage verknüpft gibt es keine eigene Kartenansicht: zuletzt gezeichnete Suchlage-Karte
-        || readStorage<{ image: string } | null>(`${segPrefix}suchlage:mapImage`, null, missionId)?.image
+        || (segmentId ? getSuchlageMapImage(missionId, segmentId)?.image : '')
         || ''
 
       // Technische Vorflugkontrolle Checklisten (segment-specific where applicable)

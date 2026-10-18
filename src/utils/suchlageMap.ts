@@ -80,3 +80,40 @@ export function collectionBounds(features: ReadonlyArray<{ geometry: GeoJSON.Geo
   if (!Number.isFinite(w)) return null
   return [[w, s], [e, n]]
 }
+
+/** Höchstzahl Punkte je Flugspur im gespeicherten Offline-Stand. */
+export const MAX_TRACK_POINTS = 500
+
+function thinLine(line: number[][], step: number): number[][] {
+  if (step <= 1 || line.length <= 2) return line
+  const out = line.filter((_, i) => i % step === 0)
+  const last = line[line.length - 1]
+  if (out[out.length - 1] !== last) out.push(last)
+  return out
+}
+
+/**
+ * Für den Offline-Stand auf dem Gerät: Flugspuren auf höchstens
+ * `maxPoints` Punkte ausdünnen (jeder n-te Punkt, Anfang und Ende jedes Teils
+ * bleiben). Kartenelemente bleiben unverändert. Liefert dieselbe Sammlung,
+ * wenn nichts zu kürzen ist.
+ */
+export function thinForStorage(fc: FmFeatureCollection, maxPoints = MAX_TRACK_POINTS): FmFeatureCollection {
+  let changed = false
+  const features = fc.features.map((f) => {
+    if (f.properties.kind !== 'flight_track') return f
+    const g = f.geometry
+    const parts = g.type === 'LineString' ? [g.coordinates] : g.type === 'MultiLineString' ? g.coordinates : null
+    if (!parts) return f
+    const total = parts.reduce((n, p) => n + p.length, 0)
+    if (total <= maxPoints) return f
+    const step = Math.ceil(total / maxPoints)
+    changed = true
+    const thinned = parts.map((p) => thinLine(p, step) as [number, number][])
+    const geometry = g.type === 'LineString'
+      ? { type: 'LineString' as const, coordinates: thinned[0] }
+      : { type: 'MultiLineString' as const, coordinates: thinned }
+    return { ...f, geometry }
+  })
+  return changed ? { ...fc, features } : fc
+}

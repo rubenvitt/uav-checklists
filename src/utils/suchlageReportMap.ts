@@ -1,26 +1,30 @@
 /**
  * Karte aus Suchlage für den Bericht: beim Erstellen frisch laden und als Bild
- * zeichnen (Zeitlimit 15 s), sonst den zuletzt gespeicherten Stand nehmen.
- * Das Bild liegt danach je Abschnitt unter `seg:<id>:suchlage:mapImage`, wo
- * `generateMissionReport` es synchron liest.
+ * zeichnen (Zeitlimit 15 s), sonst aus dem gespeicherten Stand zeichnen. Das
+ * Bild bleibt nur im Speicher (nicht im Browser-Speicher des Geräts), wo
+ * `generateMissionReport` und das Zwischen-PDF es synchron lesen.
  */
-import { getMissionField, setMissionField } from '../stores/missionFormStore'
 import { suchlage } from '../services/suchlageApi'
 import { getSegments } from './missionStorage'
 import { getSuchlageLink } from './suchlageStore'
 import { toDisplayCollection } from './suchlageMap'
+import { readStoredSuchlageMap, storeSuchlageMap } from './suchlageMapStore'
 import type { FmFeatureCollection } from '../types/suchlage'
 
 export const REPORT_MAP_TIMEOUT_MS = 15_000
 
-export interface StoredSuchlageMapImage {
+export interface SuchlageMapImage {
   image: string
   /** Stand der Karte (ms) */
   at: number
 }
 
-export const mapKey = (segmentId: string) => `seg:${segmentId}:suchlage:map`
-export const mapImageKey = (segmentId: string) => `seg:${segmentId}:suchlage:mapImage`
+/** Zuletzt gezeichnete Bilder je `<missionId>:<segmentId>`, nur für diese Sitzung. */
+const images = new Map<string, SuchlageMapImage>()
+
+export function getSuchlageMapImage(missionId: string, segmentId: string): SuchlageMapImage | null {
+  return images.get(`${missionId}:${segmentId}`) ?? null
+}
 
 /**
  * Lädt und zeichnet die Suchlage-Karten aller in Suchlage angelegten
@@ -45,17 +49,17 @@ export async function prepareSuchlageReportMaps(missionId: string, canFetch: boo
       if (fetchAllowed) {
         try {
           data = await suchlage.map(link.suchlageMissionId, missionId, segmentId, ctrl.signal)
-          setMissionField(missionId, mapKey(segmentId), { data, loadedAt: at })
+          storeSuchlageMap(missionId, segmentId, data, at)
         } catch { /* offline o. Ä.: gespeicherter Stand */ }
       }
       if (!data) {
-        const stored = getMissionField<{ data: FmFeatureCollection; loadedAt: number } | null>(missionId, mapKey(segmentId), null)
+        const stored = readStoredSuchlageMap(missionId, segmentId)
         if (!stored) continue
         data = stored.data
         at = stored.loadedAt
       }
       const image = await renderMapImage(toDisplayCollection(data), { signal: ctrl.signal })
-      if (image) setMissionField(missionId, mapImageKey(segmentId), { image, at } satisfies StoredSuchlageMapImage)
+      if (image) images.set(`${missionId}:${segmentId}`, { image, at })
     }
   }
 

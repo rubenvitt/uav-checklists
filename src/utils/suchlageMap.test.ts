@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MapData } from '../types/mapData'
-import { SUCHLAGE_DEFAULT_COLORS, buildMapImport, collectionBounds, toDisplayCollection } from './suchlageMap'
+import { SUCHLAGE_DEFAULT_COLORS, buildMapImport, collectionBounds, thinForStorage, toDisplayCollection } from './suchlageMap'
 
 const mapData: MapData = {
   type: 'FeatureCollection',
@@ -70,5 +70,39 @@ describe('collectionBounds', () => {
   it('umfasst alle Geometrien', () => {
     expect(collectionBounds(mapData.features)).toEqual([[9, 52], [9.3, 52.3]])
     expect(collectionBounds([])).toBeNull()
+  })
+})
+
+describe('thinForStorage', () => {
+  const line = (n: number) => Array.from({ length: n }, (_, i) => [10 + i / 1e4, 52] as [number, number])
+  const track = (geometry: import('../types/suchlage').FmGeometry) => ({
+    type: 'FeatureCollection' as const,
+    features: [{
+      type: 'Feature' as const,
+      geometry,
+      properties: { kind: 'flight_track' as const, flight_id: 1, name: 'Flug 1', color: '#00AAFF', flugmappe_section_id: null, started_at_ms: 0, ended_at_ms: null },
+    }],
+  })
+
+  it('lässt kurze Spuren und Kartenelemente unverändert', () => {
+    const fc = track({ type: 'LineString', coordinates: line(100) })
+    expect(thinForStorage(fc)).toBe(fc)
+  })
+
+  it('kürzt lange Spuren auf höchstens 500 Punkte, Anfang und Ende bleiben', () => {
+    const coords = line(5001)
+    const r = thinForStorage(track({ type: 'LineString', coordinates: coords }))
+    const g = r.features[0].geometry as { coordinates: number[][] }
+    expect(g.coordinates.length).toBeLessThanOrEqual(501)
+    expect(g.coordinates[0]).toEqual(coords[0])
+    expect(g.coordinates.at(-1)).toEqual(coords.at(-1))
+  })
+
+  it('zählt bei MultiLineString alle Teile zusammen', () => {
+    const r = thinForStorage(track({ type: 'MultiLineString', coordinates: [line(800), line(800)] }))
+    const g = r.features[0].geometry as { coordinates: number[][][] }
+    const total = g.coordinates.reduce((n, p) => n + p.length, 0)
+    expect(total).toBeLessThanOrEqual(504)
+    expect(g.coordinates).toHaveLength(2)
   })
 })

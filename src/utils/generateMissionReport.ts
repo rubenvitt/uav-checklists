@@ -21,7 +21,7 @@ import { FLUGBRIEFING_ITEMS } from '../data/flugbriefingItems'
 import { FUNKTIONS_ITEMS } from '../data/funktionskontrolleItems'
 import { isNegativeAnswer, isPositiveAnswer } from './checklistState'
 import { LINK_KEY, type SuchlageLink } from './suchlageStore'
-import { mapImageKey, type StoredSuchlageMapImage } from './suchlageReportMap'
+import { getSuchlageMapImage } from './suchlageReportMap'
 
 const PREFIX = 'uav-form:'
 const TTL = 56 * 60 * 60 * 1000
@@ -287,16 +287,17 @@ function collectSegmentData(
   // Map image
   const karteMode = readSegmentField<'map' | 'photo'>(missionId, segId, 'einsatzkarte:mode', 'map', legacy)
   const kartePhoto = readSegmentField<string>(missionId, segId, 'einsatzkarte:photo', '', legacy)
-  const localMapImage = karteMode === 'photo'
-    ? kartePhoto
-    : readSegmentField<string>(missionId, segId, 'einsatzkarte:snapshot', '', legacy)
+  const kartenSnapshot = readSegmentField<string>(missionId, segId, 'einsatzkarte:snapshot', '', legacy)
+  const localMapImage = karteMode === 'photo' ? kartePhoto : kartenSnapshot
   // Mit Suchlage verknüpfter Abschnitt: Bild der Suchlage-Karte (vor dem Erstellen frisch
-  // gezeichnet, sonst letzter Stand) und dazu das Kartenfoto, falls vorhanden.
+  // gezeichnet) und dazu das Kartenfoto. Gibt es kein Suchlage-Bild, geht das Foto
+  // (sonst ein altes Kartenbild) nicht verloren.
   const suchlageLink = readMissionField<SuchlageLink | null>(missionId, LINK_KEY, null)
-  const suchlageImage = segId && suchlageLink?.sections[segId]
-    ? readMissionField<StoredSuchlageMapImage | null>(missionId, mapImageKey(segId), null)
-    : null
-  const mapImage = suchlageImage?.image || localMapImage
+  const suchlageSegment = !!(segId && suchlageLink?.sections[segId])
+  const suchlageImage = suchlageSegment && segId ? getSuchlageMapImage(missionId, segId) : null
+  const mapImage = suchlageSegment
+    ? suchlageImage?.image || kartePhoto || kartenSnapshot
+    : localMapImage
   const mapPhoto = suchlageImage && kartePhoto ? kartePhoto : ''
   const mapCaption = suchlageImage
     ? `Karte aus Suchlage, Stand ${new Date(suchlageImage.at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`
