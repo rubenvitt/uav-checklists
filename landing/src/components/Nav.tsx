@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react'
 import { TbBrandGithub } from 'react-icons/tb'
 import { site } from '../site.config'
 
-const links = [
+export interface NavLink {
+  href: string
+  label: string
+}
+
+const startLinks: NavLink[] = [
   { href: '#ablauf', label: 'Ablauf' },
   { href: '#funktionen', label: 'Funktionen' },
   { href: '#daten', label: 'Daten' },
@@ -29,7 +34,21 @@ export function Mark({ className = 'size-7' }: { className?: string }) {
   )
 }
 
-export default function Nav() {
+/**
+ * Kopfzeile beider Seiten. Die Startseite nutzt die Voreinstellungen; das
+ * Handbuch übergibt eigene Links, verweist mit `home` zurück auf `../` und
+ * blendet den Handbuch-Knopf aus.
+ */
+export default function Nav({
+  links = startLinks,
+  home = '#top',
+  handbuch = 'handbuch/',
+}: {
+  links?: NavLink[]
+  home?: string
+  /** Ziel des Handbuch-Knopfs; ohne Wert wird er nicht gezeigt. */
+  handbuch?: string
+}) {
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
@@ -46,7 +65,7 @@ export default function Nav() {
       }`}
     >
       <nav className="mx-auto flex h-16 max-w-[84rem] items-center gap-3 px-5 sm:gap-6 sm:px-8">
-        <a href="#top" className="flex shrink-0 items-center gap-2.5 text-ink">
+        <a href={home} className="flex shrink-0 items-center gap-2.5 text-ink">
           <Mark />
           <span className="leading-none">
             <span className="display block text-[1.05rem] tracking-tight sm:text-[1.15rem]">
@@ -81,6 +100,14 @@ export default function Nav() {
           >
             <TbBrandGithub className="size-5" />
           </a>
+          {handbuch ? (
+            <a
+              href={handbuch}
+              className="border border-ink/30 px-3.5 py-2.5 text-[0.82rem] font-semibold tracking-tight whitespace-nowrap text-ink transition-colors hover:border-bedien hover:text-bedien sm:px-4 sm:text-sm"
+            >
+              Handbuch
+            </a>
+          ) : null}
           <a
             href={site.appUrl}
             target="_blank"

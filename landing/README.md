@@ -45,8 +45,8 @@ Server-Laufzeit, keine Umgebungsvariablen, keine Datenbank. Das Verzeichnis kann
 auf jeden Webserver oder Objektspeicher gelegt werden (nginx, Caddy, Apache,
 S3, GitHub Pages, Netlify …).
 
-Die Seite ist eine einzelne HTML-Datei mit Ankern; eine SPA-Rewrite-Regel ist
-**nicht** nötig. `base` steht in `vite.config.ts` auf `'./'`, die Seite
+Die Startseite und das Handbuch (`handbuch/index.html`) sind je eine
+HTML-Datei mit Ankern; eine SPA-Rewrite-Regel ist **nicht** nötig. `base` steht in `vite.config.ts` auf `'./'`, die Seite
 funktioniert also auch in einem Unterverzeichnis.
 
 ### Cloudflare Pages
@@ -64,6 +64,21 @@ beide Auslieferungen getrennt und blockieren sich nicht gegenseitig:
 Wichtig ist das Root directory: Ohne es würde Cloudflare den PWA-Build
 ausführen. Eine SPA-Weiterleitung wird hier nicht gebraucht.
 
+## Handbuch (`/handbuch/`)
+
+Die zweite Seite der Website ist das Anwenderhandbuch für Einsatzkräfte. Die
+Kapitel liegen als Markdown in `src/handbuch/kapitel/NN-slug.md` und lassen
+sich ohne React-Kenntnisse pflegen; die Schreibregeln (Hinweiskästen, Bilder,
+Anker, Ton) stehen in `src/handbuch/README.md`.
+
+`handbuch.plugin.ts` wandelt die Kapitel beim Build in HTML um (der Browser
+bekommt keinen Markdown-Parser) und legt die gesamte Markdown-Fassung als
+`dist/handbuch/index.md` ab. Im Dev-Modus lädt die Seite neu, sobald sich ein
+Kapitel ändert: <http://localhost:5180/handbuch/>.
+
+Die Abbildungen liegen unter `public/screenshots/handbuch/` und kommen aus
+`tools/screenshots/handbuch.mjs` — siehe [Screenshots erneuern](#screenshots-erneuern).
+
 ### Auffindbarkeit für Suchmaschinen und Agenten
 
 | Datei | Zweck |
@@ -72,6 +87,7 @@ ausführen. Eine SPA-Weiterleitung wird hier nicht gebraucht.
 | `public/index.md` | Markdown-Fassung der Seite für Agenten, auch direkt unter `/index.md` abrufbar |
 | `functions/index.ts` | Pages Function nur für `/`: liefert bei `Accept: text/markdown` `index.md` aus (mit `X-Markdown-Tokens`), sonst das HTML; setzt die `Link`-Header (RFC 8288) |
 | `public/_headers` | dieselben `Link`-Header für die statische Auslieferung, Content-Types für `.md`/`.xml` |
+| `handbuch/index.md` | Markdown-Fassung des Handbuchs, wird beim Build aus den Kapiteln erzeugt |
 
 **Beim Ändern der Texte `public/index.md` mitpflegen.** Die Seite wird
 clientseitig gerendert; das ausgelieferte HTML ist leer, Agenten sehen also nur
@@ -96,7 +112,14 @@ Das sollte so bleiben — es ist Teil der Aussage der Seite.
 ## Aufbau
 
 ```
+handbuch.plugin.ts          Markdown-Kapitel → HTML (virtual:handbuch)
+handbuch/index.html         Einstieg der Seite /handbuch/
 src/
+├── handbuch/
+│   ├── Handbuch.tsx        Seitenaufbau: Kapitelübersicht, Inhaltsverzeichnis
+│   ├── handbuch.css        Satz der Kapitel, Hinweiskästen, Druckansicht
+│   ├── README.md           Schreibregeln
+│   └── kapitel/            die Kapitel als Markdown
 ├── App.tsx                 Reihenfolge der Abschnitte
 ├── site.config.ts          URLs und Kennzahlen
 ├── index.css               Farb- und Schrift-Token, Hilfsklassen
@@ -144,10 +167,20 @@ pnpm exec playwright install chromium
 node tools/screenshots/capture.mjs
 node tools/screenshots/optimize.mjs
 
+# 3b. Abbildungen des Handbuchs (alle oder einzelne Kapitel), schreibt
+#     direkt WebP nach public/screenshots/handbuch/
+node tools/screenshots/handbuch.mjs
+node tools/screenshots/handbuch.mjs fluege
+
 # 4. Vorschaubild, Touch-Icon und Favicons (nur bei Änderungen am Aufmacher
 #    oder an public/favicon.svg nötig)
 node tools/screenshots/social.mjs
 ```
+
+Gemeinsame Bausteine (Browser, Geräteprofil, feste Overpass-/ADS-B-Antworten,
+`shot`, `crop`, `expand` …) liegen in `tools/screenshots/lib.mjs`. Für das
+Handbuch hat jedes Kapitel ein eigenes Aufnahmeskript in
+`tools/screenshots/handbuch/<slug>.mjs`.
 
 `tools/screenshots/seed.mjs` legt dafür einen vollständig ausgefüllten
 Beispiel-Einsatz im localStorage an (erfundene Namen, Einsatzort Hannover).

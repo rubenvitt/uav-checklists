@@ -16,6 +16,20 @@ const faq: Array<{ q: string; a: ReactNode }> = [
     ),
   },
   {
+    q: 'Gibt es eine Anleitung für unsere Einsatzkräfte?',
+    a: (
+      <>
+        Ja: Das{' '}
+        <a href="handbuch/" className="link-underline text-ink">
+          Handbuch
+        </a>{' '}
+        erklärt jeden Schritt vom Anlegen des Einsatzes bis zum unterschriebenen PDF-Bericht, mit
+        Bildern aus der App und ohne Technikwissen vorauszusetzen. Es lässt sich auch drucken oder
+        als PDF ins Fahrzeug legen.
+      </>
+    ),
+  },
+  {
     q: 'Funktioniert das mit unseren Drohnen?',
     a: (
       <>
