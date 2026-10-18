@@ -13,7 +13,7 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
-import { Marked, type Tokens } from 'marked'
+import { Marked, type Token, type Tokens } from 'marked'
 import type { Plugin } from 'vite'
 
 const VIRTUAL_ID = 'virtual:handbuch'
@@ -52,10 +52,15 @@ export function slugify(text: string): string {
     .replace(/ö/g, 'oe')
     .replace(/ü/g, 'ue')
     .replace(/ß/g, 'ss')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&[a-z]+;/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
+}
+
+/** Reiner Text einer Überschrift, ohne Markdown-Auszeichnung (für Anker und Inhaltsverzeichnis). */
+function plainText(tokens: Token[]): string {
+  return tokens
+    .map((t) => ('tokens' in t && t.tokens ? plainText(t.tokens) : 'text' in t ? String(t.text) : ''))
+    .join('')
 }
 
 /** Liest `key: value`-Zeilen zwischen `---` am Dateianfang. */
@@ -82,12 +87,13 @@ function renderChapter(slug: string, body: string): { html: string; abschnitte: 
   marked.use({
     renderer: {
       // `##` im Kapitel wird zu <h3>: <h1> ist der Seitentitel, <h2> der Kapiteltitel.
-      heading({ tokens, depth, text }) {
+      heading({ tokens, depth }) {
         const inner = this.parser.parseInline(tokens)
-        let id = `${slug}-${slugify(text)}`
-        for (let n = 2; used.has(id); n++) id = `${slug}-${slugify(text)}-${n}`
+        const titel = plainText(tokens)
+        let id = `${slug}-${slugify(titel)}`
+        for (let n = 2; used.has(id); n++) id = `${slug}-${slugify(titel)}-${n}`
         used.add(id)
-        if (depth === 2) abschnitte.push({ id, titel: inner.replace(/<[^>]+>/g, '') })
+        if (depth === 2) abschnitte.push({ id, titel })
         const level = Math.min(depth + 1, 6)
         return `<h${level} id="${id}"><a class="hb-anker" href="#${id}" aria-hidden="true">#</a>${inner}</h${level}>\n`
       },
