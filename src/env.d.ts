@@ -12,6 +12,9 @@ interface ImportMetaEnv {
   readonly VITE_OIDC_AUTHORITY?: string
   /** PocketID public client id (Authorization Code + PKCE). */
   readonly VITE_OIDC_CLIENT_ID?: string
+  /** Base URL of an optional Suchlage instance (interface `/api/flugmappe/v1`).
+   *  Empty/undefined: no Suchlage UI and no requests. Needs the login. */
+  readonly VITE_SUCHLAGE_URL?: string
 }
 
 interface ImportMeta {

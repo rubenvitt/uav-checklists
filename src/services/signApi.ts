@@ -11,6 +11,7 @@
  * so the wrappers stay usable from anywhere.
  */
 import { downloadPdf } from '../utils/generateReport'
+import { getAccessToken, setAccessTokenProvider } from './accessToken'
 
 /** Configured backend base URL, or `undefined` when the feature is disabled. */
 const RAW_BASE_URL = import.meta.env.VITE_SIGN_API_URL as string | undefined
@@ -33,19 +34,12 @@ export function getSignApiBaseUrl(): string | null {
 
 /* ── Access-token provider ─────────────────────────────────── */
 
-let accessTokenProvider: (() => string | null) | null = null
-
-/**
- * Registers a function that returns the current OIDC access token (or `null`).
- * Called once by the auth provider so the wrappers can authenticate without a
- * React dependency.
- */
-export function setAccessTokenProvider(provider: (() => string | null) | null): void {
-  accessTokenProvider = provider
-}
+// Der Lieferant liegt in `accessToken.ts`, damit auch der Suchlage-Client ihn
+// nutzt. Re-Export für den AuthProvider.
+export { setAccessTokenProvider }
 
 function authHeaders(extra?: Record<string, string>): Record<string, string> {
-  const token = accessTokenProvider?.() ?? null
+  const token = getAccessToken()
   return {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...extra,
