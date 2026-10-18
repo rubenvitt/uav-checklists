@@ -340,7 +340,9 @@ Suchlage**. Er zeigt die Karte eures aktuellen Abschnitts aus Suchlage:
 Suchgebiete und Punkte und die Flugspuren als gestrichelte Linien. Ihr könnt
 verschieben und zoomen, aber nicht zeichnen. Gezeichnet wird in Suchlage;
 dorthin führt **In Suchlage bearbeiten**. Unter der Karte steht, von wann der
-Stand ist. Ohne Netz zeigt die App den zuletzt geladenen Stand.
+Stand ist. Ohne Netz zeigt die App den zuletzt geladenen Stand. Nach einer
+Verlegung steht dort kurz **Abschnitt wird in Suchlage angelegt …**, bis
+Suchlage den neuen Abschnitt kennt.
 
 Der Abschnitt gilt als erledigt, sobald eine Karte aus Suchlage geladen ist
 oder ein Kartenfoto vorliegt. Ein **Kartenfoto** geht zusätzlich als

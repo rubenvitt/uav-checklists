@@ -190,6 +190,12 @@ nicht in den Bericht. Ihr entscheidet mit einem Tipp:
   App das vor, statt einen zweiten Flug anzulegen. Euer Eintrag behält
   Besatzung und Bemerkung und bekommt die Zeiten aus Suchlage.
 
+Läuft bei euch gerade ein Flug und meldet Suchlage ebenfalls einen laufenden
+Flug, bietet die App immer **Mit laufendem Flug zusammenführen** an, auch wenn
+die Startzeiten weiter auseinanderliegen. Einen zweiten laufenden Flug legt sie
+nie an; dann steht im Kasten **Erst den offenen Flug beenden, dann
+bestätigen.**
+
 Bestätigte Flüge tragen im Flugtagebuch die Marke **Suchlage** mit
 Fluggerät, Höhe, Strecke und Fotos. Landet die Drohne, trägt die App die
 Landezeit aus Suchlage ein, solange ihr selbst noch keine eingetragen habt.
