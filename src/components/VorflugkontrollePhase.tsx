@@ -263,9 +263,12 @@ export default function VorflugkontrollePhase({ setGetPdfBlob }: Vorflugkontroll
 
       // Map image from Einsatzdaten phase — mode decides source (segment-specific)
       const karteMode = readStorage<'map' | 'photo'>(`${segPrefix}einsatzkarte:mode`, 'map', missionId)
-      const mapImage = karteMode === 'photo'
+      const mapImage = (karteMode === 'photo'
         ? readStorage<string>(`${segPrefix}einsatzkarte:photo`, '', missionId)
-        : readStorage<string>(`${segPrefix}einsatzkarte:snapshot`, '', missionId)
+        : readStorage<string>(`${segPrefix}einsatzkarte:snapshot`, '', missionId))
+        // Mit Suchlage verknüpft gibt es keine eigene Kartenansicht: zuletzt gezeichnete Suchlage-Karte
+        || readStorage<{ image: string } | null>(`${segPrefix}suchlage:mapImage`, null, missionId)?.image
+        || ''
 
       // Technische Vorflugkontrolle Checklisten (segment-specific where applicable)
       const aufstiegsortChecked = readStorage<ChecklistState>(`${segPrefix}techcheck:aufstiegsort`, {}, missionId)

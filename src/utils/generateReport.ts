@@ -6,6 +6,7 @@ import { computeWeightSummary, formatPayloadList, formatWeight, type WeightSumma
 import type { NearbyCategory } from '../services/overpassApi'
 import type { AssessmentResult, MetricStatus } from '../types/assessment'
 import type { FlightLogEntry, EventNote } from '../types/flightLog'
+import { suchlageReportDetails } from './suchlageReport'
 import type { MetarStationInfo } from '../types/weather'
 import type { FlightTrafficSnapshot, TrafficAssessment } from '../types/traffic'
 import { EMERGENCY_LABELS, aircraftLabel, formatSnapshotTime } from './trafficAssessment'
@@ -173,6 +174,10 @@ export interface SegmentReportData {
   flightType?: 'vlos' | 'bvlos' | null
   anmeldungen?: AnmeldungItem[]
   mapImage?: string
+  /** Kartenfoto zusätzlich zur Karte (bei Verknüpfung mit Suchlage) */
+  mapPhoto?: string
+  /** Bildunterschrift zur Karte, z. B. „Karte aus Suchlage, Stand …“ */
+  mapCaption?: string
   flugfreigabe?: string | null
   flugentscheidung?: { status: 'granted' | 'denied'; timestamp: string } | null
   checklistGroups?: ChecklistGroupData[]
@@ -187,6 +192,10 @@ export interface ReportData {
   einsatzauftrag?: EinsatzauftragData
   anmeldungen?: AnmeldungItem[]
   mapImage?: string
+  /** Kartenfoto zusätzlich zur Karte (bei Verknüpfung mit Suchlage) */
+  mapPhoto?: string
+  /** Bildunterschrift zur Karte, z. B. „Karte aus Suchlage, Stand …“ */
+  mapCaption?: string
   location: string
   drone: DroneSpec
   /** Aktuell montierte Nutzlast (Payload). Fehlt bei Reports ohne Payload-Auswahl. */
@@ -538,6 +547,26 @@ export function generateReport(data: ReportData) {
         doc.text(item.detail, margin + 8, y - 2)
         y += 1
       }
+    }
+  }
+
+  function drawMapCaption(text: string) {
+    checkPageBreak(6)
+    doc.setFontSize(FONTS.small)
+    doc.setFont('helvetica', 'italic')
+    setColor(COLORS.textLight)
+    doc.text(sanitizeForPdf(text), margin, y)
+    y += 4
+  }
+
+  /** Karte (ggf. mit Unterschrift) und, falls vorhanden, das Kartenfoto darunter. */
+  function drawMapSection(section: { mapImage?: string; mapPhoto?: string; mapCaption?: string }) {
+    if (!section.mapImage) return
+    if (section.mapCaption) drawMapCaption(section.mapCaption)
+    drawMapImage(section.mapImage)
+    if (section.mapPhoto) {
+      drawMapCaption('Kartenfoto')
+      drawMapImage(section.mapPhoto)
     }
   }
 
@@ -902,6 +931,13 @@ export function generateReport(data: ReportData) {
         drawKeyValue('Bemerkung', flight.bemerkung)
       }
 
+      // Bestätigter Flug aus Suchlage: Fluggerät, max. Höhe, Strecke, Fotohinweis
+      const suchlageDetails = suchlageReportDetails(flight.suchlage)
+      if (suchlageDetails) {
+        for (const row of suchlageDetails.rows) drawKeyValue(row.label, row.value)
+        if (suchlageDetails.photoNote) drawMapCaption(suchlageDetails.photoNote)
+      }
+
       y += 3
     }
 
@@ -970,7 +1006,7 @@ export function generateReport(data: ReportData) {
     // 2.2 Einsatzkarte
     if (seg.mapImage) {
       drawSubHeader('2.2', 'Einsatzkarte')
-      drawMapImage(seg.mapImage)
+      drawMapSection(seg)
     }
 
     // 2.3 Umgebungsprüfung
@@ -1211,7 +1247,7 @@ export function generateReport(data: ReportData) {
     // 2.2 Einsatzkarte
     if (data.mapImage) {
       drawSubHeader('2.2', 'Einsatzkarte')
-      drawMapImage(data.mapImage)
+      drawMapSection(data)
     }
 
     // 2.3 Umgebungspr\u00fcfung

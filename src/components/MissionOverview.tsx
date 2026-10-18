@@ -10,6 +10,8 @@ import { useMissions } from '../hooks/useMissions'
 import { useMissionDisplayLabel } from '../hooks/useMissionDisplayLabel'
 import { getRemainingTime } from '../utils/missionStorage'
 import { generateMissionReport } from '../utils/generateMissionReport'
+import { prepareSuchlageReportMaps } from '../utils/suchlageReportMap'
+import { useSuchlage } from '../hooks/useSuchlage'
 import { downloadPdf, sharePdf, canSharePdf } from '../utils/generateReport'
 import type { Mission, MissionPhase } from '../types/mission'
 
@@ -38,6 +40,20 @@ const PHASE_COLORS: Record<MissionPhase, string> = {
 export default function MissionOverview() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  // Verknüpft mit Suchlage: Karte für den Bericht frisch laden (ohne Verknüpfung sofort fertig).
+  const suchlageStatus = useSuchlage()
+  const buildReport = async (missionId: string) => {
+    await prepareSuchlageReportMaps(missionId, suchlageStatus.enabled && !suchlageStatus.resting)
+    return generateMissionReport(missionId, queryClient)
+  }
+  const downloadReport = async (missionId: string) => {
+    const r = await buildReport(missionId)
+    if (r) downloadPdf(r.blob, r.filename)
+  }
+  const shareReport = async (missionId: string) => {
+    const r = await buildReport(missionId)
+    if (r) sharePdf(r.blob, r.filename).catch(() => {})
+  }
   const { missions, create, remove, restore, purge, clean } = useMissions()
   const { configured, isAuthenticated, isAdmin } = useAuth()
   const [confirmPurge, setConfirmPurge] = useState<string | null>(null)
@@ -152,8 +168,8 @@ export default function MissionOverview() {
             mission={mission}
             onNavigate={() => navigate(`/mission/${mission.id}/${mission.phase}`)}
             onDelete={() => remove(mission.id)}
-            onDownloadPdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) downloadPdf(r.blob, r.filename) }}
-            onSharePdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) sharePdf(r.blob, r.filename).catch(() => {}) }}
+            onDownloadPdf={() => void downloadReport(mission.id)}
+            onSharePdf={() => void shareReport(mission.id)}
           />
         ))}
         </div>
@@ -173,8 +189,8 @@ export default function MissionOverview() {
               mission={mission}
               onNavigate={() => navigate(`/mission/${mission.id}/nachbereitung`)}
               onDelete={() => remove(mission.id)}
-              onDownloadPdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) downloadPdf(r.blob, r.filename) }}
-            onSharePdf={() => { const r = generateMissionReport(mission.id, queryClient); if (r) sharePdf(r.blob, r.filename).catch(() => {}) }}
+              onDownloadPdf={() => void downloadReport(mission.id)}
+            onSharePdf={() => void shareReport(mission.id)}
             />
           ))}
           </div>
