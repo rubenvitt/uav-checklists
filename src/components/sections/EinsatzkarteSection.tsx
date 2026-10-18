@@ -220,7 +220,9 @@ export default function EinsatzkarteSection({ latitude, longitude, locked, open,
             </Suspense>
           ) : (
             <div className="flex h-40 items-center justify-center bg-surface-alt p-4 text-center text-sm text-text-muted">
-              {suchlageMap.sectionPending
+              {suchlageMap.sectionProblem
+                ? <span role="status" className="border border-caution/40 bg-caution-bg px-2 py-1 text-caution">{suchlageMap.sectionProblem}</span>
+                : suchlageMap.sectionPending
                 ? 'Abschnitt wird in Suchlage angelegt …'
                 : suchlageMap.loading ? 'Karte wird aus Suchlage geladen …' : 'Noch keine Karte aus Suchlage geladen.'}
             </div>

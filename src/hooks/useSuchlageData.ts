@@ -4,7 +4,9 @@ import { useMissionId } from '../context/useMissionId'
 import { useSegmentPersistedState } from './useSegmentPersistedState'
 import { errorKindOf, useSuchlageMission, type SuchlageMission } from './useSuchlage'
 import { isRestingErrorKind, isSuchlageError, suchlage } from '../services/suchlageApi'
-import { hintSuchlageRemoteState, setSuchlageRemoteState } from '../utils/suchlageStore'
+import { OUTBOX_KEY, hintSuchlageRemoteState, kickSuchlageSync, setSuchlageRemoteState } from '../utils/suchlageStore'
+import { useMissionPersistedState } from './useMissionPersistedState'
+import type { OutboxItem } from '../utils/suchlageOutbox'
 import { storeSuchlageMap, type StoredSuchlageMap } from '../utils/suchlageMapStore'
 import { hasRunningFlight } from '../utils/suchlageFlights'
 import type { FmFlight } from '../types/suchlage'
@@ -109,6 +111,10 @@ export function useSuchlageMap(sl: SuchlageMission, segmentId: string | null) {
   const id = sl.link?.suchlageMissionId ?? null
   const remote = sl.link?.remoteState
   const sectionKnown = !!(segmentId && sl.link?.sections[segmentId])
+  const [outbox] = useMissionPersistedState<OutboxItem[]>(OUTBOX_KEY, [])
+  const sectionWaiting = !!segmentId && outbox.some((i) => i.kind === 'section' && i.segmentId === segmentId)
+  const sectionError = segmentId ? sl.link?.sectionErrors?.[segmentId] ?? null : null
+  const sectionMissing = sl.linked && !!segmentId && !sectionKnown && !sectionWaiting
   const query = useQuery({
     queryKey: ['suchlage', 'map', id, missionId, segmentId],
     queryFn: ({ signal }) => suchlage.map(id!, missionId, segmentId, signal),
@@ -118,6 +124,11 @@ export function useSuchlageMap(sl: SuchlageMission, segmentId: string | null) {
     retry: false,
     meta: { persist: false },
   })
+
+  // Fehlt der Abschnitt in Suchlage und wartet nichts, die Abarbeitung anstoßen (Selbstheilung).
+  useEffect(() => {
+    if (sectionMissing && !sectionError) kickSuchlageSync()
+  }, [sectionMissing, sectionError])
 
   useEffect(() => {
     if (query.data && segmentId) storeSuchlageMap(missionId, segmentId, query.data, query.dataUpdatedAt)
@@ -132,8 +143,12 @@ export function useSuchlageMap(sl: SuchlageMission, segmentId: string | null) {
     map: query.data ?? stored?.data ?? null,
     loadedAt: query.data ? query.dataUpdatedAt : stored?.loadedAt ?? null,
     loading: query.isPending && query.fetchStatus === 'fetching' && !stored,
-    /** Verknüpft, aber der Abschnitt ist in Suchlage noch nicht angelegt (Ausgangsliste). */
-    sectionPending: sl.linked && !!segmentId && !sectionKnown,
+    /** Verknüpft, Abschnitt in Suchlage noch nicht angelegt, ein Eintrag wartet. */
+    sectionPending: sl.linked && !!segmentId && !sectionKnown && sectionWaiting,
+    /** Abschnitt fehlt in Suchlage und nichts wartet: Meldung (abgelehnt oder fehlt). */
+    sectionProblem: sectionMissing
+      ? sectionError ?? 'Dieser Abschnitt ist in Suchlage nicht angelegt.'
+      : null,
     unreachable: kind === 'offline',
     refetch: () => void query.refetch(),
   }

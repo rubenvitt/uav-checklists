@@ -8,7 +8,7 @@
  * - Erfolg → Eintrag entfernt.
  * - Netzfehler/Schnittstelle aus → Eintrag bleibt, Backoff, Abbruch der Runde.
  * - 401/403 → nichts ändern, alles ruht bis zur nächsten Anmeldung.
- * - 409 (andere Flugmappe hat übernommen) → verworfen, Hinweis „abgelöst“, Runde endet.
+ * - 409 (andere Flugmappe hat übernommen) → bleibt, Hinweis „abgelöst“, Senden pausiert.
  * - `close` mit 422 (Flug läuft noch) → später erneut.
  * - Andere Ablehnungen (400, 404, 422 bei Abschnitt/Foto, 413 …) → Eintrag
  *   verworfen; er kann nie gelingen und darf die Liste nicht blockieren.
@@ -64,6 +64,8 @@ export type OutboxEffect =
   | 'retry'
   /** 401/403: alles ruht bis zur nächsten Anmeldung. */
   | 'rest'
+  /** Dieser Einsatz pausiert (abgelöst), andere Einsätze laufen weiter. */
+  | 'pause'
 
 /** Zustand des Einsatzes in Suchlage, den eine Antwort verrät. */
 export type RemoteHint = 'closed' | 'replaced'
@@ -151,9 +153,10 @@ export function applyOutcome(items: OutboxItem[], id: string, outcome: SendOutco
   if (status !== null && status >= 500) return retry()
 
   // 409 heißt bei allen schreibenden Aufrufen: eine andere Flugmappe hat den Einsatz
-  // übernommen. Das wird nie mehr gelingen.
+  // übernommen. Nichts verwerfen, sondern pausieren: Stellt GET /missions/{id} die
+  // Bindung wieder fest, geht es weiter.
   if (kind === 'conflict') {
-    return { items: without, effect: 'continue', removed: { item, sent: false }, remote: 'replaced' }
+    return { items, effect: 'pause', remote: 'replaced' }
   }
 
   // Abschluss bei 422: es läuft noch ein Flug – später erneut.
@@ -174,8 +177,10 @@ export interface DrainOptions {
   now: () => number
   force?: boolean
   /** Rückmeldung je entferntem Eintrag (z. B. Abschnitt als angelegt merken). */
-  onRemoved?: (removed: { item: OutboxItem; sent: boolean }) => void
+  onRemoved?: (removed: { item: OutboxItem; sent: boolean }, outcome: SendOutcome) => void
   onRemote?: (hint: RemoteHint) => void
+  /** Abbruch zwischen zwei Einträgen (z. B. Watchdog abgelaufen) */
+  shouldStop?: () => boolean
 }
 
 /** Arbeitet die Liste ab, bis sie leer ist, ein Eintrag warten muss oder alles ruht. */
@@ -184,6 +189,7 @@ export async function drainOutbox(opts: DrainOptions): Promise<{ rested: boolean
   // Schutz gegen Endlosschleifen, falls während der Runde ständig Neues kommt.
   let budget = opts.read().length + 10
   while (budget-- > 0) {
+    if (opts.shouldStop?.()) break
     const item = nextDue(opts.read(), opts.now(), opts.force)
     if (!item) break
     const outcome = await opts.send(item)
@@ -191,13 +197,39 @@ export async function drainOutbox(opts: DrainOptions): Promise<{ rested: boolean
     opts.write(applied.items)
     if (applied.removed) {
       if (applied.removed.sent) sent++
-      opts.onRemoved?.(applied.removed)
+      opts.onRemoved?.(applied.removed, outcome)
     }
     if (applied.remote) opts.onRemote?.(applied.remote)
     if (applied.effect === 'rest') return { rested: true, sent }
-    // Abgelöst: der Rest der Liste kann ebenfalls nicht mehr gelingen.
-    if (applied.remote === 'replaced') break
+    if (applied.effect === 'pause') break
     if (applied.effect === 'retry') break
   }
   return { rested: false, sent }
+}
+
+export interface HealSegment {
+  id: string
+  createdAt: number
+  label: string
+  locationName?: string
+}
+
+/**
+ * Selbstheilung: Abschnitte, die nach dem Verknüpfen entstanden sind, in
+ * Suchlage aber fehlen und für die nichts wartet (z. B. weil ein Eintrag
+ * verloren ging). Ältere Abschnitte nicht – sonst würde ein alter Abschnitt
+ * in Suchlage zum aktiven. Abschnitte mit Fehler (400) auch nicht, sonst
+ * entstünde eine Schleife. Reihenfolge wie angelegt.
+ */
+export function sectionsToHeal(
+  segments: readonly HealSegment[],
+  link: { linkedAt: number; sections: Record<string, true>; sectionErrors?: Record<string, string> },
+  items: readonly OutboxItem[],
+): NewOutboxItem[] {
+  const waiting = new Set(items.flatMap((i) => (i.kind === 'section' ? [i.segmentId] : [])))
+  return segments
+    .filter((s) => s.createdAt >= link.linkedAt && !link.sections[s.id] && !waiting.has(s.id) && !link.sectionErrors?.[s.id])
+    .slice()
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .map((s) => ({ kind: 'section' as const, segmentId: s.id, label: s.label, location: s.locationName ?? null }))
 }

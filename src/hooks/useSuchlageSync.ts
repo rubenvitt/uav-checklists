@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 import { useAuth } from '../context/useAuth'
 import { isSuchlageConfigured, isSuchlageError, suchlage } from '../services/suchlageApi'
-import { loadMissions } from '../utils/missionStorage'
+import { generateId, loadMissions } from '../utils/missionStorage'
 import { getMissionField } from '../stores/missionFormStore'
-import { drainOutbox, type OutboxItem, type SendOutcome } from '../utils/suchlageOutbox'
+import { drainOutbox, enqueue, sectionsToHeal, type OutboxItem, type SendOutcome } from '../utils/suchlageOutbox'
 import {
   getSuchlageLink,
   getSuchlageOutbox,
@@ -20,7 +20,18 @@ const LOCK_NAME = 'flugmappe-suchlage-sync'
 // Modulweit: nie zwei Durchläufe gleichzeitig (auch nicht bei zwei Effekt-Läufen
 // nach einem Token-Wechsel). Zwischen Tabs sperrt `navigator.locks`, wo vorhanden.
 let syncRunning = false
-let rerunRequested = false
+/** Während eines Laufs angefordert: `null` = nichts, sonst stärkstes `force`. */
+let rerunForce: boolean | null = null
+/** Gesamtlimit je Lauf: danach Sperre frei, auch wenn eine Anfrage hängt. */
+export const RUN_LIMIT_MS = 2 * 60_000
+
+function sectionErrorText(outcome: SendOutcome): string {
+  if (outcome.ok) return ''
+  if (outcome.status === 400) return 'Suchlage hat den Abschnitt abgelehnt (ungültige Angaben).'
+  if (outcome.kind === 'unprocessable') return 'Der Einsatz ist in Suchlage abgeschlossen.'
+  if (outcome.status === 404) return 'Der Einsatz wurde in Suchlage nicht gefunden.'
+  return `Suchlage hat den Abschnitt abgelehnt${outcome.status ? ` (Fehler ${outcome.status})` : ''}.`
+}
 
 /** Ausgangslisten aller Einsätze einmal abarbeiten. `true` = 401/403, alles ruht. */
 async function syncAll(force: boolean, isStopped: () => boolean): Promise<boolean> {
@@ -28,13 +39,19 @@ async function syncAll(force: boolean, isStopped: () => boolean): Promise<boolea
     if (isStopped()) return false
     const link = getSuchlageLink(mission.id)
     if (!link) continue
+    // Einsatz in Suchlage weg oder von anderer Flugmappe übernommen: pausieren, nichts
+    // verwerfen – löst sich der Zustand auf, geht es weiter.
+    if (link.remoteState === 'gone' || link.remoteState === 'replaced') continue
     let items = getSuchlageOutbox(mission.id)
-    if (items.length === 0) continue
-    // Einsatz in Suchlage weg oder von anderer Flugmappe übernommen: nichts mehr senden.
-    if (link.remoteState === 'gone' || link.remoteState === 'replaced') {
-      setSuchlageOutbox(mission.id, [])
-      continue
+    // Selbstheilung: nach dem Verknüpfen entstandene Abschnitte, die in Suchlage fehlen.
+    if (!mission.deletedAt && !link.remoteState) {
+      const heal = sectionsToHeal(mission.segments, link, items)
+      if (heal.length > 0) {
+        for (const entry of heal) items = enqueue(items, entry, Date.now(), generateId())
+        setSuchlageOutbox(mission.id, items)
+      }
     }
+    if (items.length === 0) continue
     // Weich gelöscht: ein ausstehender Abschluss geht trotzdem noch hinaus, der Rest nicht.
     if (mission.deletedAt) {
       const onlyClose = items.filter((i) => i.kind === 'close')
@@ -48,14 +65,22 @@ async function syncAll(force: boolean, isStopped: () => boolean): Promise<boolea
       send: (item) => sendItem(mission.id, item),
       now: Date.now,
       force,
-      onRemoved: ({ item, sent }) => {
-        if (sent && item.kind === 'section') {
-          updateSuchlageLink(mission.id, (l) => ({ ...l, sections: { ...l.sections, [item.segmentId]: true } }))
-        }
+      shouldStop: isStopped,
+      onRemoved: ({ item, sent }, outcome) => {
+        if (item.kind !== 'section') return
+        updateSuchlageLink(mission.id, (l) => {
+          const sectionErrors = { ...l.sectionErrors }
+          if (sent) delete sectionErrors[item.segmentId]
+          else sectionErrors[item.segmentId] = sectionErrorText(outcome)
+          return {
+            ...l,
+            sections: sent ? { ...l.sections, [item.segmentId]: true } : l.sections,
+            sectionErrors,
+          }
+        })
       },
       onRemote: (hint) => hintSuchlageRemoteState(mission.id, hint),
     })
-    if (getSuchlageLink(mission.id)?.remoteState === 'replaced') setSuchlageOutbox(mission.id, [])
     if (result.rested) return true
   }
   return false
@@ -116,12 +141,29 @@ export function useSuchlageSync(): void {
     const run = async (force: boolean): Promise<void> => {
       if (rested || stopped) return
       if (syncRunning) {
-        rerunRequested = true
+        rerunForce = (rerunForce ?? false) || force
         return
       }
       syncRunning = true
+      rerunForce = null
       try {
-        const body = async () => { rested = await syncAll(force, () => stopped) }
+        const body = async () => {
+          // Watchdog: hängt etwas, wird die Sperre trotzdem nach RUN_LIMIT_MS frei.
+          // Danach hört der hängende Lauf am nächsten Eintrag auf (kein Doppelsenden).
+          let expired = false
+          let timer: ReturnType<typeof setTimeout> | undefined
+          const limit = new Promise<void>((resolve) => {
+            timer = setTimeout(() => { expired = true; resolve() }, RUN_LIMIT_MS)
+          })
+          try {
+            await Promise.race([
+              syncAll(force, () => stopped || expired).then((r) => { rested = r }),
+              limit,
+            ])
+          } finally {
+            clearTimeout(timer)
+          }
+        }
         const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined
         if (locks?.request) {
           // Läuft gerade ein anderer Tab, übernimmt der: hier nichts tun.
@@ -131,12 +173,15 @@ export function useSuchlageSync(): void {
         } else {
           await body()
         }
+      } catch {
+        // Ein Fehler in einem Lauf darf die Abarbeitung nicht dauerhaft anhalten.
       } finally {
         syncRunning = false
       }
-      if (rerunRequested && !stopped) {
-        rerunRequested = false
-        await run(true)
+      if (rerunForce !== null && !stopped) {
+        const nextForce = rerunForce
+        rerunForce = null
+        await run(nextForce)
       }
     }
 

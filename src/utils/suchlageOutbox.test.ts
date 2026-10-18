@@ -5,6 +5,7 @@ import {
   drainOutbox,
   enqueue,
   nextDue,
+  sectionsToHeal,
   type OutboxItem,
   type SendOutcome,
 } from './suchlageOutbox'
@@ -121,12 +122,12 @@ describe('applyOutcome', () => {
     expect(a.items).toHaveLength(1)
   })
 
-  it('409 bei jeder Art: verworfen, Hinweis abgelöst', () => {
+  it('409 bei jeder Art: bleibt, Hinweis abgelöst, pausiert', () => {
     const all = build({ kind: 'section', segmentId: 's2', label: 'S', location: null }, { kind: 'photo', segmentId: 's2' }, { kind: 'close' })
     for (const id of ['id0', 'id1', 'id2']) {
       const a = applyOutcome(all, id, { ok: false, kind: 'conflict', status: 409 }, T0)
-      expect(a.items.map((i) => i.id)).not.toContain(id)
-      expect(a.removed?.sent).toBe(false)
+      expect(a.items).toBe(all)
+      expect(a.effect).toBe('pause')
       expect(a.remote).toBe('replaced')
     }
   })
@@ -205,17 +206,54 @@ describe('drainOutbox', () => {
     expect(h.removed).toEqual([{ kind: 'photo', sent: false }, { kind: 'close', sent: true }])
   })
 
-  it('hört nach einem 409 auf (abgelöst)', async () => {
+  it('hört nach einem 409 auf und behält alles (abgelöst)', async () => {
     const h = harness(build({ kind: 'photo', segmentId: 's1' }, { kind: 'close' }), [{ ok: false, kind: 'conflict', status: 409 }])
     await h.run()
     expect(h.sentKinds).toEqual(['photo'])
     expect(h.remotes).toEqual(['replaced'])
-    expect(h.items.map((i) => i.kind)).toEqual(['close'])
+    expect(h.items.map((i) => i.kind)).toEqual(['photo', 'close'])
+  })
+
+  it('hört zwischen zwei Einträgen auf, wenn abgebrochen wird', async () => {
+    let items = build({ kind: 'photo', segmentId: 's1' }, { kind: 'close' })
+    let stop = false
+    const sent: string[] = []
+    await drainOutbox({
+      read: () => items,
+      write: (n) => { items = n },
+      send: async (i) => { sent.push(i.kind); stop = true; return { ok: true } },
+      now: () => T0,
+      shouldStop: () => stop,
+    })
+    expect(sent).toEqual(['photo'])
+    expect(items.map((i) => i.kind)).toEqual(['close'])
   })
 
   it('ein zweiter Durchlauf mit leerer Liste sendet nichts', async () => {
     const h = harness([], [])
     expect(await h.run()).toEqual({ rested: false, sent: 0 })
     expect(h.sentKinds).toEqual([])
+  })
+})
+
+describe('sectionsToHeal', () => {
+  const link = { linkedAt: 1000, sections: { s1: true as const } }
+  const segs = [
+    { id: 's0', createdAt: 500, label: 'Vorher' },
+    { id: 's1', createdAt: 900, label: 'Standort 1' },
+    { id: 's3', createdAt: 3000, label: 'Standort 3', locationName: 'Deich' },
+    { id: 's2', createdAt: 2000, label: 'Standort 2' },
+  ]
+
+  it('legt fehlende Abschnitte nach dem Verknüpfen nach, in Reihenfolge', () => {
+    expect(sectionsToHeal(segs, link, [])).toEqual([
+      { kind: 'section', segmentId: 's2', label: 'Standort 2', location: null },
+      { kind: 'section', segmentId: 's3', label: 'Standort 3', location: 'Deich' },
+    ])
+  })
+
+  it('nicht, wenn schon einer wartet oder der Abschnitt einen Fehler hat', () => {
+    const items = build({ kind: 'section', segmentId: 's2', label: 'x', location: null })
+    expect(sectionsToHeal(segs, { ...link, sectionErrors: { s3: 'abgelehnt' } }, items)).toEqual([])
   })
 })

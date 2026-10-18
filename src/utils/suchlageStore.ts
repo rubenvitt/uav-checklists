@@ -27,6 +27,8 @@ export interface SuchlageLink {
   remoteState?: SuchlageRemoteState
   /** Ergebnis von „Kartenelemente übernehmen“ beim Verknüpfen */
   mapImport?: 'ok' | 'failed'
+  /** Abschnitte, die Suchlage abgelehnt hat (z. B. 400), mit Meldung */
+  sectionErrors?: Record<string, string>
 }
 
 export function getSuchlageLink(missionId: string): SuchlageLink | null {
@@ -36,7 +38,10 @@ export function getSuchlageLink(missionId: string): SuchlageLink | null {
 export function updateSuchlageLink(missionId: string, update: (link: SuchlageLink) => SuchlageLink): void {
   const link = getSuchlageLink(missionId)
   if (!link) return
-  setMissionField(missionId, LINK_KEY, update(link))
+  const next = update(link)
+  // Nur bei echter Änderung schreiben: sonst weckt jede Prüfung alle Abonnenten.
+  if (next === link || JSON.stringify(next) === JSON.stringify(link)) return
+  setMissionField(missionId, LINK_KEY, next)
 }
 
 /**
@@ -45,6 +50,9 @@ export function updateSuchlageLink(missionId: string, update: (link: SuchlageLin
  * „weg“ oder „abgelöst“ auch wieder auf.
  */
 export function setSuchlageRemoteState(missionId: string, state: SuchlageRemoteState | undefined): void {
+  const before = getSuchlageLink(missionId)?.remoteState
+  // Löst sich „weg“/„abgelöst“ auf, gleich weitersenden (auch nachgelegte Abschnitte).
+  if (before && before !== 'closed' && !state) queueMicrotask(kickSuchlageSync)
   updateSuchlageLink(missionId, (l) => {
     if (l.remoteState === state) return l
     const next = { ...l }
@@ -87,11 +95,12 @@ export function kickSuchlageSync(): void {
 /**
  * Legt einen Eintrag in die Ausgangsliste, **nur** wenn der Einsatz verknüpft
  * ist, und stößt die Abarbeitung an. Gesendet wird erst, wenn Suchlage
- * konfiguriert und der Nutzer angemeldet ist.
+ * konfiguriert und der Nutzer angemeldet ist und der Einsatz in Suchlage nicht
+ * „weg“ oder „abgelöst“ ist (dann wartet der Eintrag, statt verloren zu gehen).
  */
 export function enqueueSuchlage(missionId: string, entry: NewOutboxItem): boolean {
   const link = getSuchlageLink(missionId)
-  if (!link || link.remoteState === 'gone' || link.remoteState === 'replaced') return false
+  if (!link) return false
   const before = getSuchlageOutbox(missionId)
   const after = enqueue(before, entry, Date.now(), generateId())
   if (after !== before) setSuchlageOutbox(missionId, after)
