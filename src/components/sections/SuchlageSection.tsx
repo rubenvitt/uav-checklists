@@ -13,7 +13,7 @@ import { isSuchlageError, sameMissionId, suchlage } from '../../services/suchlag
 import { buildMissionLabel } from '../../utils/missionLabel'
 import { ensureDefaultSegment, getMission } from '../../utils/missionStorage'
 import { buildMapImport } from '../../utils/suchlageMap'
-import { OUTBOX_KEY, type SuchlageLink, type SuchlageRemoteState } from '../../utils/suchlageStore'
+import { OUTBOX_KEY, enqueueSuchlage, type SuchlageLink, type SuchlageRemoteState } from '../../utils/suchlageStore'
 import type { OutboxItem } from '../../utils/suchlageOutbox'
 import type { FmMission, MissionState } from '../../types/suchlage'
 import type { MetricStatus } from '../../types/assessment'
@@ -62,6 +62,7 @@ export default function SuchlageSection({ locationName, latitude, longitude }: S
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [takeOver, setTakeOver] = useState<FmMission | null>(null)
 
   const defaultName = stichwort.trim() || buildMissionLabel({
@@ -124,13 +125,16 @@ export default function SuchlageSection({ locationName, latitude, longitude }: S
     if (!segment) return
     setBusy(true)
     setError(null)
+    setNotice(null)
     const sectionLocation = location.trim() || null
     try {
       let mission: FmMission
+      let adopted = false
+      const requestedName = name.trim() || defaultName
       try {
         mission = target === 'new'
           ? await suchlage.createMission({
-              name: name.trim() || defaultName,
+              name: requestedName,
               location: sectionLocation,
               section_label: segment.label,
               section_location: sectionLocation,
@@ -145,19 +149,35 @@ export default function SuchlageSection({ locationName, latitude, longitude }: S
               take_over: confirmTakeOver,
             })
       } catch (e) {
-        // 409 kann heißen: schon mit genau diesem Einsatz verknüpft (Antwort verloren).
+        // 409 kann heißen: dieser Einsatz der Flugmappe ist in Suchlage schon verknüpft
+        // (z. B. Antwort beim ersten Versuch verloren). Nur übernehmen, wenn es passt.
         const own = errorKindOf(e) === 'conflict' ? await findOwnLink() : null
         if (!own) throw e
+        if (target !== 'new' && own.id !== target.id) {
+          setError(`Dieser Einsatz ist in Suchlage bereits mit „${own.name}“ verknüpft.`)
+          void missionsQuery.refetch()
+          return
+        }
         mission = own
+        adopted = true
       }
+      // Neu angelegt, aber Suchlage liefert einen vorhandenen (eigenen) Einsatz zurück.
+      if (target === 'new' && !adopted && mission.name !== requestedName) adopted = true
+      if (adopted) setNotice(`Dieser Einsatz war in Suchlage schon mit „${mission.name}“ verknüpft – Verknüpfung übernommen.`)
+      const sections: Record<string, true> = adopted ? {} : { [segment.id]: true }
+      for (const sec of mission.sections) if (sec.flugmappe_section_id) sections[sec.flugmappe_section_id] = true
       const link: SuchlageLink = {
         suchlageMissionId: mission.id,
         missionName: mission.name,
         linkedAt: new Date().getTime(),
-        sections: { [segment.id]: true },
+        sections,
       }
       sl.setLink(link)
       setTakeOver(null)
+      // Übernommene Verknüpfung ohne den aktiven Abschnitt: dort nachträglich anlegen.
+      if (!sections[segment.id]) {
+        enqueueSuchlage(missionId, { kind: 'section', segmentId: segment.id, label: segment.label, location: sectionLocation })
+      }
       // Einmalig: Gezeichnetes und Standort übernehmen. Fehler blockieren nicht.
       const standort = latitude !== null && longitude !== null ? { lat: latitude, lon: longitude } : null
       try {
@@ -224,6 +244,7 @@ export default function SuchlageSection({ locationName, latitude, longitude }: S
               </a>
             )}
           </div>
+          {notice && <p role="status" className="border border-line bg-surface-alt px-3 py-2 text-xs text-text-2">{notice}</p>}
           <SuchlageRemoteNotice state={remote} context="einsatz" />
           {link.mapImport === 'failed' && (
             <p className="text-xs text-text-muted">Die Einsatzkarte konnte beim Verknüpfen nicht nach Suchlage übernommen werden.</p>
