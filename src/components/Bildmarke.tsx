@@ -1,20 +1,25 @@
 /**
- * Bildmarke der Flugmappe, nach dem Vorbild der „Lebenslinie" von Lifeline Hub:
- * eine helle Flugbahn steigt auf und endet in einem Quadrat in `marke`.
- * Die Linie trägt die Textfarbe ihres Grundes, Rot bleibt Akzent.
+ * Bildmarke der Flugmappe: ein Quadrokopter von oben, im Stil der „Lebenslinie" von
+ * Lifeline Hub. Arme und Rumpf tragen die Textfarbe ihres Grundes, die Rotorkreise
+ * sind `marke`, Rot bleibt Akzent. Dieselbe Geometrie wie `public/favicon.svg`
+ * (64er Raster) und die Marke der Landingpage.
  */
 export default function Bildmarke({ size = 22 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 22 22" aria-hidden="true" className="shrink-0">
+    <svg width={size} height={size} viewBox="9 9 46 46" aria-hidden="true" className="shrink-0">
       <path
-        d="M1.5 18.5h6l3-4.5 2.5 2 3.5-7"
-        fill="none"
+        d="M32 32 19 19M32 32 45 19M32 32 19 45M32 32 45 45"
         stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="square"
-        strokeLinejoin="miter"
+        strokeWidth="4.5"
+        strokeLinecap="round"
       />
-      <rect x="15" y="1.5" width="6" height="6" fill="var(--color-marke)" />
+      <g fill="none" stroke="var(--color-marke)" strokeWidth="3.5">
+        <circle cx="17.5" cy="17.5" r="6.5" />
+        <circle cx="46.5" cy="17.5" r="6.5" />
+        <circle cx="17.5" cy="46.5" r="6.5" />
+        <circle cx="46.5" cy="46.5" r="6.5" />
+      </g>
+      <rect x="26.5" y="26.5" width="11" height="11" fill="currentColor" />
     </svg>
   )
 }
