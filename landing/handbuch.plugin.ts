@@ -178,7 +178,7 @@ export default function handbuch(options: { dir: string }): Plugin {
     load(id) {
       if (id !== RESOLVED_ID) return undefined
       const chapters = readChapters(dir)
-      for (const file of fs.readdirSync(dir)) this.addWatchFile(path.join(dir, file))
+      if (fs.existsSync(dir)) for (const file of fs.readdirSync(dir)) this.addWatchFile(path.join(dir, file))
       const data = chapters.map(({ markdown: _, ...rest }) => rest)
       return `export const kapitel = ${JSON.stringify(data)}`
     },
