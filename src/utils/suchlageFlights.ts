@@ -12,6 +12,11 @@ import type { FmFlight } from '../types/suchlage'
 
 /** Höchster Abstand der Startzeiten, um einen eigenen Eintrag zum Zusammenführen anzubieten. */
 export const MERGE_WINDOW_MS = 5 * 60_000
+/**
+ * Offener eigener Eintrag + offen bleibender Suchlage-Flug: Zusammenführen auch
+ * außerhalb des 5-Minuten-Fensters, aber nur bis zu diesem Startabstand.
+ */
+export const OPEN_MERGE_LIMIT_MS = 30 * 60_000
 
 export function isFlightRunning(f: FmFlight): boolean {
   return f.ended_at_ms === null
@@ -92,10 +97,20 @@ export function computeProposals(flights: readonly FmFlight[], entries: readonly
   }
 
   // Bliebe ein Flug offen und ist lokal schon ein Flug offen, wird zusammengeführt –
-  // unabhängig vom Zeitfenster –, damit nie zwei offene Einträge entstehen.
+  // auch außerhalb des 5-Minuten-Fensters, aber nur, wenn es plausibel derselbe Flug
+  // ist: Start höchstens 30 min daneben, bei Verbindungsabriss Ende nach dem eigenen
+  // Start. Laufende Flüge gehen vor, dann der kleinste Abstand. Sonst bleibt nur
+  // „Erst den offenen Flug beenden“ (canConfirm = false).
   const openEntry = candidates.find((e) => e.blockOn === null)
-  if (openEntry && !usedEntries.has(openEntry.id)) {
-    const flight = open.find((f) => wouldStayOpen(f) && !byFlight.has(f.id))
+  const openStart = openEntry ? new Date(openEntry.blockOff).getTime() : NaN
+  if (openEntry && !usedEntries.has(openEntry.id) && !Number.isNaN(openStart)) {
+    const flight = open
+      .filter((f) => wouldStayOpen(f) && !byFlight.has(f.id))
+      .filter((f) => Math.abs(f.started_at_ms - openStart) <= OPEN_MERGE_LIMIT_MS)
+      .filter((f) => isFlightRunning(f) || (f.ended_at_ms ?? 0) > openStart)
+      .sort((a, b) =>
+        Number(isFlightRunning(b)) - Number(isFlightRunning(a))
+        || Math.abs(a.started_at_ms - openStart) - Math.abs(b.started_at_ms - openStart))[0]
     if (flight) {
       byFlight.set(flight.id, openEntry.id)
       usedEntries.add(openEntry.id)

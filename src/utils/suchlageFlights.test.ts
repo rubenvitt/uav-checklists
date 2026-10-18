@@ -82,13 +82,36 @@ describe('computeProposals', () => {
 
 describe('computeProposals: nie zwei offene Einträge', () => {
   it('laufender Vorschlag bei offenem eigenem Eintrag: zusammenführen, auch außerhalb von 5 min', () => {
-    const p = computeProposals([flight(1, 30, null)], [entry('offen', 0, null)])
+    const p = computeProposals([flight(1, 20, null)], [entry('offen', 0, null)])
     expect(p[0].mergeEntryId).toBe('offen')
   })
 
   it('Verbindungsabriss bei offenem Eintrag: ebenfalls zusammenführen', () => {
-    const p = computeProposals([flight(1, 30, 40, { end_reason: 'connection_lost' })], [entry('offen', 0, null)])
+    const p = computeProposals([flight(1, 20, 25, { end_reason: 'connection_lost' })], [entry('offen', 0, null)])
     expect(p[0].mergeEntryId).toBe('offen')
+  })
+
+  it('eigener Eintrag seit 2 h offen, in Suchlage läuft ein anderer Flug: nicht zusammenführen, nicht bestätigen', () => {
+    const p = computeProposals([flight(1, 120, null)], [entry('offen', 0, null)])
+    expect(p[0]).toMatchObject({ mergeEntryId: null, canConfirm: false })
+  })
+
+  it('alter Verbindungsabriss vor dem eigenen Start wird nicht genommen, der laufende Flug schon', () => {
+    // 08:30 Abriss (Ende vor dem eigenen Start), eigener Eintrag ab 09:00, in Suchlage läuft seit 09:02 ein Flug
+    const p = computeProposals(
+      [flight(1, -30, -20, { end_reason: 'connection_lost' }), flight(2, 2, null)],
+      [entry('offen', 0, null)],
+    )
+    expect(p.find((x) => x.flight.id === 1)).toMatchObject({ mergeEntryId: null, canConfirm: false })
+    expect(p.find((x) => x.flight.id === 2)?.mergeEntryId).toBe('offen')
+  })
+
+  it('laufende Flüge gehen vor Verbindungsabriss, dann der kleinste Abstand', () => {
+    const p = computeProposals(
+      [flight(1, 6, 8, { end_reason: 'connection_lost' }), flight(2, 25, null), flight(3, 12, null)],
+      [entry('offen', 0, null)],
+    )
+    expect(p.find((x) => x.mergeEntryId === 'offen')?.flight.id).toBe(3)
   })
 
   it('gelandeter Vorschlag bei offenem Eintrag: bestätigen bleibt erlaubt', () => {
