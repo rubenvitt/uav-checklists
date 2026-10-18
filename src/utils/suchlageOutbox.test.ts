@@ -114,12 +114,20 @@ describe('applyOutcome', () => {
     }
   })
 
-  it('Abschluss bei 422/409 (Flug läuft): später erneut', () => {
+  it('Abschluss bei 422 (Flug läuft): später erneut', () => {
     const close = build({ kind: 'close' })
-    for (const [kind, status] of [['unprocessable', 422], ['conflict', 409]] as const) {
-      const a = applyOutcome(close, 'id0', { ok: false, kind, status }, T0)
-      expect(a.effect).toBe('retry')
-      expect(a.items).toHaveLength(1)
+    const a = applyOutcome(close, 'id0', { ok: false, kind: 'unprocessable', status: 422 }, T0)
+    expect(a.effect).toBe('retry')
+    expect(a.items).toHaveLength(1)
+  })
+
+  it('409 bei jeder Art: verworfen, Hinweis abgelöst', () => {
+    const all = build({ kind: 'section', segmentId: 's2', label: 'S', location: null }, { kind: 'photo', segmentId: 's2' }, { kind: 'close' })
+    for (const id of ['id0', 'id1', 'id2']) {
+      const a = applyOutcome(all, id, { ok: false, kind: 'conflict', status: 409 }, T0)
+      expect(a.items.map((i) => i.id)).not.toContain(id)
+      expect(a.removed?.sent).toBe(false)
+      expect(a.remote).toBe('replaced')
     }
   })
 
@@ -131,9 +139,9 @@ describe('applyOutcome', () => {
     expect(a.remote).toBe('closed')
   })
 
-  it('404 beim Abschluss: Einsatz weg, Eintrag verworfen', () => {
+  it('404 verwirft den Eintrag, erklärt den Einsatz aber nicht für weg', () => {
     const a = applyOutcome(items, 'id1', { ok: false, kind: 'other', status: 404 }, T0)
-    expect(a.remote).toBe('gone')
+    expect(a.remote).toBeUndefined()
     expect(a.items.map((i) => i.id)).toEqual(['id0'])
   })
 
@@ -195,6 +203,14 @@ describe('drainOutbox', () => {
     await h.run()
     expect(h.sentKinds).toEqual(['photo', 'close'])
     expect(h.removed).toEqual([{ kind: 'photo', sent: false }, { kind: 'close', sent: true }])
+  })
+
+  it('hört nach einem 409 auf (abgelöst)', async () => {
+    const h = harness(build({ kind: 'photo', segmentId: 's1' }, { kind: 'close' }), [{ ok: false, kind: 'conflict', status: 409 }])
+    await h.run()
+    expect(h.sentKinds).toEqual(['photo'])
+    expect(h.remotes).toEqual(['replaced'])
+    expect(h.items.map((i) => i.kind)).toEqual(['close'])
   })
 
   it('ein zweiter Durchlauf mit leerer Liste sendet nichts', async () => {

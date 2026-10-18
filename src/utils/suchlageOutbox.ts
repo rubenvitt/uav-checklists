@@ -8,8 +8,9 @@
  * - Erfolg → Eintrag entfernt.
  * - Netzfehler/Schnittstelle aus → Eintrag bleibt, Backoff, Abbruch der Runde.
  * - 401/403 → nichts ändern, alles ruht bis zur nächsten Anmeldung.
- * - `close` mit 409/422 (z. B. Flug läuft noch) → später erneut.
- * - Andere Ablehnungen (400, 404, 409/422 bei Abschnitt/Foto, 413 …) → Eintrag
+ * - 409 (andere Flugmappe hat übernommen) → verworfen, Hinweis „abgelöst“, Runde endet.
+ * - `close` mit 422 (Flug läuft noch) → später erneut.
+ * - Andere Ablehnungen (400, 404, 422 bei Abschnitt/Foto, 413 …) → Eintrag
  *   verworfen; er kann nie gelingen und darf die Liste nicht blockieren.
  */
 import type { SuchlageErrorKind } from '../services/suchlageApi'
@@ -65,7 +66,7 @@ export type OutboxEffect =
   | 'rest'
 
 /** Zustand des Einsatzes in Suchlage, den eine Antwort verrät. */
-export type RemoteHint = 'closed' | 'gone'
+export type RemoteHint = 'closed' | 'replaced'
 
 export const BACKOFF_BASE_MS = 30_000
 export const BACKOFF_MAX_MS = 10 * 60_000
@@ -149,14 +150,20 @@ export function applyOutcome(items: OutboxItem[], id: string, outcome: SendOutco
   // 5xx ohne eigene Klasse: vorübergehend behandeln.
   if (status !== null && status >= 500) return retry()
 
-  if (item.kind === 'close' && (kind === 'conflict' || kind === 'unprocessable')) {
+  // 409 heißt bei allen schreibenden Aufrufen: eine andere Flugmappe hat den Einsatz
+  // übernommen. Das wird nie mehr gelingen.
+  if (kind === 'conflict') {
+    return { items: without, effect: 'continue', removed: { item, sent: false }, remote: 'replaced' }
+  }
+
+  // Abschluss bei 422: es läuft noch ein Flug – später erneut.
+  if (item.kind === 'close' && kind === 'unprocessable') {
     return retry(CLOSE_RETRY_MAX_MS)
   }
 
-  // Endgültig abgelehnt: verwerfen, damit der Rest weiterläuft.
-  let remote: RemoteHint | undefined
-  if (status === 404 && item.kind !== 'photo') remote = 'gone'
-  if (kind === 'unprocessable' && item.kind === 'section') remote = 'closed'
+  // Endgültig abgelehnt: verwerfen, damit der Rest weiterläuft. Ein 404 ist nur ein
+  // Hinweis; ob der Einsatz weg ist, entscheidet allein GET /missions/{id}.
+  const remote: RemoteHint | undefined = kind === 'unprocessable' ? 'closed' : undefined
   return { items: without, effect: 'continue', removed: { item, sent: false }, remote }
 }
 
@@ -188,6 +195,8 @@ export async function drainOutbox(opts: DrainOptions): Promise<{ rested: boolean
     }
     if (applied.remote) opts.onRemote?.(applied.remote)
     if (applied.effect === 'rest') return { rested: true, sent }
+    // Abgelöst: der Rest der Liste kann ebenfalls nicht mehr gelingen.
+    if (applied.remote === 'replaced') break
     if (applied.effect === 'retry') break
   }
   return { rested: false, sent }

@@ -7,6 +7,7 @@ import { useMissionId } from './context/useMissionId'
 import { SegmentProvider } from './context/SegmentContext'
 import { AuthProvider } from './context/AuthContext'
 import { useSuchlageSync } from './hooks/useSuchlageSync'
+import { useSuchlageRemoteWatch } from './hooks/useSuchlageData'
 import AuthCallback from './components/AuthCallback'
 import { getMission, isMissionExpired, updateMissionPhase, canAccessPhase } from './utils/missionStorage'
 import { useMissionSegment } from './hooks/useMissionSegment'
@@ -130,6 +131,7 @@ function MissionLayoutInner({ missionLabel, missionCreatedAt, currentPhase, isCo
 
   return (
     <SegmentProvider segmentId={activeSegmentId}>
+      <SuchlageRemoteWatch />
       <div className="min-h-screen bg-base text-text">
         <Header
             mode="mission"
@@ -156,6 +158,12 @@ function MissionLayoutInner({ missionLabel, missionCreatedAt, currentPhase, isCo
       </div>
     </SegmentProvider>
   )
+}
+
+/** Prüft bei verknüpftem Einsatz dessen Zustand in Suchlage (rendert nichts). */
+function SuchlageRemoteWatch() {
+  useSuchlageRemoteWatch()
+  return null
 }
 
 /** Arbeitet die Suchlage-Ausgangslisten ab, auch auf der Übersicht (rendert nichts). */

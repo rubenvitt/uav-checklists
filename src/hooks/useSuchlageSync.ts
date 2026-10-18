@@ -9,12 +9,57 @@ import {
   getSuchlageOutbox,
   onSuchlageSyncKick,
   setSuchlageOutbox,
-  setSuchlageRemoteState,
+  hintSuchlageRemoteState,
   updateSuchlageLink,
 } from '../utils/suchlageStore'
 import { dataUrlToJpegBlob } from '../utils/imageJpeg'
 
 export const SYNC_INTERVAL_MS = 30_000
+const LOCK_NAME = 'flugmappe-suchlage-sync'
+
+// Modulweit: nie zwei Durchläufe gleichzeitig (auch nicht bei zwei Effekt-Läufen
+// nach einem Token-Wechsel). Zwischen Tabs sperrt `navigator.locks`, wo vorhanden.
+let syncRunning = false
+let rerunRequested = false
+
+/** Ausgangslisten aller Einsätze einmal abarbeiten. `true` = 401/403, alles ruht. */
+async function syncAll(force: boolean, isStopped: () => boolean): Promise<boolean> {
+  for (const mission of loadMissions()) {
+    if (isStopped()) return false
+    const link = getSuchlageLink(mission.id)
+    if (!link) continue
+    let items = getSuchlageOutbox(mission.id)
+    if (items.length === 0) continue
+    // Einsatz in Suchlage weg oder von anderer Flugmappe übernommen: nichts mehr senden.
+    if (link.remoteState === 'gone' || link.remoteState === 'replaced') {
+      setSuchlageOutbox(mission.id, [])
+      continue
+    }
+    // Weich gelöscht: ein ausstehender Abschluss geht trotzdem noch hinaus, der Rest nicht.
+    if (mission.deletedAt) {
+      const onlyClose = items.filter((i) => i.kind === 'close')
+      if (onlyClose.length !== items.length) setSuchlageOutbox(mission.id, onlyClose)
+      items = onlyClose
+      if (items.length === 0) continue
+    }
+    const result = await drainOutbox({
+      read: () => getSuchlageOutbox(mission.id),
+      write: (next) => setSuchlageOutbox(mission.id, next),
+      send: (item) => sendItem(mission.id, item),
+      now: Date.now,
+      force,
+      onRemoved: ({ item, sent }) => {
+        if (sent && item.kind === 'section') {
+          updateSuchlageLink(mission.id, (l) => ({ ...l, sections: { ...l.sections, [item.segmentId]: true } }))
+        }
+      },
+      onRemote: (hint) => hintSuchlageRemoteState(mission.id, hint),
+    })
+    if (getSuchlageLink(mission.id)?.remoteState === 'replaced') setSuchlageOutbox(mission.id, [])
+    if (result.rested) return true
+  }
+  return false
+}
 
 async function sendItem(missionId: string, item: OutboxItem): Promise<SendOutcome> {
   const link = getSuchlageLink(missionId)
@@ -65,37 +110,33 @@ export function useSuchlageSync(): void {
   useEffect(() => {
     if (!enabled || !token) return
     let stopped = false
-    let running = false
     // 401/403: bis zum nächsten Token (neuer Effektlauf) ruhen.
     let rested = false
 
-    const run = async (force: boolean) => {
-      if (running || rested || stopped) return
-      running = true
+    const run = async (force: boolean): Promise<void> => {
+      if (rested || stopped) return
+      if (syncRunning) {
+        rerunRequested = true
+        return
+      }
+      syncRunning = true
       try {
-        for (const mission of loadMissions()) {
-          if (stopped || mission.deletedAt) continue
-          if (!getSuchlageLink(mission.id) || getSuchlageOutbox(mission.id).length === 0) continue
-          const result = await drainOutbox({
-            read: () => getSuchlageOutbox(mission.id),
-            write: (items) => setSuchlageOutbox(mission.id, items),
-            send: (item) => sendItem(mission.id, item),
-            now: Date.now,
-            force,
-            onRemoved: ({ item, sent }) => {
-              if (sent && item.kind === 'section') {
-                updateSuchlageLink(mission.id, (l) => ({ ...l, sections: { ...l.sections, [item.segmentId]: true } }))
-              }
-            },
-            onRemote: (hint) => setSuchlageRemoteState(mission.id, hint),
+        const body = async () => { rested = await syncAll(force, () => stopped) }
+        const locks = typeof navigator !== 'undefined' ? navigator.locks : undefined
+        if (locks?.request) {
+          // Läuft gerade ein anderer Tab, übernimmt der: hier nichts tun.
+          await locks.request(LOCK_NAME, { ifAvailable: true }, async (lock) => {
+            if (lock) await body()
           })
-          if (result.rested) {
-            rested = true
-            break
-          }
+        } else {
+          await body()
         }
       } finally {
-        running = false
+        syncRunning = false
+      }
+      if (rerunRequested && !stopped) {
+        rerunRequested = false
+        await run(true)
       }
     }
 

@@ -39,9 +39,28 @@ export function updateSuchlageLink(missionId: string, update: (link: SuchlageLin
   setMissionField(missionId, LINK_KEY, update(link))
 }
 
-/** Merkt einen Hinweis von Suchlage; „weg“ wird nicht mehr zu „abgeschlossen“. */
-export function setSuchlageRemoteState(missionId: string, state: SuchlageRemoteState): void {
-  updateSuchlageLink(missionId, (l) => (l.remoteState === state || l.remoteState === 'gone' ? l : { ...l, remoteState: state }))
+/**
+ * Zustand aus `GET /missions/{id}` (maßgeblich): 200 offen → `undefined`,
+ * 200 abgeschlossen → `closed`, 404 → `gone`, 409 → `replaced`. So löst sich
+ * „weg“ oder „abgelöst“ auch wieder auf.
+ */
+export function setSuchlageRemoteState(missionId: string, state: SuchlageRemoteState | undefined): void {
+  updateSuchlageLink(missionId, (l) => {
+    if (l.remoteState === state) return l
+    const next = { ...l }
+    if (state) next.remoteState = state
+    else delete next.remoteState
+    return next
+  })
+}
+
+/** Hinweis aus einer anderen Antwort; „abgeschlossen“ überschreibt „weg“/„abgelöst“ nicht. */
+export function hintSuchlageRemoteState(missionId: string, hint: 'closed' | 'replaced'): void {
+  updateSuchlageLink(missionId, (l) => {
+    if (l.remoteState === hint) return l
+    if (hint === 'closed' && l.remoteState) return l
+    return { ...l, remoteState: hint }
+  })
 }
 
 export function getSuchlageOutbox(missionId: string): OutboxItem[] {
