@@ -13,6 +13,10 @@ Die meisten Felder sind kurz, und fast überall schlägt die App passende Eintr�
 4. **Einsatzkarte**: Einsatzgebiet und Standort einzeichnen oder ein Kartenfoto hinterlegen
 5. **Missionsbriefing**: gemeinsamer Abgleich im Trupp
 
+Betreibt eure Organisation **Suchlage** und seid ihr angemeldet, steht vor der
+Einsatzkarte zusätzlich der Abschnitt **Suchlage** (siehe [Verknüpfung mit
+Suchlage](#einsatzdaten-verknuepfung-mit-suchlage)). Sonst gibt es ihn nicht.
+
 ![Ein neu angelegter Einsatz: Phasenleiste mit „01 Daten“ aktiv, die Leiste Einsatzort mit dem roten Hinweis „Pflichtfeld“ und dem Suchfeld, darunter der aufgeklappte Abschnitt Einsatzdetails.](handbuch/einsatzdaten-neuer-einsatz.webp "Ein frischer Einsatz ohne GPS-Freigabe: Der Einsatzort ist rot als Pflichtfeld markiert, das Suchfeld steht schon bereit.")
 
 Beim ersten Öffnen sind **Einsatzdetails** und **Einsatzauftrag** schon aufgeklappt. Ist das Wichtigste in einem Abschnitt eingetragen, erscheint unten der Knopf **Weiter**. Er klappt den Abschnitt zu und den nächsten auf. Ihr könnt die Abschnitte aber auch in beliebiger Reihenfolge über ihre Überschrift öffnen. Wie Abschnitte, Abzeichen und Sperren allgemein funktionieren, steht unter [Aufklappbare Abschnitte](#erste-schritte-aufklappbare-abschnitte).
@@ -188,6 +192,60 @@ Damit ihr Namen nicht in jedem Einsatz neu tippen müsst, merkt sich die App jed
 > [!TIPP]
 > Teilt sich die Einheit ein Einsatz-Tablet, sammeln sich dort mit der Zeit alle Namen der Truppmitglieder. Schreibt Namen immer gleich („J. Hansen“, nicht mal „Hansen J.“), dann bleibt die Liste übersichtlich.
 
+## Verknüpfung mit Suchlage
+
+Suchlage ist das Lagebild eurer Organisation: Es zeigt die Flüge der Drohnen
+live, mit Flugspuren und Fotos. Verknüpft ihr den Einsatz der Flugmappe mit
+einem Einsatz in Suchlage,
+
+- erscheinen die Flüge, die Suchlage erkennt, im Flugbuch als Vorschläge
+  (siehe [Von Suchlage erkannte Flüge](#fluege-von-suchlage-erkannte-fluege)),
+- kommt die **Einsatzkarte** aus Suchlage (siehe [Karte aus
+  Suchlage](#einsatzdaten-karte-aus-suchlage)),
+- legt eine Verlegung in Suchlage einen neuen Abschnitt an, und der Abschluss
+  in der Nachbereitung schließt den Einsatz auch dort.
+
+Der Abschnitt **Suchlage** erscheint nur, wenn eure Organisation Suchlage für
+die Flugmappe eingerichtet hat, ihr angemeldet seid und euer Konto in Suchlage
+Zugriff hat. Die Verknüpfung ist freiwillig. Ohne sie arbeitet die Flugmappe
+genau wie sonst, und der Abschnitt zählt nicht für **Weiter**.
+
+### Einsatz wählen oder neu anlegen
+
+1. Klappt den Abschnitt **Suchlage** auf. Unter **Offene Einsätze in
+   Suchlage** stehen die vorbereiteten und der laufende Einsatz mit Zustand
+   (**Vorbereitet** oder **Läuft**) und Beginn.
+2. Passt einer, tippt bei ihm auf **Wählen**.
+3. Passt keiner, prüft unter **Neu in Suchlage anlegen** den vorbelegten
+   **Name** (Einsatzstichwort) und **Ort** und tippt auf **In Suchlage anlegen
+   und verknüpfen**.
+
+Erst mit diesem Tipp passiert etwas. Danach zeigt der Abschnitt den Namen des
+Einsatzes, **Verknüpft seit …**, das grüne Abzeichen **Verknüpft** und den
+Link **In Suchlage öffnen**. Was ihr bis dahin auf der Einsatzkarte
+gezeichnet habt (Einsatzgebiet und Standort), übernimmt die App einmalig nach
+Suchlage.
+
+> [!WICHTIG]
+> Eine Verknüpfung lässt sich in der Flugmappe nicht lösen. Sie endet mit dem
+> Abschluss des Einsatzes. Wählt deshalb mit Bedacht.
+
+### Einsatz einer anderen Flugmappe übernehmen
+
+Steht bei einem Einsatz **Mit anderer Flugmappe verknüpft** (mit Name und
+Uhrzeit), heißt der Knopf **Übernehmen …**. Das braucht ihr, wenn ihr das
+Gerät wechselt, die Schicht übergebt oder die Daten im Browser verloren
+gegangen sind. Die App fragt **Einsatz übernehmen?** Mit **Übernehmen**
+bekommt ab jetzt diese Flugmappe die Flüge, die andere keine neuen mehr.
+
+### Wenn Suchlage nicht erreichbar ist
+
+Fällt das Netz aus, steht oben **Suchlage nicht erreichbar – Flugbuch
+funktioniert weiter**. Ihr arbeitet normal weiter. Was an Suchlage gehen
+soll (neuer Abschnitt, Kartenfoto, Abschluss), merkt sich die App und
+schickt es, sobald Suchlage wieder erreichbar ist. Im Abschnitt **Suchlage**
+steht dann, wie viele Änderungen noch warten.
+
 ## Einsatzkarte
 
 Auf der Einsatzkarte zeichnet ihr das **Einsatzgebiet** und euren **Standort** ein. Statt einer Zeichnung könnt ihr auch ein **Kartenfoto** hinterlegen, z. B. von der Lagekarte der Einsatzleitung. Das gespeicherte Bild kommt in den PDF-Bericht.
@@ -275,6 +333,21 @@ Mit dem **X** auf dem Foto (**Foto entfernen**) löscht ihr es, mit **Anderes Fo
 > [!WICHTIG]
 > Ins PDF kommt das, was im **gerade gewählten Reiter** liegt: Steht der Abschnitt auf **Karte zeichnen**, das gespeicherte Kartenbild. Steht er auf **Kartenfoto**, das Foto. Lasst den Abschnitt also auf dem Reiter stehen, dessen Bild in den Bericht soll.
 
+### Karte aus Suchlage
+
+Ist der Einsatz mit Suchlage verknüpft, heißt der erste Reiter **Karte aus
+Suchlage**. Er zeigt die Karte eures aktuellen Abschnitts aus Suchlage:
+Suchgebiete und Punkte und die Flugspuren als gestrichelte Linien. Ihr könnt
+verschieben und zoomen, aber nicht zeichnen. Gezeichnet wird in Suchlage;
+dorthin führt **In Suchlage bearbeiten**. Unter der Karte steht, von wann der
+Stand ist. Ohne Netz zeigt die App den zuletzt geladenen Stand.
+
+Der Abschnitt gilt als erledigt, sobald eine Karte aus Suchlage geladen ist
+oder ein Kartenfoto vorliegt. Ein **Kartenfoto** geht zusätzlich als
+Kartenfoto des Abschnitts an Suchlage. In den Bericht kommt die Karte aus
+Suchlage, beim Erstellen des PDFs frisch geladen, und das Foto, falls ihr
+eins habt.
+
 ## Missionsbriefing
 
 Das Missionsbriefing ist der letzte Abschnitt der Phase. Es ist eine Gesprächshilfe für die Führungskraft: Der Trupp steht zusammen, geht die fünf Punkte durch, und die Führungskraft hakt sie ab. Zu jedem Punkt zeigt die App die passenden Angaben aus den Abschnitten darüber, damit niemand blättern muss.
@@ -326,5 +399,13 @@ Verlegt der Trupp während des Einsatzes an einen anderen Ort, legt die App mit 
 **… unter der Karte zwei Einträge „Standort“ stehen?** Dann sind zwei Punkte eingezeichnet. Einzeln entfernen geht nicht. Wenn es stört, löscht mit dem Mülleimer alles und zeichnet neu.
 
 **… auf der Einsatzkarte nach dem Speichern kein „Weiter“ erscheint?** Klappt das **Missionsbriefing** über seine Überschrift auf. Das Kartenbild ist trotzdem gespeichert, erkennbar am grünen Abzeichen **Gespeichert**.
+
+**… der Abschnitt „Suchlage“ fehlt?** Dann ist Suchlage für eure Flugmappe
+nicht eingerichtet, ihr seid nicht angemeldet, oder euer Konto hat in Suchlage
+keinen Zugriff. Die Flugmappe funktioniert trotzdem vollständig.
+
+**… beim Verknüpfen „In Suchlage läuft schon …“ steht?** In Suchlage läuft
+bereits ein anderer Einsatz. Wählt diesen oder lasst ihn in Suchlage
+abschließen.
 
 **… ein Name in den Vorschlägen falsch geschrieben ist?** Entfernt ihn mit dem **X** in der Vorschlagsliste und tippt ihn richtig ein. Beim Verlassen des Felds merkt sich die App die neue Schreibweise.
