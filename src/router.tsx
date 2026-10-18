@@ -14,7 +14,9 @@ import { useMissionSegment } from './hooks/useMissionSegment'
 import { clearMissionEnvironment } from './hooks/useMissionEnvironment'
 import { useTheme } from './hooks/useTheme'
 import { migrateOldData, migrateLocationToSegment } from './utils/migration'
-import { downloadPdf, sharePdf, canSharePdf } from './utils/generateReport'
+import { downloadPdf, sharePdfOrDownload, canSharePdf } from './utils/generateReport'
+import { prepareSuchlageReportMaps } from './utils/suchlageReportMap'
+import { useSuchlage } from './hooks/useSuchlage'
 import type { MissionPhase } from './types/mission'
 import Header from './components/Header'
 import MissionOverview from './components/MissionOverview'
@@ -103,6 +105,13 @@ function MissionLayoutInner({ missionLabel, missionCreatedAt, currentPhase, isCo
 }) {
   const missionId = useMissionId()
   const queryClient = useQueryClient()
+  // Zwischen-PDF der Vorflugkontrolle: bei Verknüpfung vorher die Suchlage-Karte
+  // zeichnen (Zeitlimit wie beim Bericht; ohne Verknüpfung sofort fertig).
+  const suchlageStatus = useSuchlage()
+  const buildPreflightPdf = async () => {
+    await prepareSuchlageReportMaps(missionId, suchlageStatus.enabled && !suchlageStatus.resting)
+    return getPdfBlobRef.current?.()
+  }
   const { setting: themeSetting, cycle: cycleTheme } = useTheme(null)
   const getPdfBlobRef = useRef<(() => { blob: Blob; filename: string }) | null>(null)
   const { activeSegmentId, initializeSegment } = useMissionSegment()
@@ -142,8 +151,8 @@ function MissionLayoutInner({ missionLabel, missionCreatedAt, currentPhase, isCo
             themeSetting={themeSetting}
             onCycleTheme={cycleTheme}
             onRefresh={isCompleted ? undefined : handleRefresh}
-            onExportPdf={currentPhase === 'vorflugkontrolle' ? () => { const r = getPdfBlobRef.current?.(); if (r) downloadPdf(r.blob, r.filename) } : undefined}
-            onSharePdf={currentPhase === 'vorflugkontrolle' && canSharePdf() ? () => { const r = getPdfBlobRef.current?.(); if (r) sharePdf(r.blob, r.filename).catch(() => {}) } : undefined}
+            onExportPdf={currentPhase === 'vorflugkontrolle' ? () => { void buildPreflightPdf().then((r) => { if (r) downloadPdf(r.blob, r.filename) }) } : undefined}
+            onSharePdf={currentPhase === 'vorflugkontrolle' && canSharePdf() ? () => { void buildPreflightPdf().then((r) => r && sharePdfOrDownload(r.blob, r.filename)) } : undefined}
           />
         <div className="mx-auto max-w-3xl space-y-4 p-4">
           {!isCompleted && <MissionStepper currentPhase={currentPhase} />}
