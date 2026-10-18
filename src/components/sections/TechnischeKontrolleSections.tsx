@@ -3,7 +3,7 @@ import { PiCheck, PiChecks, PiArrowCounterClockwise, PiMapPin, PiDrone, PiGameCo
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
 import { useSegmentPersistedState } from '../../hooks/useSegmentPersistedState'
 import type { MetricStatus } from '../../types/assessment'
-import { getChecklistAnswer, getNextChecklistAnswer, isAnswered, type ChecklistState } from '../../utils/checklistState'
+import { confirmOpenItems, getChecklistAnswer, getNextChecklistAnswer, isAnswered, type ChecklistState } from '../../utils/checklistState'
 import ChecklistSection from '../ChecklistSection'
 import { AUFSTIEGSORT_ITEMS, UAV_ITEMS, RC_ITEMS, type CheckItem } from '../../data/technischeKontrolleItems'
 
@@ -34,9 +34,7 @@ function useQuickChecklist(storageKey: string, items: readonly CheckItem[], segm
   }
 
   function confirmAll() {
-    const all: ChecklistState = {}
-    for (const item of items) all[item.key] = 'positive'
-    setChecked(all)
+    setChecked((prev) => confirmOpenItems(prev, items.map((item) => item.key)))
   }
 
   function resetAll() {
@@ -74,8 +72,7 @@ function QuickChecklistContent({
           </button>
         ) : (
           <button onClick={confirmAll} className="flex w-full items-center justify-center gap-2 rounded-lg bg-good/10 px-4 py-2.5 text-sm font-medium text-good transition-colors hover:bg-good/20">
-            <PiChecks className="text-[1rem]" />Alle positiv
-            {answeredCount > 0 && <span className="text-good/60">({totalCount - answeredCount} offen)</span>}
+            <PiChecks className="text-[1rem]" />{answeredCount > 0 ? <>Offene positiv <span className="text-good/60">({totalCount - answeredCount})</span></> : 'Alle positiv'}
           </button>
         )}
       </div>

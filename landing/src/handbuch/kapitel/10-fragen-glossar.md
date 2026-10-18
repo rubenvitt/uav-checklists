@@ -73,9 +73,10 @@ ihr auf **GPS** tippt.
 [→ Einsatzdaten: Standort ändern oder zurück auf GPS](#einsatzdaten-standort-aendern-oder-zurueck-auf-gps)
 
 **Welche Koordinaten versteht die App?**\
-UTM-Ref (MGRS) wie auf BOS-Lagekarten, UTM, Grad/Minuten/Sekunden und
-Dezimalgrad. **Nicht** richtig versteht sie Grad mit Dezimalminuten
-(`52°23.4'`). Prüft vor dem Antippen immer die Grad-Angabe im Vorschlag.
+UTM-Ref (MGRS) wie auf BOS-Lagekarten, UTM, Grad/Minuten/Sekunden, Grad mit
+Dezimalminuten (`52°23.4'N 9°41.8'E`) und Dezimalgrad. Die Himmelsrichtung
+darf vor oder hinter der Zahl stehen. Prüft vor dem Antippen immer die
+Grad-Angabe im Vorschlag.
 [→ Einsatzdaten: Welche Koordinatenformate gehen?](#einsatzdaten-koordinatenformate)
 
 **Warum sind Wetter, Umgebung und SORA gesperrt?**\
@@ -185,9 +186,10 @@ ARC ergibt sich nur aus den Fragen.
 [→ SORA: Luftrisikominimierung](#vorflug-sora-luftrisikominimierung)
 
 **Was macht „Alle positiv“ genau?**\
-Der Knopf setzt **jeden** Punkt des Abschnitts auf positiv, auch Punkte, die
-ihr vorher als Mangel markiert habt. Tippt ihn nur, wenn wirklich alles
-geprüft und in Ordnung ist. Bei einem Mangel bewertet die Punkte einzeln.
+Der Knopf setzt die noch **offenen** Punkte des Abschnitts auf positiv.
+Punkte, die ihr schon bewertet habt, bleiben, wie sie sind; ein Mangel
+bleibt also stehen. Sobald etwas bewertet ist, heißt der Knopf **Offene
+positiv**. Tippt ihn nur, wenn ihr die offenen Punkte wirklich geprüft habt.
 [→ Flugfreigabe: Alle positiv und Zurücksetzen](#vorflug-freigabe-alle-positiv-und-zuruecksetzen)
 
 **Einen Punkt aus Versehen auf negativ gesetzt?**\
@@ -313,10 +315,11 @@ Das kommt auf iPhone und iPad vor. Nehmt **Teilen** oder **In neuem Tab
 öffnen**. Das PDF selbst ist vollständig.
 [→ Nachbereitung: Die Dokument-Vorschau](#nachbereitung-die-dokument-vorschau)
 
-**Im Bericht sieht ein Mangel aus wie ein ungeprüfter Punkt.**\
-Das stimmt: In der Nachflugkontrolle des Berichts erscheinen beide als leerer
-Kreis. Schreibt deshalb zu jedem Mangel eine Bemerkung. Sie steht im Bericht
-direkt unter dem Punkt.
+**Wie erkenne ich einen Mangel im Bericht?**\
+An dem roten Kreuz und dem Wort **MANGEL** vor dem Punkt. Ein nicht
+bewerteter Punkt hat nur einen leeren Kreis. Über der Liste steht zusätzlich,
+wie viele Mängel es gibt. Eine Bemerkung zum Mangel steht als „Notiz:“
+direkt darunter.
 [→ Nachbereitung: Was im Bericht steht](#nachbereitung-was-im-bericht-steht)
 
 **Die App schlägt „Wetter“ als Störung vor, obwohl das Wetter gut war.**\
@@ -402,7 +405,8 @@ Geräteeinstellungen.
 | **Kein GPS-Zugriff — bitte gib den Einsatzort ein:** | Die Standortfreigabe wurde abgelehnt, die Ortung ist aus, oder das Gerät hat nach 10 Sekunden keine Position. | Ort, Adresse oder Koordinaten von Hand eingeben. Die Freigabe lässt sich in den Einstellungen des Geräts bzw. Browsers nachholen. |
 | **Standort wird ermittelt...** bleibt stehen | Das Gerät sucht noch eine Position. | Höchstens 10 Sekunden warten. Dann auf den Stift tippen oder die Seite neu laden und den Ort von Hand eingeben. |
 | Die Adresssuche findet nichts | Die Ortssuche braucht Netz, oder der Suchbegriff ist zu lang. | Kürzeren Begriff probieren (Ort, Straße mit Ort) oder Koordinaten eingeben. Die erkennt die App auch ohne Netz. |
-| Der Einsatzort liegt viele Kilometer daneben | Die Koordinate war in Grad mit Dezimalminuten oder mit vorangestelltem Buchstaben (`N52°…`) geschrieben. | Mit dem Stift neu eingeben, vorher umrechnen oder UTM-Ref nehmen. Immer die Grad-Angabe im Vorschlag prüfen. |
+| Der Einsatzort liegt viele Kilometer daneben | Die Koordinate wurde falsch abgeschrieben, oder bei Grad-Angaben ohne Himmelsrichtung stand die Länge zuerst. | Mit dem Stift neu eingeben, möglichst mit `N` und `E`. Immer die Grad-Angabe im Vorschlag prüfen. |
+| Bei einer Koordinate erscheint kein blauer Vorschlag | Die App kann die Eingabe nicht eindeutig lesen, z. B. weil Breite und Länge in verschiedenen Formaten stehen oder eine Himmelsrichtung fehlt. | Beide Werte im selben Format und mit `N`/`E` eingeben oder UTM-Ref nehmen. |
 | Schloss und **Standort wählen** an mehreren Abschnitten | Es ist noch kein Einsatzort gesetzt. | In der Leiste **Einsatzort** den Ort festlegen oder GPS erlauben. |
 | Die Einsatzkarte bleibt leer oder grau | Für dieses Gebiet sind keine Kartenteile auf dem Gerät, und es gibt kein Netz. | Auf Empfang warten oder im Reiter **Kartenfoto** ein Foto der Lagekarte hinterlegen. |
 | **Karte nicht verfügbar: Dieser Browser bietet kein WebGL 2.** | Gerät oder Browser kann die Karte nicht darstellen. | Reiter **Kartenfoto** nehmen. Alles andere funktioniert normal. |
@@ -484,9 +488,10 @@ führt ein Verweis dorthin.
   Luftfahrthandbuch. Im Teil ENR 5.1 stehen Sperr- und Beschränkungsgebiete.
 - **Alarmzeit** – die Uhrzeit, zu der ihr alarmiert wurdet. Feld in den
   Einsatzdetails.
-- **Alle positiv** – Knopf in den Prüflisten, der jeden Punkt des Abschnitts
-  auf positiv setzt, auch vorher negative. Nur tippen, wenn wirklich alles
-  geprüft ist. [→ Flugfreigabe](#vorflug-freigabe-alle-positiv-und-zuruecksetzen)
+- **Alle positiv** – Knopf in den Prüflisten, der alle noch offenen Punkte
+  des Abschnitts auf positiv setzt; bewertete Punkte und Mängel bleiben. Heißt
+  **Offene positiv**, sobald etwas bewertet ist. Nur tippen, wenn die offenen
+  Punkte wirklich geprüft sind. [→ Flugfreigabe](#vorflug-freigabe-alle-positiv-und-zuruecksetzen)
 - **Allgemeinverfügung** – eine behördliche Regelung, die für alle gilt. Hier:
   die Grundlage, auf der unter festgelegten Bedingungen ohne einzelne Freigabe
   in einer Kontrollzone geflogen werden darf. Die Fundstellen stehen im Anhang
@@ -701,6 +706,8 @@ führt ein Verweis dorthin.
 - **GPS / GNSS** – Satellitenortung. GNSS ist der Oberbegriff für alle
   Satellitensysteme, GPS das bekannteste. Wird durch starke
   Erdmagnetfeld-Störungen (K-Index) ungenauer.
+- **Grad, Dezimalminuten** – Koordinaten wie `52°23.4'N 9°41.8'E`, wie viele
+  GPS-Geräte sie anzeigen. In der App **Grad/Dezimalminuten**.
 - **Grad, Minuten, Sekunden** – Koordinaten wie `52°23'26"N 9°41'52"E`. In
   der App **Grad/Min./Sek.**
 - **GRC** (*Ground Risk Class*) – das Bodenrisiko: Wie wahrscheinlich trifft

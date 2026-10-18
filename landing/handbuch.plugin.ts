@@ -206,8 +206,7 @@ export default function handbuch(options: { dir: string; imageDir: string }): Pl
       if (id !== RESOLVED_ID) return undefined
       const chapters = readChapters(dir, imageDir)
       if (fs.existsSync(dir)) for (const file of fs.readdirSync(dir)) this.addWatchFile(path.join(dir, file))
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- markdown bewusst verworfen
-      const data = chapters.map(({ markdown: _markdown, ...rest }) => rest)
+      const data: Kapitel[] = chapters.map(({ slug, nummer, titel, kurz, html, abschnitte }) => ({ slug, nummer, titel, kurz, html, abschnitte }))
       return `export const kapitel = ${JSON.stringify(data)}`
     },
 

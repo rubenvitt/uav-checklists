@@ -1,7 +1,7 @@
 export interface ParsedCoordinate {
   latitude: number
   longitude: number
-  format: 'mgrs' | 'utm' | 'decimal' | 'dms'
+  format: 'mgrs' | 'utm' | 'decimal' | 'dm' | 'dms'
   /** Human-readable label for the detected format */
   formatLabel: string
   /** Formatted coordinate display string */
@@ -9,15 +9,17 @@ export interface ParsedCoordinate {
 }
 
 /**
- * Try to parse coordinate input in MGRS, UTM, DMS, or decimal format.
- * MGRS is checked first (most specific), then UTM, DMS, decimal (most general).
- * Returns null if no format matches.
+ * Try to parse coordinate input in MGRS, UTM, degree (DMS / DM / decimal with
+ * symbols or hemisphere letters) or plain decimal format.
+ * MGRS is checked first (most specific), then UTM, degrees, plain decimal.
+ * Returns null if no format matches — ambiguous input is rejected rather than
+ * guessed, because a wrong guess puts the mission kilometres off.
  */
 export function parseCoordinates(input: string): ParsedCoordinate | null {
   const trimmed = input.trim()
   if (trimmed.length < 3) return null
   return (
-    parseMgrs(trimmed) ?? parseUtm(trimmed) ?? parseDms(trimmed) ?? parseDecimal(trimmed) ?? null
+    parseMgrs(trimmed) ?? parseUtm(trimmed) ?? parseDegrees(trimmed) ?? parseDecimal(trimmed) ?? null
   )
 }
 
@@ -256,15 +258,199 @@ function utmToLatLon(
   }
 }
 
-// ── Decimal Degrees ─────────────────────────────────────────────────────────
+// ── Degrees (DMS, DM, decimal with symbols or hemisphere letters) ──────────
 
 /**
- * Matches decimal-degree patterns:
+ * Matches degree patterns with symbols and/or hemisphere letters
+ * (N/S, E/O/W — O = Ost), the letter before or after each value:
+ *   52°23'24"N 9°41'48"E        Grad/Min./Sek.
+ *   N52°23'24" E9°41'48"
+ *   52°23.4'N 9°41.8'E          Grad/Dezimalminuten
+ *   N52°23,4' O9°41,8'
+ *   N 52 23.4 E 9 41.8          (no symbols — the letters delimit the values)
+ *   52°23.4' 9°41.8'            (no letters — latitude first, ° delimits)
+ *   52.39°N 9.6967°E            Dezimalkoordinaten
+ *
+ * The number of values per coordinate (1–3) decides the format, so an input
+ * with minutes or seconds is never read as decimal degrees. Both coordinates
+ * must use the same format; mixed or otherwise ambiguous input returns null.
+ */
+function parseDegrees(input: string): ParsedCoordinate | null {
+  const tokens = tokenizeDegrees(input)
+  if (!tokens) return null
+
+  const hasDir = tokens.some((t) => t.kind === 'dir')
+  const hasUnit = tokens.some((t) => t.kind === 'value' && t.unit !== null)
+  // Plain numbers are left to parseDecimal
+  if (!hasDir && !hasUnit) return null
+
+  const groups = groupDegreeTokens(tokens, hasDir)
+  if (!groups) return null
+
+  const parts = groups.map(readDegreeGroup)
+  if (parts.some((p) => p === null)) return null
+  const [a, b] = parts as DegreePart[]
+  if (a.valueCount !== b.valueCount) return null
+
+  // With letters, either order works; without, latitude comes first
+  const aIsLat = !hasDir || a.dir === 'N' || a.dir === 'S'
+  const bIsLat = hasDir && (b.dir === 'N' || b.dir === 'S')
+  if (aIsLat === bIsLat) return null // N…N or E…E
+  const latPart = aIsLat ? a : b
+  const lonPart = aIsLat ? b : a
+
+  const latitude = latPart.dir === 'S' ? -latPart.value : latPart.value
+  const longitude = lonPart.dir === 'W' ? -lonPart.value : lonPart.value
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null
+
+  if (a.valueCount === 3) {
+    return {
+      latitude,
+      longitude,
+      format: 'dms',
+      formatLabel: 'Grad/Min./Sek.',
+      display: `${formatDms(latitude, 'NS')}, ${formatDms(longitude, 'EW')}`,
+    }
+  }
+  if (a.valueCount === 2) {
+    return {
+      latitude,
+      longitude,
+      format: 'dm',
+      formatLabel: 'Grad/Dezimalminuten',
+      display: `${formatDm(latitude, 'NS')}, ${formatDm(longitude, 'EW')}`,
+    }
+  }
+  return decimalResult(latitude, longitude)
+}
+
+type DegreeUnit = '°' | "'" | '"'
+type DegreeToken =
+  | { kind: 'dir'; dir: 'N' | 'S' | 'E' | 'W' }
+  | { kind: 'value'; text: string; unit: DegreeUnit | null }
+
+interface DegreePart {
+  /** Absolute value in decimal degrees (negative only for a signed input). */
+  value: number
+  dir: 'N' | 'S' | 'E' | 'W' | null
+  valueCount: number
+}
+
+/**
+ * Splits the input into numbers (each with its unit symbol, if any) and
+ * hemisphere letters. Returns null on anything else, e.g. place names.
+ */
+function tokenizeDegrees(input: string): DegreeToken[] | null {
+  const normalized = input
+    .toUpperCase()
+    .replace(/[º˚]/g, '°')
+    .replace(/[′’‘´`]/g, "'")
+    .replace(/[″”“]/g, '"')
+    .replace(/''/g, '"')
+    .replace(/−/g, '-')
+
+  const tokenRegex =
+    /\s*(?:([+-]?\d+(?:[.,]\d+)?)\s*([°'"])?|([NSEOW])(?![A-Z])|[,;/])\s*/y
+  const tokens: DegreeToken[] = []
+  let pos = 0
+  while (pos < normalized.length) {
+    tokenRegex.lastIndex = pos
+    const m = tokenRegex.exec(normalized)
+    if (!m) return null
+    pos = tokenRegex.lastIndex
+    if (m[1] !== undefined) {
+      tokens.push({ kind: 'value', text: m[1], unit: (m[2] as DegreeUnit | undefined) ?? null })
+    } else if (m[3] !== undefined) {
+      tokens.push({ kind: 'dir', dir: m[3] === 'O' ? 'E' : (m[3] as 'N' | 'S' | 'E' | 'W') })
+    }
+  }
+  return tokens
+}
+
+/**
+ * Splits the tokens into exactly two coordinates. With hemisphere letters,
+ * the letters delimit them (all before or all after the values); without,
+ * every coordinate has to start with a value marked °.
+ */
+function groupDegreeTokens(tokens: DegreeToken[], hasDir: boolean): DegreeToken[][] | null {
+  const groups: DegreeToken[][] = []
+  if (hasDir) {
+    if (tokens[0].kind === 'dir') {
+      for (const t of tokens) {
+        if (t.kind === 'dir') groups.push([t])
+        else groups[groups.length - 1].push(t)
+      }
+    } else if (tokens[tokens.length - 1].kind === 'dir') {
+      let current: DegreeToken[] = []
+      for (const t of tokens) {
+        current.push(t)
+        if (t.kind === 'dir') {
+          groups.push(current)
+          current = []
+        }
+      }
+    } else {
+      return null
+    }
+    // Each group must hold exactly one letter, at its start or its end
+    if (groups.some((g) => g.filter((t) => t.kind === 'dir').length !== 1)) return null
+  } else {
+    for (const t of tokens) {
+      if (t.kind === 'value' && t.unit === '°') groups.push([t])
+      else if (groups.length === 0) return null
+      else groups[groups.length - 1].push(t)
+    }
+  }
+  return groups.length === 2 ? groups : null
+}
+
+const UNIT_ORDER: DegreeUnit[] = ['°', "'", '"']
+
+/** Reads one coordinate: 1–3 values (degrees, minutes, seconds) plus letter. */
+function readDegreeGroup(group: DegreeToken[]): DegreePart | null {
+  let dir: DegreePart['dir'] = null
+  const values: string[] = []
+  for (const t of group) {
+    if (t.kind === 'dir') {
+      dir = t.dir
+      continue
+    }
+    // Symbols, where given, must match the position: ° then ' then "
+    if (t.unit !== null && UNIT_ORDER.indexOf(t.unit) !== values.length) return null
+    values.push(t.text)
+  }
+  if (values.length < 1 || values.length > 3) return null
+
+  // Only the last value may carry a fraction; only the degrees a sign
+  for (let i = 0; i < values.length; i++) {
+    if (i < values.length - 1 && /[.,]/.test(values[i])) return null
+    if (i > 0 && /^[+-]/.test(values[i])) return null
+  }
+  const signed = /^[+-]/.test(values[0])
+  if (signed && dir !== null) return null // "-52°N" is ambiguous
+
+  const [deg, min = 0, sec = 0] = values.map((v) => Math.abs(parseFloat(v.replace(',', '.'))))
+  if (min >= 60 || sec >= 60) return null
+
+  const abs = deg + min / 60 + sec / 3600
+  return {
+    value: values[0].startsWith('-') ? -abs : abs,
+    dir,
+    valueCount: values.length,
+  }
+}
+
+// ── Plain Decimal Degrees ───────────────────────────────────────────────────
+
+/**
+ * Matches plain decimal-degree pairs (no symbols, no letters):
  *   52.520, 13.405       (international)
  *   52.520 13.405        (space-separated)
  *   52,520 13,405        (German decimal comma, space-separated)
  *   -33.868, 151.209     (negative values)
  *   52.520; 13.405       (semicolon)
+ * Each part must be a bare number — anything else (°, ', letters, a third
+ * value) is rejected so minutes or seconds are never dropped silently.
  */
 function parseDecimal(input: string): ParsedCoordinate | null {
   let parts: string[] = []
@@ -287,14 +473,18 @@ function parseDecimal(input: string): ParsedCoordinate | null {
   }
 
   if (parts.length !== 2) return null
+  if (!parts.every((p) => /^[+-]?\d+(?:[.,]\d+)?$/.test(p))) return null
 
   const lat = parseFloat(parts[0].replace(',', '.'))
   const lon = parseFloat(parts[1].replace(',', '.'))
 
-  if (isNaN(lat) || isNaN(lon)) return null
   if (lat < -90 || lat > 90) return null
   if (lon < -180 || lon > 180) return null
 
+  return decimalResult(lat, lon)
+}
+
+function decimalResult(lat: number, lon: number): ParsedCoordinate {
   return {
     latitude: lat,
     longitude: lon,
@@ -304,62 +494,21 @@ function parseDecimal(input: string): ParsedCoordinate | null {
   }
 }
 
-// ── DMS (Degrees, Minutes, Seconds) ─────────────────────────────────────────
-
-/**
- * Matches DMS patterns:
- *   52°31'12.0"N 13°24'18.0"E
- *   52°31'12"N 13°24'18"E
- *   N52°31'12" E13°24'18"
- *   52°31'12.0"N 13°24'18.0"O    (German "O" = Ost = East)
- */
-function parseDms(input: string): ParsedCoordinate | null {
-  // Match individual DMS components with direction letter before or after
-  const dmsPartRegex =
-    /(\d{1,3})\s*°\s*(\d{1,2})\s*[′']\s*(\d{1,2}(?:[.,]\d+)?)\s*[″"]?\s*([NSEOW])/gi
-  const parts = [...input.matchAll(dmsPartRegex)]
-  if (parts.length !== 2) return null
-
-  let lat: number | null = null
-  let lon: number | null = null
-
-  for (const part of parts) {
-    const deg = parseInt(part[1], 10)
-    const min = parseInt(part[2], 10)
-    const sec = parseFloat(part[3].replace(',', '.'))
-    const dir = part[4].toUpperCase()
-
-    if (min >= 60 || sec >= 60) return null
-
-    const decimal = deg + min / 60 + sec / 3600
-
-    if (dir === 'N' || dir === 'S') {
-      if (decimal > 90) return null
-      lat = dir === 'S' ? -decimal : decimal
-    } else if (dir === 'E' || dir === 'O' || dir === 'W') {
-      // O = Ost (East in German)
-      if (decimal > 180) return null
-      lon = dir === 'W' ? -decimal : decimal
-    }
-  }
-
-  if (lat === null || lon === null) return null
-
-  return {
-    latitude: lat,
-    longitude: lon,
-    format: 'dms',
-    formatLabel: 'Grad/Min./Sek.',
-    display: `${formatDms(lat, 'NS')}, ${formatDms(lon, 'EW')}`,
-  }
-}
-
 function formatDms(decimal: number, directions: 'NS' | 'EW'): string {
   const dir = decimal >= 0 ? directions[0] : directions[1]
-  const abs = Math.abs(decimal)
-  const deg = Math.floor(abs)
-  const minFull = (abs - deg) * 60
-  const min = Math.floor(minFull)
-  const sec = ((minFull - min) * 60).toFixed(1)
+  // Round once in tenths of a second so 59.96″ carries over instead of showing 60.0″
+  const tenths = Math.round(Math.abs(decimal) * 36000)
+  const deg = Math.floor(tenths / 36000)
+  const min = Math.floor((tenths % 36000) / 600)
+  const sec = ((tenths % 600) / 10).toFixed(1)
   return `${deg}°${min}′${sec}″${dir}`
+}
+
+function formatDm(decimal: number, directions: 'NS' | 'EW'): string {
+  const dir = decimal >= 0 ? directions[0] : directions[1]
+  // Round once in thousandths of a minute so 59.9996′ carries over
+  const thousandths = Math.round(Math.abs(decimal) * 60000)
+  const deg = Math.floor(thousandths / 60000)
+  const min = ((thousandths % 60000) / 1000).toFixed(3)
+  return `${deg}°${min}′${dir}`
 }

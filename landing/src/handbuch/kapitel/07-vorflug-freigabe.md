@@ -41,7 +41,7 @@ Jedes Antippen schaltet einen Schritt weiter:
 
 Bewertete Zeilen werden grau, damit ihr die offenen Punkte schneller findet.
 
-![Abschnitt „Aufstiegsort“ mit drei grün abgehakten und drei offenen Punkten, Zähler 3/6 und dem Knopf „Alle positiv (3 offen)“](handbuch/vorflug-freigabe-aufstiegsort.webp "Drei von sechs Punkten sind positiv bewertet, drei sind noch offen. Der Zähler oben rechts zeigt 3/6.")
+![Abschnitt „Aufstiegsort“ mit drei grün abgehakten und drei offenen Punkten, Zähler 3/6 und dem Knopf „Offene positiv (3)“](handbuch/vorflug-freigabe-aufstiegsort.webp "Drei von sechs Punkten sind positiv bewertet, drei sind noch offen. Der Zähler oben rechts zeigt 3/6.")
 
 ### Negative Punkte
 
@@ -75,15 +75,15 @@ bedeutet:
 ### Alle positiv und Zurücksetzen
 
 Oben in jedem Abschnitt steht der Knopf **Alle positiv**. Er setzt mit einem
-Tipp jeden Punkt des Abschnitts auf positiv. Sind schon einige Punkte
-bewertet, zeigt der Knopf in Klammern, wie viele noch offen sind, z. B.
-**(3 offen)**.
+Tipp jeden noch offenen Punkt des Abschnitts auf positiv. Sind schon einige
+Punkte bewertet, heißt er **Offene positiv** und zeigt in Klammern, wie viele
+noch offen sind, z. B. **(3)**. Bereits bewertete Punkte ändert er nicht: Ein
+negativer Punkt bleibt negativ.
 
 > [!ACHTUNG]
-> **Alle positiv** setzt wirklich *alle* Punkte auf grün, auch solche, die
-> ihr vorher als negativ markiert habt. Der Mangel ist danach nicht mehr zu
-> sehen. Tippt den Knopf nur, wenn ihr alle Punkte tatsächlich geprüft habt
-> und alles in Ordnung ist. Bei einem Mangel bewertet die Punkte einzeln.
+> Der Knopf ersetzt nicht das Prüfen. Tippt ihn nur, wenn ihr die offenen
+> Punkte tatsächlich geprüft habt und sie in Ordnung sind. Einen Mangel
+> markiert ihr vorher einzeln.
 
 Sind alle Punkte bewertet, steht an derselben Stelle **Zurücksetzen**. Damit
 leert ihr den ganzen Abschnitt wieder, ohne Rückfrage. Das braucht ihr z. B.,

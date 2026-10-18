@@ -75,13 +75,20 @@ In das Suchfeld **Ort, Adresse oder Koordinaten…** könnt ihr dreierlei eingeb
 |---|---|---|
 | UTM-Ref / MGRS (wie auf BOS-Lagekarten) | `32UND 47390 05000`, `32U ND 4739 0500`, `32UND4739005000` | **UTM-Ref (MGRS)** |
 | UTM mit Zone, Ostwert, Nordwert | `32U 547390 5805000`, auch mit `/` dazwischen | **UTM Zone 32U** |
-| Grad, Minuten, Sekunden | `52°23'26"N 9°41'52"E`, statt `E` geht auch `O` für Ost | **Grad/Min./Sek.** |
-| Dezimalgrad | `52.3906, 9.6979` oder `52,3906 9,6979` | **Dezimalkoordinaten** |
+| Grad, Minuten, Sekunden | `52°23'26"N 9°41'52"E` oder `N52°23'26" E9°41'52"` | **Grad/Min./Sek.** |
+| Grad mit Dezimalminuten (wie viele GPS-Geräte sie anzeigen) | `52°23.4'N 9°41.8'E`, `N52°23,4' E9°41,8'` oder `N 52 23.4 E 9 41.8` | **Grad/Dezimalminuten** |
+| Dezimalgrad | `52.3906, 9.6979`, `52,3906 9,6979` oder `52.3906°N 9.6979°E` | **Dezimalkoordinaten** |
 
 Bei UTM-Ref dürfen Ost- und Nordwert 1 bis 5 Stellen haben, aber beide gleich viele. Ein vorangestelltes „MGRS“ oder „UTM-Ref“ stört nicht.
 
-> [!ACHTUNG]
-> Grad mit Dezimalminuten (z. B. `52°23.4'N 9°41.8'E`, wie manche GPS-Geräte sie anzeigen) versteht die App **nicht richtig**: Sie liest daraus nur die ganzen Grad und setzt den Ort dann viele Kilometer daneben. Auch Grad/Minuten/Sekunden mit vorangestelltem Buchstaben (`N52°…`) erkennt sie nicht. Rechnet solche Angaben vorher um oder nehmt UTM-Ref. Prüft **immer** die Grad-Angabe im Vorschlag, bevor ihr tippt, und danach die Einsatzkarte.
+Bei den Grad-Formaten gilt:
+
+- Die Himmelsrichtung darf vor oder hinter der Zahl stehen, aber bei beiden Werten an derselben Stelle. Statt `E` geht auch `O` für Ost.
+- Die Zeichen `°`, `'` und `"` dürft ihr weglassen, wenn die Himmelsrichtungen dastehen. Für Nachkommastellen geht Punkt oder Komma.
+- Ohne Himmelsrichtungen muss die Breite (Nord) zuerst stehen, die Länge (Ost) danach.
+- Breite und Länge müssen im selben Format geschrieben sein. Eine Mischung wie `52°23'26"N 9°41.8'E` erkennt die App nicht.
+
+Kann die App eine Eingabe nicht eindeutig lesen, erscheint kein Vorschlag. Die App rät dann nicht, sondern sucht den Text als Ortsnamen. Prüft trotzdem **immer** die Grad-Angabe im Vorschlag, bevor ihr tippt: Ein Zahlendreher fällt nur euch auf.
 
 ### Standort ändern oder zurück auf GPS
 

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { PiCheck, PiChecks, PiArrowCounterClockwise, PiClipboardText, PiChatText, PiX } from 'react-icons/pi'
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
 import type { MetricStatus } from '../../types/assessment'
-import { getChecklistAnswer, getNextChecklistAnswer, isAnswered, type ChecklistState } from '../../utils/checklistState'
+import { confirmOpenItems, getChecklistAnswer, getNextChecklistAnswer, isAnswered, type ChecklistState } from '../../utils/checklistState'
 import ChecklistSection from '../ChecklistSection'
 
 interface InspectionItem {
@@ -49,9 +49,7 @@ export default function PostFlightInspectionSection({ open, onToggle, isComplete
   }
 
   function confirmAll() {
-    const all: ChecklistState = {}
-    for (const item of POST_FLIGHT_ITEMS) all[item.key] = 'positive'
-    setChecked(all)
+    setChecked((prev) => confirmOpenItems(prev, POST_FLIGHT_ITEMS.map((item) => item.key)))
   }
 
   function resetAll() {
@@ -91,8 +89,7 @@ export default function PostFlightInspectionSection({ open, onToggle, isComplete
             </button>
           ) : (
             <button onClick={confirmAll} className="flex w-full items-center justify-center gap-2 rounded-lg bg-good/10 px-4 py-2.5 text-sm font-medium text-good transition-colors hover:bg-good/20 active:scale-[0.99]">
-              <PiChecks className="text-[1rem]" />Alle positiv
-              {answeredCount > 0 && <span className="text-good/60">({totalCount - answeredCount} offen)</span>}
+              <PiChecks className="text-[1rem]" />{answeredCount > 0 ? <>Offene positiv <span className="text-good/60">({totalCount - answeredCount})</span></> : 'Alle positiv'}
             </button>
           )}
         </div>
