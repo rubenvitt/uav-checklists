@@ -112,6 +112,14 @@ export async function createSession({ out }) {
       },
       [storage, colorScheme, reseed],
     )
+    // Das TanStack-Devtools-Symbol (nur im Dev-Server) taucht nach clean()
+    // wieder auf. Per CSS ausgeblendet, statt es zu löschen — Dialoge und
+    // Bottom-Sheets hängen ebenfalls direkt am <body> und müssen bleiben.
+    await ctx.addInitScript(() => {
+      const style = document.createElement('style')
+      style.textContent = '[data-testid="tanstack_devtools"], [data-tsd-control] { display: none !important; }'
+      document.addEventListener('DOMContentLoaded', () => document.head.appendChild(style))
+    })
     await ctx.route('https://**/api/interpreter*', (route) =>
       route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(OVERPASS) }),
     )
@@ -193,10 +201,13 @@ export async function createSession({ out }) {
       console.log('    (Element für', name, 'nicht gefunden)')
       return
     }
+    // Die klebende Kopfleiste würde sonst mitten in hohen Ausschnitten liegen.
+    const unstick = await pg.addStyleTag({ content: '.sticky { position: static !important; }' })
     await locator.first().scrollIntoViewIfNeeded().catch(() => {})
     await pg.waitForTimeout(400)
     const box = await locator.first().boundingBox({ timeout: 5000 }).catch(() => null)
     if (!box) {
+      await unstick.evaluate((el) => el.remove())
       console.log('    (Element für', name, 'nicht gefunden)')
       return
     }
@@ -211,6 +222,7 @@ export async function createSession({ out }) {
     }
     await pg.waitForTimeout(250)
     await pg.screenshot({ path: path.join(out, `${name}.png`), clip, fullPage: true })
+    await unstick.evaluate((el) => el.remove())
     console.log('  ->', name, '(Ausschnitt)')
   }
 

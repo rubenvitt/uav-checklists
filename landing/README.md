@@ -79,6 +79,10 @@ Kapitel ändert: <http://localhost:5180/handbuch/>.
 Die Abbildungen liegen unter `public/screenshots/handbuch/` und kommen aus
 `tools/screenshots/handbuch.mjs` — siehe [Screenshots erneuern](#screenshots-erneuern).
 
+Nach Änderungen an Überschriften oder Bildern prüft
+`node tools/check-handbuch.mjs`, ob alle Querverweise (`#anker`) und Bilder
+noch existieren.
+
 ### Auffindbarkeit für Suchmaschinen und Agenten
 
 | Datei | Zweck |

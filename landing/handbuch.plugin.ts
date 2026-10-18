@@ -56,6 +56,24 @@ export function slugify(text: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
+/**
+ * Breite und Höhe einer WebP-Datei aus ihrem Kopf. Mit width/height am <img>
+ * reserviert der Browser den Platz, bevor das (lazy geladene) Bild da ist —
+ * sonst verrutscht die Seite und Sprünge zu Ankern landen an der falschen Stelle.
+ */
+function webpSize(file: string): { width: number; height: number } | undefined {
+  if (!file.endsWith('.webp') || !fs.existsSync(file)) return undefined
+  const b = fs.readFileSync(file)
+  const kind = b.toString('ascii', 12, 16)
+  if (kind === 'VP8 ') return { width: b.readUInt16LE(26) & 0x3fff, height: b.readUInt16LE(28) & 0x3fff }
+  if (kind === 'VP8L') {
+    const [b0, b1, b2, b3] = [b[21], b[22], b[23], b[24]]
+    return { width: 1 + (((b1 & 0x3f) << 8) | b0), height: 1 + (((b3 & 0x0f) << 10) | (b2 << 2) | ((b1 & 0xc0) >> 6)) }
+  }
+  if (kind === 'VP8X') return { width: 1 + b.readUIntLE(24, 3), height: 1 + b.readUIntLE(27, 3) }
+  return undefined
+}
+
 /** Reiner Text einer Überschrift, ohne Markdown-Auszeichnung (für Anker und Inhaltsverzeichnis). */
 function plainText(tokens: Token[]): string {
   return tokens
@@ -79,7 +97,7 @@ function escapeAttr(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 }
 
-function renderChapter(slug: string, body: string): { html: string; abschnitte: Abschnitt[] } {
+function renderChapter(slug: string, body: string, imageDir: string): { html: string; abschnitte: Abschnitt[] } {
   const abschnitte: Abschnitt[] = []
   const used = new Set<string>()
   const marked = new Marked({ gfm: true })
@@ -108,8 +126,10 @@ function renderChapter(slug: string, body: string): { html: string; abschnitte: 
         const figures = images
           .map((img) => {
             const src = IMAGE_BASE_HTML + img.href
+            const size = webpSize(path.join(imageDir, img.href))
+            const dims = size ? ` width="${size.width}" height="${size.height}"` : ''
             const caption = img.title ? `<figcaption>${img.title}</figcaption>` : ''
-            return `<figure class="hb-bild"><a href="${escapeAttr(src)}" target="_blank" rel="noreferrer"><img src="${escapeAttr(src)}" alt="${escapeAttr(img.text)}" loading="lazy" decoding="async"></a>${caption}</figure>`
+            return `<figure class="hb-bild"><a href="${escapeAttr(src)}" target="_blank" rel="noreferrer"><img src="${escapeAttr(src)}" alt="${escapeAttr(img.text)}"${dims} loading="lazy" decoding="async"></a>${caption}</figure>`
           })
           .join('')
         return `<div class="hb-bilder" data-anzahl="${images.length}">${figures}</div>\n`
@@ -156,7 +176,7 @@ function renderChapter(slug: string, body: string): { html: string; abschnitte: 
   return { html, abschnitte }
 }
 
-function readChapters(dir: string): Array<Kapitel & { markdown: string }> {
+function readChapters(dir: string, imageDir: string): Array<Kapitel & { markdown: string }> {
   if (!fs.existsSync(dir)) return []
   return fs
     .readdirSync(dir)
@@ -166,13 +186,14 @@ function readChapters(dir: string): Array<Kapitel & { markdown: string }> {
       const [, nummer, slug] = /^(\d+)-([a-z0-9-]+)\.md$/.exec(file)!
       const source = fs.readFileSync(path.join(dir, file), 'utf8')
       const { meta, body } = frontmatter(source)
-      const { html, abschnitte } = renderChapter(slug, body)
+      const { html, abschnitte } = renderChapter(slug, body, imageDir)
       return { slug, nummer, titel: meta.titel ?? slug, kurz: meta.kurz ?? '', html, abschnitte, markdown: body }
     })
 }
 
-export default function handbuch(options: { dir: string }): Plugin {
+export default function handbuch(options: { dir: string; imageDir: string }): Plugin {
   const dir = path.resolve(options.dir)
+  const imageDir = path.resolve(options.imageDir)
 
   return {
     name: 'flugmappe-handbuch',
@@ -183,7 +204,7 @@ export default function handbuch(options: { dir: string }): Plugin {
 
     load(id) {
       if (id !== RESOLVED_ID) return undefined
-      const chapters = readChapters(dir)
+      const chapters = readChapters(dir, imageDir)
       if (fs.existsSync(dir)) for (const file of fs.readdirSync(dir)) this.addWatchFile(path.join(dir, file))
       const data = chapters.map(({ markdown: _, ...rest }) => rest)
       return `export const kapitel = ${JSON.stringify(data)}`
@@ -203,7 +224,7 @@ export default function handbuch(options: { dir: string }): Plugin {
     },
 
     generateBundle() {
-      const chapters = readChapters(dir)
+      const chapters = readChapters(dir, imageDir)
       const parts = chapters.map((k) => {
         const body = k.markdown
           .replace(/\]\((?!https?:|#|\/)([^)\s]+)/g, (_, p: string) => `](${IMAGE_BASE_MD}${p}`)

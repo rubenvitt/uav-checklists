@@ -34,11 +34,20 @@ function useAktivesKapitel(): string | undefined {
   return aktiv
 }
 
-/** Der Browser springt beim Laden vor dem Rendern zum Anker — danach nachholen. */
+/**
+ * Der Browser springt beim Laden vor dem Rendern zum Anker — danach nachholen,
+ * und noch einmal, wenn Schriften und Seite geladen sind (der Text bricht dann
+ * anders um und das Ziel verrutscht).
+ */
 function useAnkerBeimLaden() {
   useEffect(() => {
     const id = decodeURIComponent(window.location.hash.slice(1))
-    if (id) document.getElementById(id)?.scrollIntoView()
+    if (!id) return
+    const springen = () => document.getElementById(id)?.scrollIntoView()
+    springen()
+    void document.fonts?.ready.then(springen)
+    if (document.readyState !== 'complete') window.addEventListener('load', springen, { once: true })
+    return () => window.removeEventListener('load', springen)
   }, [])
 }
 
@@ -144,27 +153,28 @@ export default function Handbuch() {
         </header>
 
         <div className="mx-auto max-w-[84rem] px-5 sm:px-8 lg:grid lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-14">
-          <aside className="print:hidden">
-            {/* Handy/Tablet hochkant: aufklappbares Inhaltsverzeichnis, das mitläuft. */}
-            <div className="sticky top-16 z-40 -mx-5 border-b border-line bg-paper/95 px-5 backdrop-blur-md sm:-mx-8 sm:px-8 lg:hidden">
-              <button
-                type="button"
-                aria-expanded={mobilOffen}
-                onClick={() => setMobilOffen((o) => !o)}
-                className="flex min-h-11 w-full items-center justify-between gap-3 py-2 text-left"
-              >
-                <span className="label text-muted">Inhalt</span>
-                <span className="truncate text-sm font-semibold">
-                  {kapitel.find((k) => k.slug === aktiv)?.titel ?? 'Kapitel wählen'}
-                </span>
-              </button>
-              {mobilOffen ? (
-                <nav aria-label="Inhaltsverzeichnis" className="max-h-[65vh] overflow-y-auto pb-4">
-                  <Inhalt aktiv={aktiv} onNavigate={() => setMobilOffen(false)} />
-                </nav>
-              ) : null}
-            </div>
-            <nav aria-label="Inhaltsverzeichnis" className="sticky top-24 hidden max-h-[calc(100vh-7rem)] overflow-y-auto py-12 lg:block">
+          {/* Handy/Tablet hochkant: aufklappbares Inhaltsverzeichnis, das mitläuft.
+              Steht außerhalb von <aside>, damit es über die ganze Seite klebt. */}
+          <div className="sticky top-16 z-40 -mx-5 border-b border-line bg-paper/95 px-5 backdrop-blur-md sm:-mx-8 sm:px-8 lg:hidden print:hidden">
+            <button
+              type="button"
+              aria-expanded={mobilOffen}
+              onClick={() => setMobilOffen((o) => !o)}
+              className="flex min-h-11 w-full items-center justify-between gap-3 py-2 text-left"
+            >
+              <span className="label text-muted">Inhalt</span>
+              <span className="truncate text-sm font-semibold">
+                {kapitel.find((k) => k.slug === aktiv)?.titel ?? 'Kapitel wählen'}
+              </span>
+            </button>
+            {mobilOffen ? (
+              <nav aria-label="Inhaltsverzeichnis" className="max-h-[65vh] overflow-y-auto pb-4">
+                <Inhalt aktiv={aktiv} onNavigate={() => setMobilOffen(false)} />
+              </nav>
+            ) : null}
+          </div>
+          <aside className="hidden print:hidden lg:block">
+            <nav aria-label="Inhaltsverzeichnis" className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto py-12">
               <p className="label mb-4 text-muted">Inhalt</p>
               <Inhalt aktiv={aktiv} />
             </nav>
