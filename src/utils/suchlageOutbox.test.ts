@@ -1,0 +1,205 @@
+import { describe, expect, it } from 'vitest'
+import {
+  BACKOFF_BASE_MS,
+  applyOutcome,
+  drainOutbox,
+  enqueue,
+  nextDue,
+  type OutboxItem,
+  type SendOutcome,
+} from './suchlageOutbox'
+
+const T0 = 1_000_000
+
+function build(...entries: Parameters<typeof enqueue>[1][]): OutboxItem[] {
+  let items: OutboxItem[] = []
+  entries.forEach((e, i) => { items = enqueue(items, e, T0 + i, `id${i}`) })
+  return items
+}
+
+function harness(initial: OutboxItem[], outcomes: SendOutcome[]) {
+  let items = initial
+  let now = T0
+  const sentKinds: string[] = []
+  const removed: Array<{ kind: string; sent: boolean }> = []
+  const remotes: string[] = []
+  return {
+    get items() { return items },
+    sentKinds,
+    removed,
+    remotes,
+    advance(ms: number) { now += ms },
+    run(force = false) {
+      return drainOutbox({
+        read: () => items,
+        write: (next) => { items = next },
+        send: async (item) => {
+          sentKinds.push(item.kind)
+          return outcomes.shift() ?? { ok: true }
+        },
+        now: () => now,
+        force,
+        onRemoved: (r) => removed.push({ kind: r.item.kind, sent: r.sent }),
+        onRemote: (h) => remotes.push(h),
+      })
+    },
+  }
+}
+
+const offline: SendOutcome = { ok: false, kind: 'offline', status: null }
+
+describe('enqueue', () => {
+  it('behält die Reihenfolge', () => {
+    const items = build(
+      { kind: 'section', segmentId: 's2', label: 'Standort 2', location: null },
+      { kind: 'photo', segmentId: 's2' },
+      { kind: 'close' },
+    )
+    expect(items.map((i) => i.kind)).toEqual(['section', 'photo', 'close'])
+  })
+
+  it('ist idempotent je Abschnitt und Abschluss', () => {
+    let items = build({ kind: 'section', segmentId: 's2', label: 'A', location: null }, { kind: 'close' })
+    const before = items
+    items = enqueue(items, { kind: 'section', segmentId: 's2', label: 'B', location: null }, T0, 'x')
+    items = enqueue(items, { kind: 'close' }, T0, 'y')
+    expect(items).toBe(before)
+  })
+
+  it('ein neues Foto ersetzt kein zweites, setzt aber den Backoff zurück', () => {
+    let items = build({ kind: 'photo', segmentId: 's1' })
+    items = items.map((i) => ({ ...i, attempts: 3, notBefore: T0 + 99_999, lastError: 'offline' as const }))
+    items = enqueue(items, { kind: 'photo', segmentId: 's1' }, T0, 'neu')
+    expect(items).toHaveLength(1)
+    expect(items[0]).toMatchObject({ id: 'id0', attempts: 0, notBefore: 0, lastError: undefined })
+  })
+})
+
+describe('nextDue', () => {
+  it('liefert nur den vordersten und beachtet den Backoff', () => {
+    const items = build({ kind: 'photo', segmentId: 's1' }, { kind: 'close' })
+    expect(nextDue(items, T0)?.kind).toBe('photo')
+    const waiting = [{ ...items[0], notBefore: T0 + 10 }, items[1]]
+    expect(nextDue(waiting, T0)).toBeNull()
+    expect(nextDue(waiting, T0, true)?.kind).toBe('photo')
+    expect(nextDue([], T0)).toBeNull()
+  })
+})
+
+describe('applyOutcome', () => {
+  const items = build({ kind: 'section', segmentId: 's2', label: 'S', location: null }, { kind: 'close' })
+
+  it('entfernt nach Erfolg; Abschluss meldet closed', () => {
+    const a = applyOutcome(items, 'id0', { ok: true }, T0)
+    expect(a.items.map((i) => i.id)).toEqual(['id1'])
+    expect(a.removed).toEqual({ item: items[0], sent: true })
+    const b = applyOutcome(a.items, 'id1', { ok: true }, T0)
+    expect(b.items).toEqual([])
+    expect(b.remote).toBe('closed')
+  })
+
+  it('Netzfehler: bleibt mit wachsendem Backoff', () => {
+    const a = applyOutcome(items, 'id0', offline, T0)
+    expect(a.effect).toBe('retry')
+    expect(a.items[0]).toMatchObject({ attempts: 1, notBefore: T0 + BACKOFF_BASE_MS, lastError: 'offline' })
+    const b = applyOutcome(a.items, 'id0', offline, T0)
+    expect(b.items[0].notBefore).toBe(T0 + 2 * BACKOFF_BASE_MS)
+  })
+
+  it('401/403: nichts ändern, ruhen', () => {
+    for (const kind of ['unauthorized', 'forbidden'] as const) {
+      const a = applyOutcome(items, 'id0', { ok: false, kind, status: kind === 'unauthorized' ? 401 : 403 }, T0)
+      expect(a.effect).toBe('rest')
+      expect(a.items).toBe(items)
+    }
+  })
+
+  it('Abschluss bei 422/409 (Flug läuft): später erneut', () => {
+    const close = build({ kind: 'close' })
+    for (const [kind, status] of [['unprocessable', 422], ['conflict', 409]] as const) {
+      const a = applyOutcome(close, 'id0', { ok: false, kind, status }, T0)
+      expect(a.effect).toBe('retry')
+      expect(a.items).toHaveLength(1)
+    }
+  })
+
+  it('Abschnitt bei 422 wird verworfen und meldet einen abgeschlossenen Einsatz', () => {
+    const a = applyOutcome(items, 'id0', { ok: false, kind: 'unprocessable', status: 422 }, T0)
+    expect(a.effect).toBe('continue')
+    expect(a.items.map((i) => i.id)).toEqual(['id1'])
+    expect(a.removed?.sent).toBe(false)
+    expect(a.remote).toBe('closed')
+  })
+
+  it('404 beim Abschluss: Einsatz weg, Eintrag verworfen', () => {
+    const a = applyOutcome(items, 'id1', { ok: false, kind: 'other', status: 404 }, T0)
+    expect(a.remote).toBe('gone')
+    expect(a.items.map((i) => i.id)).toEqual(['id0'])
+  })
+
+  it('unbekannte ID ändert nichts', () => {
+    expect(applyOutcome(items, 'nope', { ok: true }, T0).items).toBe(items)
+  })
+})
+
+describe('drainOutbox', () => {
+  it('sendet in Reihenfolge und entfernt nach Erfolg', async () => {
+    const h = harness(build(
+      { kind: 'section', segmentId: 's2', label: 'S', location: null },
+      { kind: 'photo', segmentId: 's2' },
+      { kind: 'close' },
+    ), [])
+    const r = await h.run()
+    expect(h.sentKinds).toEqual(['section', 'photo', 'close'])
+    expect(h.items).toEqual([])
+    expect(r).toEqual({ rested: false, sent: 3 })
+    expect(h.remotes).toEqual(['closed'])
+  })
+
+  it('holt nach einem Netzfehler nach, ohne die Reihenfolge zu ändern', async () => {
+    const h = harness(build({ kind: 'photo', segmentId: 's1' }, { kind: 'close' }), [offline])
+    await h.run()
+    expect(h.sentKinds).toEqual(['photo'])
+    expect(h.items.map((i) => i.kind)).toEqual(['photo', 'close'])
+
+    // Vor Ablauf des Backoffs passiert nichts …
+    await h.run()
+    expect(h.sentKinds).toEqual(['photo'])
+    // … danach geht alles raus.
+    h.advance(BACKOFF_BASE_MS)
+    await h.run()
+    expect(h.sentKinds).toEqual(['photo', 'photo', 'close'])
+    expect(h.items).toEqual([])
+  })
+
+  it('holt einen Abschluss nach, sobald der Flug gelandet ist', async () => {
+    const h = harness(build({ kind: 'close' }), [{ ok: false, kind: 'unprocessable', status: 422 }])
+    await h.run()
+    expect(h.items).toHaveLength(1)
+    await h.run(true)
+    expect(h.items).toEqual([])
+    expect(h.remotes).toEqual(['closed'])
+  })
+
+  it('ruht bei 401/403 und lässt alles stehen', async () => {
+    const initial = build({ kind: 'photo', segmentId: 's1' }, { kind: 'close' })
+    const h = harness(initial, [{ ok: false, kind: 'forbidden', status: 403 }])
+    const r = await h.run()
+    expect(r.rested).toBe(true)
+    expect(h.items).toBe(initial)
+    expect(h.sentKinds).toEqual(['photo'])
+  })
+
+  it('verwirft Unmögliches und macht weiter', async () => {
+    const h = harness(build({ kind: 'photo', segmentId: 's1' }, { kind: 'close' }), [{ ok: false, kind: 'other', status: 413 }])
+    await h.run()
+    expect(h.sentKinds).toEqual(['photo', 'close'])
+    expect(h.removed).toEqual([{ kind: 'photo', sent: false }, { kind: 'close', sent: true }])
+  })
+
+  it('ein zweiter Durchlauf mit leerer Liste sendet nichts', async () => {
+    const h = harness([], [])
+    expect(await h.run()).toEqual({ rested: false, sent: 0 })
+    expect(h.sentKinds).toEqual([])
+  })
+})
