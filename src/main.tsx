@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient, defaultShouldDehydrateQuery } from '@tanstack/react-query'
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client'
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 import { TanStackDevtools } from '@tanstack/react-devtools'
@@ -28,7 +28,15 @@ const persister = createSyncStoragePersister({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: 56 * 60 * 60 * 1000 }}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        maxAge: 56 * 60 * 60 * 1000,
+        // Abfragen mit `meta.persist === false` (z. B. die Suchlage-Probe) bleiben nur im Speicher.
+        dehydrateOptions: { shouldDehydrateQuery: (q) => defaultShouldDehydrateQuery(q) && q.meta?.persist !== false },
+      }}
+    >
       <AppRouter />
       <TanStackDevtools plugins={[
         { name: 'TanStack Query', render: <ReactQueryDevtoolsPanel />, defaultOpen: true },

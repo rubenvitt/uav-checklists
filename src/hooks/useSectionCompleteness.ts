@@ -15,9 +15,11 @@ function allChecked(checked: Record<string, boolean | string> | undefined, items
 
 // --- Phase 1: Einsatzdaten ---
 
-export function useEinsatzdatenCompleteness(): SectionConfig[] {
+export function useEinsatzdatenCompleteness(suchlageLinked: boolean = false): SectionConfig[] {
   const missionId = useMissionId()
+  const segmentId = useSegmentId()
   const atom = getMissionAtom(missionId)
+  const segPrefix = segmentId ? `seg:${segmentId}:` : ''
 
   const state = useStore(atom, (s: Record<string, unknown>) => ({
     flugAnlass: s['flugAnlass'] as string | undefined,
@@ -28,6 +30,9 @@ export function useEinsatzdatenCompleteness(): SectionConfig[] {
     crewLrb: s['crew_lrb'] as string | undefined,
     karteSnapshot: s['einsatzkarte:snapshot'] as string | undefined,
     kartePhoto: s['einsatzkarte:photo'] as string | undefined,
+    // Verknüpft mit Suchlage: Karte aus Suchlage geladen oder Foto vorhanden
+    suchlageMapLoaded: !!s[`${segPrefix}suchlage:map`],
+    segPhoto: s[`${segPrefix}einsatzkarte:photo`] as string | undefined,
     briefingChecked: s['briefing:checked'] as Record<string, boolean> | undefined,
   }))
 
@@ -50,7 +55,9 @@ export function useEinsatzdatenCompleteness(): SectionConfig[] {
     },
     {
       id: 'einsatzkarte',
-      isComplete: !!(state.karteSnapshot || state.kartePhoto),
+      isComplete: suchlageLinked
+        ? state.suchlageMapLoaded || !!state.segPhoto
+        : !!(state.karteSnapshot || state.kartePhoto),
     },
     {
       id: 'missionsbriefing',

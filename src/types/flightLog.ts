@@ -1,4 +1,17 @@
 import type { PayloadId } from './payload'
+import type { FlightEndReason } from './suchlage'
+
+/** Bezug eines Flugbucheintrags auf einen von Suchlage erkannten Flug (Werte aus der Telemetrie). */
+export interface SuchlageFlightRef {
+  flightId: number
+  aircraftSn: string
+  aircraftLabel: string | null
+  maxElevationM: number | null
+  distanceM: number | null
+  photoCount: number
+  /** `null`, solange der Flug in Suchlage läuft */
+  endReason: FlightEndReason | null
+}
 
 export type LandingStatus = 'ok' | 'auffaellig' | 'notfall'
 
@@ -13,6 +26,8 @@ export interface FlightLogEntry {
   segmentId?: string
   /** Während dieses Flugs montierte Nutzlast; fehlt bei Einträgen vor Einführung der Payload-Auswahl */
   payloads?: PayloadId[]
+  /** Nur bei bestätigten Flügen aus Suchlage; fehlt bei manuellen Einträgen */
+  suchlage?: SuchlageFlightRef
 }
 
 export interface EventNote {

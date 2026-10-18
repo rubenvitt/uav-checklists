@@ -8,6 +8,7 @@ import {
   loadMissions,
 } from '../utils/missionStorage'
 import { setMissionField } from '../stores/missionFormStore'
+import { enqueueSuchlage } from '../utils/suchlageStore'
 
 let listeners: Array<() => void> = []
 
@@ -62,7 +63,12 @@ export function useMissionSegment() {
 
   const startRelocation = useCallback((label?: string) => {
     const segmentNumber = snapshot.segments.length + 1
-    createSegmentStorage(missionId, label ?? `Standort ${segmentNumber}`)
+    const segment = createSegmentStorage(missionId, label ?? `Standort ${segmentNumber}`)
+    // Verknüpft mit Suchlage: dort einen neuen Abschnitt anlegen (über die Ausgangsliste,
+    // die Phase wechselt sofort). Ohne Verknüpfung passiert nichts.
+    if (segment) {
+      enqueueSuchlage(missionId, { kind: 'section', segmentId: segment.id, label: segment.label, location: segment.locationName ?? null })
+    }
     setMissionField(missionId, 'autoexpand:visited:vorflugkontrolle', false)
     refresh(missionId)
   }, [missionId, snapshot.segments.length])

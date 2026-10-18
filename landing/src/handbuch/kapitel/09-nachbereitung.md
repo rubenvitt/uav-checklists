@@ -412,6 +412,19 @@ Team-Feedback.
 
 **Unterschriften**: Führungskraft UAS links, Einsatzleitung rechts.
 
+Ist der Einsatz mit Suchlage verknüpft, ändert sich zweierlei:
+
+- **2.2 Einsatzkarte** zeigt die Karte aus Suchlage mit Suchgebieten und
+  Flugspuren und darüber „Karte aus Suchlage, Stand …“. Die App lädt sie
+  beim Erstellen des PDFs frisch; das dauert höchstens 15 Sekunden, solange
+  steht auf dem Knopf **Karte aus Suchlage wird geladen …**. Ohne Netz nimmt
+  sie den zuletzt geladenen Stand. Habt ihr ein Kartenfoto, steht es
+  darunter.
+- Im **Flugtagebuch** stehen bei bestätigten Flügen zusätzlich
+  **Fluggerät**, **Max. Höhe** und **Strecke** aus Suchlage. Hat die Drohne
+  Fotos gemacht, steht dort „Fotos und Video zu diesem Flug liegen in
+  Suchlage.“ Unbestätigte Vorschläge kommen nicht in den Bericht.
+
 Auf jeder Seite steht unten Seitenzahl, „UAV Missionsbericht“ und der
 Erstellungszeitpunkt. Habt ihr verlegt, wiederholen sich die Kapitel 2 und 3
 für jeden Standort, jeweils mit einem Balken mit Standortname davor.
@@ -448,6 +461,11 @@ Wenn alles eingetragen und unterschrieben ist, schließt ihr den Einsatz ab.
    **Abgeschlossen**.
 
 ![Rückfrage „Einsatz wirklich abschliessen? Der Einsatz kann danach nicht mehr bearbeitet werden und wird nach 24 Stunden automatisch gelöscht.“ mit dem Knopf „Bestätigen: Einsatz abschliessen“](handbuch/nachbereitung-abschliessen.webp "Erst das zweite Tippen schließt ab.")
+
+Ist der Einsatz mit Suchlage verknüpft, schließt die App ihn dort mit ab. Ihr
+müsst nichts weiter tun: Läuft in Suchlage noch ein Flug oder ist Suchlage
+gerade nicht erreichbar, holt die App den Abschluss nach, solange der Einsatz
+auf diesem Gerät gespeichert ist.
 
 Nach dem Abschließen könnt ihr nichts mehr ändern. Öffnet ihr den Einsatz,
 seht ihr nur noch **Einsatz abgeschlossen**, **PDF herunterladen** und

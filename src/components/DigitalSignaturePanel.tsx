@@ -13,9 +13,12 @@ import { downloadPdf } from '../utils/generateReport'
 import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
 
 interface DigitalSignaturePanelProps {
-  /** Produces the final mission PDF (blob + filename), or undefined if unavailable. */
-  getReport: () => { blob: Blob; filename: string } | undefined
+  /** Produces the final mission PDF (blob + filename), or undefined if unavailable.
+   *  May be async (e.g. the Suchlage map is loaded fresh before generating). */
+  getReport: () => ReportResult | Promise<ReportResult>
 }
+
+type ReportResult = { blob: Blob; filename: string } | undefined
 
 type SignState =
   | { status: 'idle' }
@@ -71,12 +74,18 @@ export default function DigitalSignaturePanel({ getReport }: DigitalSignaturePan
   })
 
   async function handleSign() {
-    const report = getReport()
+    setSign({ status: 'working' })
+    let report: ReportResult
+    try {
+      report = await getReport()
+    } catch {
+      setSign({ status: 'error', message: 'Das PDF konnte nicht erzeugt werden.' })
+      return
+    }
     if (!report) {
       setSign({ status: 'error', message: 'Das PDF konnte nicht erzeugt werden.' })
       return
     }
-    setSign({ status: 'working' })
     const receipt = await signPdf(report.blob)
     if (!receipt) {
       setSign({ status: 'error', message: 'Signierung fehlgeschlagen. Backend erreichbar und angemeldet?' })

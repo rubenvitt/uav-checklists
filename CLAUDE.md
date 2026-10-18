@@ -79,6 +79,18 @@ Each mission progresses through phases reflected in the URL (`/mission/:missionI
 | adsb.lol / adsb.fi (live traffic, via `server/` proxy `/adsb/point/...` — no CORS upstream; a Cloudflare Worker/Pages Function does not work: CF egress gets 429/403) | `adsbApi.ts` | TanStack Query: 30s stale, 60s refetch (30s during a flight, 5min when no server) + snapshot per segment; SW NetworkOnly. `useTrafficMonitor` (Flüge phase) turns new low-level traffic into banner/notification + auto `EventNote` (`source: 'adsb'`) |
 | Nominatim (geocode) | `geocodeApi.ts` | TanStack Query |
 | VersaTiles (basemap tiles + glyphs) | `components/map/basemapStyle.ts` | SW CacheFirst 30 Tage |
+| Suchlage (optional, `VITE_SUCHLAGE_URL`, Bearer-Token der Anmeldung, `/api/flugmappe/v1`, Header `X-Flugmappe-Einsatz`) | `suchlageApi.ts` | Probe `['suchlage','me',sub]` 5 min, nicht persistiert; Flüge 15 s/60 s (persistiert); Karte 60 s + `seg:<id>:suchlage:map`; SW NetworkOnly (Regel nur bei gesetzter Adresse) |
+
+### Suchlage-Verknüpfung (SUL-69)
+
+Optional link to a Suchlage instance (live drone telemetry). Without `VITE_SUCHLAGE_URL` **or** without login there is no request and no visible change — keep it that way.
+
+- Contract types in `src/types/suchlage/` are copies of Suchlage's `frontend/src/contract/generated/` (ts-rs) with an origin header; import only via the barrel `src/types/suchlage/index.ts`, never edit by hand. All paths/headers live in `src/services/suchlageApi.ts`.
+- `useSuchlage()` probes `GET /me`; `useSuchlageMission()` adds the per-mission link (`suchlage:link`). `linked` = configured, logged in, not resting (401/403, or 503 = interface switched off in Suchlage) and linked — only then do mission views show Suchlage parts (also offline with the last state).
+- Writes (new section on relocation, map photo, close on completion) go through the per-mission outbox `suchlage:outbox` (`utils/suchlageOutbox.ts`, pure, tested) and are sent by `useSuchlageSync` (mounted in the router, also works after completion). Use `enqueueSuchlage()`; it no-ops without a link.
+- Flüge: Suchlage flights become **unconfirmed proposals** (`utils/suchlageFlights.ts`); only a tap creates/merges a `FlightLogEntry` (optional `suchlage` field). Proposals never reach the report. Landing time is filled only while `blockOn` is empty.
+- Einsatzkarte: linked → read-only `SuchlageMapView`; the report re-renders the Suchlage map via `renderMapImage` (`prepareSuchlageReportMaps`, 15 s, else last state) before `generateMissionReport`.
+- The section „Suchlage“ never counts towards completeness.
 
 ## Conventions
 

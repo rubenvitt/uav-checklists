@@ -168,6 +168,51 @@ laufenden Flug löscht erst der zweite Tipp auf **Löschen?** den Flug.
 > Ein gelöschter Flug lässt sich nicht wiederherstellen. Die Nummern der
 > übrigen Flüge rücken nach.
 
+## Von Suchlage erkannte Flüge
+
+Ist der Einsatz mit Suchlage verknüpft (siehe [Verknüpfung mit
+Suchlage](#einsatzdaten-verknuepfung-mit-suchlage)), schaut die App
+regelmäßig nach, welche Flüge Suchlage für diesen Einsatz erkannt hat:
+während eines Flugs alle 15 Sekunden, sonst jede Minute. Solche Flüge stehen
+oben als gestrichelte Kästen **Von Suchlage erkannt · unbestätigt**, mit
+Start und Ende, Fluggerät, größter Höhe, Strecke und der Zahl der Fotos.
+Ein Flug, der gerade läuft, trägt das Zeichen **Läuft**.
+
+Ein solcher Vorschlag ist noch **kein** Eintrag im Flugtagebuch und kommt
+nicht in den Bericht. Ihr entscheidet mit einem Tipp:
+
+- **Bestätigen**: Die App legt einen Flug mit den Zeiten aus Suchlage an.
+  Fernpilot, Luftraumbeobachter und Nutzlast sind wie beim **Flug starten**
+  vorbelegt.
+- **Mit Flug N zusammenführen** (bzw. **Mit laufendem Flug
+  zusammenführen**): Habt ihr selbst schon auf **Flug starten** getippt und
+  liegt euer Start höchstens fünf Minuten neben dem von Suchlage, schlägt die
+  App das vor, statt einen zweiten Flug anzulegen. Euer Eintrag behält
+  Besatzung und Bemerkung und bekommt die Zeiten aus Suchlage.
+
+Läuft bei euch gerade ein Flug und meldet Suchlage ebenfalls einen laufenden
+Flug, bietet die App immer **Mit laufendem Flug zusammenführen** an, auch wenn
+die Startzeiten weiter auseinanderliegen. Einen zweiten laufenden Flug legt sie
+nie an; dann steht im Kasten **Erst den offenen Flug beenden, dann
+bestätigen.**
+
+Bestätigte Flüge tragen im Flugtagebuch die Marke **Suchlage** mit
+Fluggerät, Höhe, Strecke und Fotos. Landet die Drohne, trägt die App die
+Landezeit aus Suchlage ein, solange ihr selbst noch keine eingetragen habt.
+Eure eigenen Korrekturen überschreibt sie nicht.
+
+> [!WICHTIG]
+> Reißt die Verbindung zur Drohne ab, kennt Suchlage keine Landezeit. Der
+> Flug zeigt dann **Verbindung abgerissen – Landezeit bitte selbst
+> eintragen.** Tragt die Zeit im Feld **Block On (Landung)** ein.
+
+**Flug starten** und **Landung** funktionieren wie immer, auch ohne Netz.
+Fehlt die Verbindung zu Suchlage, steht oben **Suchlage nicht erreichbar –
+Flugbuch funktioniert weiter**; die Vorschläge kommen nach, sobald Suchlage
+wieder erreichbar ist. Ist der Einsatz in Suchlage abgeschlossen oder
+gelöscht, sagt die App das. Bestätigte Flüge bleiben, neue Vorschläge kommen
+nicht mehr.
+
 ## Ereignisse notieren
 
 Mit **Ereignis** haltet ihr fest, was im Einsatz passiert und nicht direkt
@@ -462,6 +507,11 @@ Es läuft noch ein Flug. Beendet ihn zuerst mit **Landung**.
 
 **… „Verlegen“ grau ist?**
 Es läuft ein Flug. Erst landen, dann verlegen.
+
+**… ein Flug aus Suchlage nicht als Vorschlag erscheint?**
+Der Flug muss in Suchlage diesem Einsatz zugeordnet sein. Startet die Drohne,
+bevor ihr verknüpft habt, ordnet ihn in Suchlage nachträglich zu; danach
+erscheint er als Vorschlag. Ohne Netz kommen keine neuen Vorschläge.
 
 **… sich die Phase „Flüge“ nicht öffnen lässt?**
 Für den aktuellen Standort fehlt die Flugfreigabe. Das ist auch nach jedem

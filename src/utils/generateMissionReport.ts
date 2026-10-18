@@ -20,6 +20,8 @@ import { AUFSTIEGSORT_ITEMS, UAV_ITEMS, RC_ITEMS } from '../data/technischeKontr
 import { FLUGBRIEFING_ITEMS } from '../data/flugbriefingItems'
 import { FUNKTIONS_ITEMS } from '../data/funktionskontrolleItems'
 import { isNegativeAnswer, isPositiveAnswer } from './checklistState'
+import { LINK_KEY, type SuchlageLink } from './suchlageStore'
+import { getSuchlageMapImage } from './suchlageReportMap'
 
 const PREFIX = 'uav-form:'
 const TTL = 56 * 60 * 60 * 1000
@@ -168,6 +170,9 @@ interface SegmentCollectedData {
   anmeldungenChecked: Record<string, boolean>
   anmeldungenAdditional: Array<{ label: string; detail: string }>
   mapImage: string
+  /** Kartenfoto zusätzlich zur Suchlage-Karte */
+  mapPhoto: string
+  mapCaption: string
   flugfreigabe: string | null
   flugentscheidung: { status: 'granted' | 'denied'; timestamp: string } | null
   checklistGroups: ChecklistGroupData[]
@@ -281,9 +286,22 @@ function collectSegmentData(
 
   // Map image
   const karteMode = readSegmentField<'map' | 'photo'>(missionId, segId, 'einsatzkarte:mode', 'map', legacy)
-  const mapImage = karteMode === 'photo'
-    ? readSegmentField<string>(missionId, segId, 'einsatzkarte:photo', '', legacy)
-    : readSegmentField<string>(missionId, segId, 'einsatzkarte:snapshot', '', legacy)
+  const kartePhoto = readSegmentField<string>(missionId, segId, 'einsatzkarte:photo', '', legacy)
+  const kartenSnapshot = readSegmentField<string>(missionId, segId, 'einsatzkarte:snapshot', '', legacy)
+  const localMapImage = karteMode === 'photo' ? kartePhoto : kartenSnapshot
+  // Mit Suchlage verknüpfter Abschnitt: Bild der Suchlage-Karte (vor dem Erstellen frisch
+  // gezeichnet) und dazu das Kartenfoto. Gibt es kein Suchlage-Bild, geht das Foto
+  // (sonst ein altes Kartenbild) nicht verloren.
+  const suchlageLink = readMissionField<SuchlageLink | null>(missionId, LINK_KEY, null)
+  const suchlageSegment = !!(segId && suchlageLink?.sections[segId])
+  const suchlageImage = suchlageSegment && segId ? getSuchlageMapImage(missionId, segId) : null
+  const mapImage = suchlageSegment
+    ? suchlageImage?.image || kartePhoto || kartenSnapshot
+    : localMapImage
+  const mapPhoto = suchlageImage && kartePhoto ? kartePhoto : ''
+  const mapCaption = suchlageImage
+    ? `Karte aus Suchlage, Stand ${new Date(suchlageImage.at).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+    : ''
 
   // Flugfreigabe
   const flugfreigabe = readSegmentField<string | null>(missionId, segId, 'flugfreigabe', null, legacy)
@@ -335,6 +353,8 @@ function collectSegmentData(
     anmeldungenChecked,
     anmeldungenAdditional,
     mapImage,
+    mapPhoto,
+    mapCaption,
     flugfreigabe,
     flugentscheidung,
     checklistGroups,
@@ -387,6 +407,8 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
         flightType: sd.flightType,
         anmeldungen: sd.anmeldungenItems,
         mapImage: sd.mapImage || undefined,
+        mapPhoto: sd.mapPhoto || undefined,
+        mapCaption: sd.mapCaption || undefined,
         flugfreigabe: sd.flugfreigabe,
         flugentscheidung: sd.flugentscheidung,
         checklistGroups: sd.checklistGroups,
@@ -740,6 +762,8 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
     // Legacy top-level fields (from primary/first segment for backward compatibility)
     anmeldungen: primaryData.anmeldungenItems,
     mapImage: primaryData.mapImage || undefined,
+    mapPhoto: primaryData.mapPhoto || undefined,
+    mapCaption: primaryData.mapCaption || undefined,
     location: primaryData.locationName,
     drone,
     payloads,

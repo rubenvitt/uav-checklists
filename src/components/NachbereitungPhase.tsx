@@ -8,11 +8,14 @@ import { readStorage } from '../hooks/usePersistedState'
 import { useMissionPersistedState } from '../hooks/useMissionPersistedState'
 import { useMissions } from '../hooks/useMissions'
 import { generateMissionReport } from '../utils/generateMissionReport'
-import { downloadPdf, sharePdf, canSharePdf } from '../utils/generateReport'
+import { downloadPdf, sharePdfOrDownload, canSharePdf } from '../utils/generateReport'
 import { useAutoExpand } from '../hooks/useAutoExpand'
 import { useNachbereitungCompleteness } from '../hooks/useSectionCompleteness'
 import { useAuth } from '../context/useAuth'
 import type { FlightLogEntry } from '../types/flightLog'
+import { enqueueSuchlage } from '../utils/suchlageStore'
+import { prepareSuchlageReportMaps } from '../utils/suchlageReportMap'
+import { useSuchlageMission } from '../hooks/useSuchlage'
 import DigitalSignaturePanel from './DigitalSignaturePanel'
 import EinsatzabschlussSection from './sections/EinsatzabschlussSection'
 import FlightDisruptionsSection from './sections/FlightDisruptionsSection'
@@ -38,9 +41,26 @@ export default function NachbereitungPhase() {
   const [signatureEl] = useMissionPersistedState<string>('signature:el', '')
   const signaturesMissing = !signatureFk.trim() || !signatureEl.trim()
 
+  // Verknüpft mit Suchlage: die Karte im Bericht wird beim Erstellen frisch geladen
+  // (höchstens 15 s, sonst letzter Stand). Ohne Verknüpfung sofort.
+  const suchlageMission = useSuchlageMission()
+  const [preparing, setPreparing] = useState(false)
+  const prepareReport = async () => {
+    if (!suchlageMission.link) return
+    setPreparing(true)
+    try {
+      await prepareSuchlageReportMaps(missionId, suchlageMission.linked)
+    } finally {
+      setPreparing(false)
+    }
+  }
+
   // Produces the exact PDF blob that gets signed AND downloaded, so the signed
   // copy's hash matches the registry entry on later verification.
-  const getReport = () => generateMissionReport(missionId, queryClient)
+  const getReport = async () => {
+    await prepareReport()
+    return generateMissionReport(missionId, queryClient)
+  }
 
   // Determine if flights were executed
   const entries = readStorage<FlightLogEntry[]>('flightlog:entries', [], missionId)
@@ -53,18 +73,23 @@ export default function NachbereitungPhase() {
       setConfirmComplete(true)
       return
     }
+    // Verknüpft mit Suchlage: dort abschließen – über die Ausgangsliste, also auch
+    // nachgeholt, wenn gerade ein Flug läuft oder kein Netz da ist.
+    enqueueSuchlage(missionId, { kind: 'close' })
     complete(missionId)
     navigate('/')
   }
 
-  const handleDownloadPdf = () => {
-    const result = generateMissionReport(missionId, queryClient)
+  const handleDownloadPdf = async () => {
+    const result = await getReport()
     if (result) downloadPdf(result.blob, result.filename)
   }
 
-  const handleSharePdf = () => {
-    const result = generateMissionReport(missionId, queryClient)
-    if (result) sharePdf(result.blob, result.filename).catch(() => { /* user cancelled */ })
+  const handleSharePdf = async () => {
+    const result = await getReport()
+    if (!result) return
+    // Nach dem Laden der Suchlage-Karte kann die Nutzergeste abgelaufen sein: dann herunterladen.
+    await sharePdfOrDownload(result.blob, result.filename)
   }
 
   // Auto-expand logic — must be called unconditionally (Rules of Hooks)
@@ -85,15 +110,17 @@ export default function NachbereitungPhase() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={handleDownloadPdf}
-            className="flex flex-1 items-center justify-center gap-2 border border-line bg-surface px-4 py-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt active:scale-[0.99]"
+            onClick={() => void handleDownloadPdf()}
+            disabled={preparing}
+            className="flex flex-1 items-center justify-center gap-2 border border-line bg-surface px-4 py-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt active:scale-[0.99] disabled:opacity-60"
           >
             <PiFilePdf className="text-lg" />
-            PDF herunterladen
+            {preparing ? 'Karte aus Suchlage wird geladen …' : 'PDF herunterladen'}
           </button>
           {canSharePdf() && (
             <button
-              onClick={handleSharePdf}
+              onClick={() => void handleSharePdf()}
+              disabled={preparing}
               className="flex items-center justify-center gap-2 border border-line bg-surface px-4 py-3 text-sm font-medium text-text transition-colors hover:bg-surface-alt active:scale-[0.99]"
               aria-label="PDF teilen"
               title="PDF teilen"
