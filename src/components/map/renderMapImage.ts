@@ -26,8 +26,8 @@ export async function renderMapImage(data: DisplayCollection, opts: RenderMapIma
   const height = opts.height ?? 600
 
   const host = document.createElement('div')
-  // Im Dokument, aber außerhalb des Bildes: MapLibre braucht eine echte Größe.
-  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${width}px;height:${height}px;pointer-events:none;`
+  // Im Dokument und unsichtbar: MapLibre braucht eine echte Größe.
+  host.style.cssText = `position:fixed;left:0;top:0;opacity:0;z-index:-1;width:${width}px;height:${height}px;pointer-events:none;`
   host.setAttribute('aria-hidden', 'true')
   document.body.appendChild(host)
 
@@ -54,14 +54,30 @@ export async function renderMapImage(data: DisplayCollection, opts: RenderMapIma
       const abort = () => reject(new DOMException('abgebrochen', 'AbortError'))
       if (opts.signal?.aborted) return abort()
       opts.signal?.addEventListener('abort', abort, { once: true })
+      let styleReady = false
       m.once('style.load', () => {
+        styleReady = true
         addSuchlageOverlay(m, data)
         if (bounds) m.fitBounds(bounds, { padding: 50, maxZoom: 16, animate: false })
         m.once('idle', () => resolve())
+        // Schlagen Kacheln fehl (offline), plant MapLibre keinen weiteren Frame und
+        // `idle` bleibt aus: sobald alles geladen oder gescheitert ist, selbst zeichnen.
+        const poll = () => {
+          if (opts.signal?.aborted) return
+          if (m.loaded() && m.areTilesLoaded() && !m.isMoving()) {
+            m.once('render', () => resolve())
+            m.triggerRepaint()
+          } else {
+            setTimeout(poll, 150)
+          }
+        }
+        // Erst nach dem ersten Frame prüfen, sonst gilt die Karte vor der ersten Kachelanfrage als geladen.
+        m.once('render', () => setTimeout(poll, 400))
       })
-      m.once('error', (ev) => {
-        // Einzelne Kachelfehler sind kein Abbruch; nur der Stil ist Pflicht.
-        if (!m.isStyleLoaded()) reject(ev.error ?? new Error('Karte nicht geladen'))
+      m.on('error', (ev) => {
+        // Kachelfehler (offline) sind kein Abbruch: die Formen stehen dann auf leerem Grund.
+        // Nur ohne Stil gibt es kein Bild.
+        if (!styleReady) reject(ev.error ?? new Error('Karte nicht geladen'))
       })
     })
     return m.getCanvas().toDataURL('image/jpeg', 0.85)
