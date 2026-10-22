@@ -8,6 +8,7 @@ import { fetchDwdWeather } from '../services/brightSkyApi'
 import { fetchNearbyPOIs, type NearbyCategory } from '../services/overpassApi'
 import type { WeatherResponse, WeatherData, SunData, WindAtAltitude, HourlyForecastPoint, MetarStationInfo, DwdWeatherResponse } from '../types/weather'
 import { setMissionField } from '../stores/missionFormStore'
+import { MANUAL_NEARBY_KEY, mergeNearbyCategories, type ManualNearbyEntry } from '../utils/manualNearby'
 
 /* ── Weather ──────────────────────────────────────────────── */
 
@@ -213,6 +214,8 @@ export function useMissionNearby(lat: number | null, lon: number | null): UseMis
   const queryClient = useQueryClient()
   const [persisted, setPersisted] = useSegmentPersistedState<NearbyCategory[] | null>('env:nearby', null)
   const [persistedCoords, setPersistedCoords] = useSegmentPersistedState<string | null>('env:nearby:coords', null)
+  // Handeinträge bleiben beim Neuladen und Ortswechsel stehen — nur die Abfrage wird ersetzt
+  const [manualEntries] = useSegmentPersistedState<ManualNearbyEntry[]>(MANUAL_NEARBY_KEY, [])
 
   const roundedLat = lat !== null ? Math.round(lat * 1000) / 1000 : null
   const roundedLon = lon !== null ? Math.round(lon * 1000) / 1000 : null
@@ -253,7 +256,7 @@ export function useMissionNearby(lat: number | null, lon: number | null): UseMis
   }, [queryClient, setPersisted])
 
   return {
-    categories: data ?? [],
+    categories: mergeNearbyCategories(data ?? [], manualEntries),
     loading: shouldFetch && query.isLoading,
     error: shouldFetch && query.error
       ? (query.error instanceof Error ? query.error.message : 'Umgebungsdaten konnten nicht geladen werden')

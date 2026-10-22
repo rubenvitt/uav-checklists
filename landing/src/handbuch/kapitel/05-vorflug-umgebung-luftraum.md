@@ -100,6 +100,12 @@ Bei Bahnstrecken, Straßen, Wasserstraßen und Strommasten steht statt einer Ent
 
 Einträge mit gleichem Namen fasst die App zusammen und zeigt nur den nächsten. Bei Strommasten bedeutet das: Die Kachel zeigt immer nur einen Eintrag **Strommast**, egal wie viele Masten in der Nähe stehen. Sie sagt also nur, *dass* es Masten gibt. Hat ein Objekt in der Karte keinen Namen, steht dort eine allgemeine Bezeichnung wie „Krankenhaus“ oder „Umspannwerk“.
 
+### Objekte selbst eintragen
+
+Die Karte kennt nicht alles, und ohne Netz kommt gar keine Liste. Mit **Objekt eintragen** unter den Kacheln tragt ihr selbst ein, was ihr vor Ort seht oder wisst: Objektart wählen, eine Bezeichnung eingeben, dazu Entfernung in Metern und Richtung, wenn ihr sie kennt. Ohne Entfernung steht dort **im Suchradius**. Passt keine Objektart, nehmt **Sonstige Objekte**.
+
+Der Eintrag erscheint in der Kachel seiner Art mit dem Hinweis **manuell** und zählt wie ein Fund aus der Karte: für das Abzeichen, die Empfehlung gegen Freigabe, die Fluganmeldungen und den PDF-Bericht. Das Kreuz am Ende der Zeile löscht ihn wieder. Einträge von Hand bleiben stehen, wenn die App die Liste neu lädt. Auch wenn die Abfrage scheitert, könnt ihr Objekte eintragen.
+
 ### Statusanzeige
 
 Das Abzeichen der **Umgebungsprüfung** zeigt:

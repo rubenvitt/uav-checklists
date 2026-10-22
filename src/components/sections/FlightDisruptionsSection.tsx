@@ -9,6 +9,7 @@ import type { MetricStatus, MetricAssessment } from '../../types/assessment'
 import type { DroneId } from '../../types/drone'
 import type { WeatherResponse, DwdWeatherResponse } from '../../types/weather'
 import type { NearbyCategory } from '../../services/overpassApi'
+import { MANUAL_NEARBY_KEY, mergeNearbyCategories, type ManualNearbyEntry } from '../../utils/manualNearby'
 import { getDroneById } from '../../data/drones'
 import { computeAssessment } from '../../utils/assessment'
 import ChecklistSection from '../ChecklistSection'
@@ -145,8 +146,11 @@ function usePreflightHints(): Record<string, PreflightHint[]> {
     }
 
     // Nearby
-    const nearby = readSegmentField<NearbyCategory[] | null>(missionId, segId, 'env:nearby', null, isFirst)
-    if (nearby) {
+    const nearby = mergeNearbyCategories(
+      readSegmentField<NearbyCategory[] | null>(missionId, segId, 'env:nearby', null, isFirst) ?? [],
+      readSegmentField<ManualNearbyEntry[]>(missionId, segId, MANUAL_NEARBY_KEY, [], isFirst),
+    )
+    if (nearby.length > 0) {
       for (const cat of nearby) {
         const existing = allNearbyCategories.find(c => c.key === cat.key)
         if (!existing) {
