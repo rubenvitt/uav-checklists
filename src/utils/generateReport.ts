@@ -600,10 +600,10 @@ export function generateReport(data: ReportData) {
           doc.setFontSize(FONTS.body)
           doc.setFont('helvetica', 'normal')
           setColor(COLORS.textMuted)
-          const distStr = item.distance !== null && item.direction
-            ? `${formatDistance(item.distance)} ${item.direction}`
+          const distStr = item.distance !== null
+            ? `${formatDistance(item.distance)}${item.direction ? ` ${item.direction}` : ''}`
             : 'im Suchradius'
-          doc.text(`  ${item.name}`, margin + 2, y)
+          doc.text(`  ${item.name}${item.manualId ? ' (manuell)' : ''}`, margin + 2, y)
           doc.text(distStr, margin + contentWidth - doc.getTextWidth(distStr), y)
           y += 4.5
         }

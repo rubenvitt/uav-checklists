@@ -4,6 +4,7 @@ import type { WeatherResponse, DwdWeatherResponse } from '../types/weather'
 import type { FlightTrafficSnapshot } from '../types/traffic'
 import { assessTraffic } from './trafficAssessment'
 import type { NearbyCategory } from '../services/overpassApi'
+import { MANUAL_NEARBY_KEY, mergeNearbyCategories, type ManualNearbyEntry } from './manualNearby'
 import type { ArcClass } from '../components/ArcDetermination'
 import type { FlightLogEntry, EventNote } from '../types/flightLog'
 import type { AssessmentResult } from '../types/assessment'
@@ -232,6 +233,10 @@ function collectSegmentData(
     const roundedLon = Math.round(lon * 1000) / 1000
     categories = queryClient.getQueryData<NearbyCategory[]>(['nearby', roundedLat, roundedLon]) ?? []
   }
+  categories = mergeNearbyCategories(
+    categories,
+    readSegmentField<ManualNearbyEntry[]>(missionId, segId, MANUAL_NEARBY_KEY, [], legacy),
+  )
 
   // Weather assessment
   let assessment: AssessmentResult | null = null

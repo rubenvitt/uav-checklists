@@ -6,6 +6,8 @@ export interface NearbyItem {
   name: string
   distance: number | null
   direction: string | null
+  /** Gesetzt bei einem Handeintrag der Umgebungsprüfung (nicht aus OpenStreetMap): dessen ID */
+  manualId?: string
 }
 
 export interface NearbyCategory {
@@ -154,6 +156,10 @@ const CATEGORY_DEFS: CategoryDef[] = [
     },
   },
 ]
+
+/** Objektarten der Umgebungsprüfung in Anzeigereihenfolge (auch für Handeinträge) */
+export const NEARBY_CATEGORIES: ReadonlyArray<Pick<NearbyCategory, 'key' | 'label' | 'isLinear'>> =
+  CATEGORY_DEFS.map(({ key, label, isLinear }) => ({ key, label, isLinear }))
 
 function buildQuery(lat: number, lon: number): string {
   const r = SEARCH_RADIUS
