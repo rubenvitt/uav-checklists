@@ -74,7 +74,11 @@ export function useMissionSegment() {
   }, [missionId, snapshot.segments.length])
 
   const setLocationName = useCallback((segmentId: string, name: string) => {
-    updateLocationNameStorage(missionId, segmentId, name)
+    // Verknüpft mit Suchlage: den Ort dort nachreichen, er steht oft erst nach der
+    // Verlegung fest. Ohne Verknüpfung passiert nichts.
+    if (updateLocationNameStorage(missionId, segmentId, name)) {
+      enqueueSuchlage(missionId, { kind: 'sectionUpdate', segmentId })
+    }
     refresh(missionId)
   }, [missionId])
 

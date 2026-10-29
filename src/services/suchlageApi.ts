@@ -17,6 +17,7 @@ import type {
   FmMissionCreate,
   FmMissionLink,
   FmSectionCreate,
+  FmSectionUpdate,
 } from '../types/suchlage'
 
 export const SUCHLAGE_API_PREFIX = '/api/flugmappe/v1'
@@ -213,6 +214,12 @@ export function createSuchlageClient(opts: SuchlageClientOptions) {
       request<FmMission>(`${m(id)}/link`, { method: 'POST', json: { ...body, section_label: clampSectionLabel(body.section_label) } }),
     createSection: (id: number, fmMissionId: string, body: FmSectionCreate) =>
       request<FmMission>(`${m(id)}/sections`, { method: 'POST', json: { ...body, label: clampSectionLabel(body.label) }, fmMissionId }),
+    updateSection: (id: number, fmMissionId: string, fmSectionId: string, body: FmSectionUpdate) =>
+      request<FmMission>(`${m(id)}/sections/${encodeURIComponent(fmSectionId)}`, {
+        method: 'PUT',
+        json: { ...body, label: clampSectionLabel(body.label) },
+        fmMissionId,
+      }),
     flights: (id: number, fmMissionId: string, signal?: AbortSignal) =>
       request<FmFlight[]>(`${m(id)}/flights`, { fmMissionId, signal }),
     map: (id: number, fmMissionId: string, fmSectionId?: string | null, signal?: AbortSignal) =>
