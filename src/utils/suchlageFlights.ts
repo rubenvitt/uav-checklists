@@ -9,6 +9,7 @@
 import type { FlightLogEntry, SuchlageFlightRef } from '../types/flightLog'
 import type { PayloadId } from '../types/payload'
 import type { FmFlight } from '../types/suchlage'
+import { sortByBlockOff } from './flightLogOrder'
 
 /** Höchster Abstand der Startzeiten, um einen eigenen Eintrag zum Zusammenführen anzubieten. */
 export const MERGE_WINDOW_MS = 5 * 60_000
@@ -156,19 +157,23 @@ export function confirmFlight(flight: FmFlight, ctx: ConfirmContext): FlightLogE
 /**
  * „Bestätigen“ als Änderung am Flugbuch, idempotent: nichts tun, wenn der Flug
  * schon in einem Eintrag steht oder ein zweiter offener Eintrag entstünde.
+ * Der Eintrag kommt nach seiner Startzeit an seinen Platz, nicht ans Ende.
  */
 export function addConfirmedFlight(entries: FlightLogEntry[], flight: FmFlight, ctx: ConfirmContext): FlightLogEntry[] {
   if (entries.some((e) => e.suchlage?.flightId === flight.id)) return entries
   if (wouldStayOpen(flight) && entries.some((e) => e.blockOn === null)) return entries
-  return [...entries, confirmFlight(flight, ctx)]
+  return sortByBlockOff([...entries, confirmFlight(flight, ctx)])
 }
 
-/** Zusammenführen als Änderung am Flugbuch, idempotent (Flug schon verknüpft, Ziel hat schon einen Bezug). */
+/**
+ * Zusammenführen als Änderung am Flugbuch, idempotent (Flug schon verknüpft, Ziel hat schon einen Bezug).
+ * Die Startzeit kommt aus der Telemetrie, der Eintrag rückt also gegebenenfalls an seinen Platz.
+ */
 export function applyMerge(entries: FlightLogEntry[], entryId: string, flight: FmFlight): FlightLogEntry[] {
   if (entries.some((e) => e.suchlage?.flightId === flight.id)) return entries
   const target = entries.find((e) => e.id === entryId)
   if (!target || target.suchlage) return entries
-  return entries.map((e) => (e.id === entryId ? mergeFlight(e, flight) : e))
+  return sortByBlockOff(entries.map((e) => (e.id === entryId ? mergeFlight(e, flight) : e)))
 }
 
 /** „Mit Flug N zusammenführen“: eigener Eintrag bekommt den Bezug und die Telemetrie-Zeiten. */

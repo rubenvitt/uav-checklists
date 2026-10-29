@@ -12,6 +12,7 @@ import type { NearbyCategory } from '../../services/overpassApi'
 import { MANUAL_NEARBY_KEY, mergeNearbyCategories, type ManualNearbyEntry } from '../../utils/manualNearby'
 import { getDroneById } from '../../data/drones'
 import { computeAssessment } from '../../utils/assessment'
+import { sortByBlockOff } from '../../utils/flightLogOrder'
 import ChecklistSection from '../ChecklistSection'
 
 /* ── Disruption category definitions ─────────────────────── */
@@ -41,7 +42,7 @@ interface FlightContext {
 
 function useFlightContext(): FlightContext {
   const missionId = useMissionId()
-  const entries = readStorage<FlightLogEntry[]>('flightlog:entries', [], missionId)
+  const entries = sortByBlockOff(readStorage<FlightLogEntry[]>('flightlog:entries', [], missionId))
   const events = readStorage<EventNote[]>('flightlog:events', [], missionId)
 
   const issueFlights = entries

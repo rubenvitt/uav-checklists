@@ -26,6 +26,7 @@ import { useSuchlageMission } from '../hooks/useSuchlage'
 import { useSuchlageFlights } from '../hooks/useSuchlageData'
 import { addConfirmedFlight, applyMerge, computeProposals, needsManualLanding, syncFromSuchlage } from '../utils/suchlageFlights'
 import { formatDistance } from '../utils/suchlageReport'
+import { sortByBlockOff } from '../utils/flightLogOrder'
 import type { FmFlight } from '../types/suchlage'
 
 const LANDING_STATUS_CONFIG: Record<LandingStatus, { label: string; color: string; bgColor: string; borderColor: string; icon: React.ReactNode }> = {
@@ -98,7 +99,8 @@ export default function FluegePhase() {
   const navigate = useNavigate()
   const { segments, activeSegment, activeSegmentId, isMultiSegment, startRelocation } = useMissionSegment()
   const [rawEntries, setEntries] = useMissionPersistedState<FlightLogEntry[]>('flightlog:entries', [])
-  const entries = migrateEntries(rawEntries)
+  // Startreihenfolge: daraus kommen die Flugnummern (auch für ältere, ungeordnet gespeicherte Einsätze)
+  const entries = sortByBlockOff(migrateEntries(rawEntries))
   const [defaultFp] = useMissionPersistedState<string>('crew_fp', '')
   const [defaultLrb] = useMissionPersistedState<string>('crew_lrb', '')
   const crewSuggestions = useCrewSuggestions()
@@ -199,8 +201,9 @@ export default function FluegePhase() {
   }
 
   function updateEntry(id: string, updates: Partial<FlightLogEntry>) {
+    // Geänderte Startzeit: Eintrag rückt an seinen Platz
     setEntries((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...updates } : e)),
+      sortByBlockOff(prev.map((e) => (e.id === id ? { ...e, ...updates } : e))),
     )
   }
 
