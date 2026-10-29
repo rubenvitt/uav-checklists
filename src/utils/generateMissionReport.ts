@@ -23,6 +23,7 @@ import { FUNKTIONS_ITEMS } from '../data/funktionskontrolleItems'
 import { isNegativeAnswer, isPositiveAnswer } from './checklistState'
 import { LINK_KEY, type SuchlageLink } from './suchlageStore'
 import { getSuchlageMapImage } from './suchlageReportMap'
+import { sortByBlockOff } from './flightLogOrder'
 
 const PREFIX = 'uav-form:'
 const TTL = 56 * 60 * 60 * 1000
@@ -379,7 +380,8 @@ export function generateMissionReport(missionId: string, queryClient: QueryClien
   const persistedKIndex = readMissionField<{ kIndex: number } | null>(missionId, 'env:kindex', null)
 
   // All flight log entries & events (will be filtered per segment)
-  const allFlightLog = readMissionField<FlightLogEntry[]>(missionId, 'flightlog:entries', [])
+  // Startreihenfolge, die Flugnummern im Bericht folgen ihr
+  const allFlightLog = sortByBlockOff(readMissionField<FlightLogEntry[]>(missionId, 'flightlog:entries', []))
   const allEventNotes = readMissionField<EventNote[]>(missionId, 'flightlog:events', [])
 
   // Determine segments

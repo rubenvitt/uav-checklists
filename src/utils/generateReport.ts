@@ -7,6 +7,7 @@ import type { NearbyCategory } from '../services/overpassApi'
 import type { AssessmentResult, MetricStatus } from '../types/assessment'
 import type { FlightLogEntry, EventNote } from '../types/flightLog'
 import { suchlageReportDetails } from './suchlageReport'
+import { sortByBlockOff } from './flightLogOrder'
 import type { MetarStationInfo } from '../types/weather'
 import type { FlightTrafficSnapshot, TrafficAssessment } from '../types/traffic'
 import { EMERGENCY_LABELS, aircraftLabel, formatSnapshotTime } from './trafficAssessment'
@@ -856,6 +857,12 @@ export function generateReport(data: ReportData) {
     }
   }
 
+  // Flugnummer = Position in der Startreihenfolge über alle Standorte (SUL-109),
+  // auch wenn ein Flug nachträglich einem früheren Standort zugeordnet ist
+  const flightNumbers = new Map(
+    sortByBlockOff((data.segments ?? []).flatMap((seg) => seg.flightLog ?? [])).map((f, i) => [f.id, i + 1]),
+  )
+
   function drawFlightLog(flightLog: FlightLogEntry[], startIndex: number = 0) {
     // Reminder
     checkPageBreak(10)
@@ -878,7 +885,7 @@ export function generateReport(data: ReportData) {
       doc.setFontSize(FONTS.body)
       doc.setFont('helvetica', 'bold')
       setColor(COLORS.text)
-      doc.text(`Flug ${startIndex + i + 1}`, margin + 4, y)
+      doc.text(`Flug ${flightNumbers.get(flight.id) ?? startIndex + i + 1}`, margin + 4, y)
       y += 7
 
       // Block Off

@@ -153,6 +153,16 @@ describe('addConfirmedFlight / applyMerge', () => {
     expect(applyMerge(merged, 'a', flight(2, 1, null))).toBe(merged)
     expect(applyMerge(entries, 'fehlt', flight(3, 1, null))).toBe(entries)
   })
+
+  it('sortiert einen nachträglich bestätigten älteren Flug nach Startzeit ein (SUL-109)', () => {
+    const entries = [entry('a', 0, 5), entry('b', 34, 40)]
+    expect(addConfirmedFlight(entries, flight(1, 9, 20), ctx).map((e) => e.id)).toEqual(['a', 'neu', 'b'])
+  })
+
+  it('rückt einen Eintrag an seinen Platz, wenn das Zusammenführen die Startzeit verschiebt', () => {
+    const entries = [entry('a', 0, 5), entry('b', 10, 12), entry('c', 14, 20)]
+    expect(applyMerge(entries, 'b', flight(1, 15, 18)).map((e) => e.id)).toEqual(['a', 'c', 'b'])
+  })
 })
 
 describe('confirmFlight', () => {
