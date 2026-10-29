@@ -81,6 +81,18 @@ describe('handleStorageEvent', () => {
     expect(JSON.parse(storage.getItem(`uav-form:${M}:flightLog`)!).value).toEqual([{ id: 'f1' }, { id: 'f2' }, { id: 'f3' }])
   })
 
+  it('übernimmt kein überholtes Ereignis über einen neueren eigenen Schreibvorgang', () => {
+    const atom = getMissionAtom(M)
+    // Tab A schreibt f1 …
+    const fromA = entry([{ id: 'f1' }])
+    storage.setItem(`uav-form:${M}:flightLog`, fromA)
+    // … Tab B schreibt f2, bevor das Ereignis von A ankommt.
+    setMissionField(M, 'flightLog', [{ id: 'f2' }])
+    handleStorageEvent({ key: `uav-form:${M}:flightLog`, newValue: fromA, storageArea: storage })
+
+    expect(atom.get().flightLog).toEqual([{ id: 'f2' }])
+  })
+
   it('lädt nach clear() alle bekannten Einsätze neu', () => {
     const atom = getMissionAtom(M)
     setMissionField(M, 'crew', 'A')

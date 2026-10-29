@@ -85,8 +85,10 @@ export function handleStorageEvent(event: Pick<StorageEvent, 'key' | 'newValue' 
   if (!parsed) return
   const atom = atomCache.get(parsed.missionId)
   if (!atom) return
+  // Den aktuellen Stand lesen, nicht `event.newValue`: Hat dieser Tab dasselbe Feld
+  // geschrieben, bevor das Ereignis ankam, ist das Ereignis schon überholt.
   const prev = atom.get()
-  const next = applyStorageChange(prev, parsed.key, event.newValue)
+  const next = applyStorageChange(prev, parsed.key, localStorage.getItem(event.key))
   if (next !== prev) atom.set(next)
 }
 
