@@ -348,6 +348,8 @@ Stand ist. Ohne Netz zeigt die App den zuletzt geladenen Stand. Nach einer
 Verlegung steht dort kurz **Abschnitt wird in Suchlage angelegt …**, bis
 Suchlage den neuen Abschnitt kennt.
 
+![Abschnitt Einsatzkarte mit dem Abzeichen „Aus Suchlage“ und dem aktiven Reiter „Karte aus Suchlage“: Grundkarte der Herrenhäuser Gärten mit gelbem Suchgebiet, blau gestrichelter Flugspur in Bahnen und zwei violett gestrichelten Linien, darunter „Stand 19:13“, der Hinweis „Gezeichnet wird in Suchlage …“ und der Knopf „In Suchlage bearbeiten“.](handbuch/einsatzdaten-karte-suchlage.webp "Die Karte aus Suchlage ist nur zum Ansehen. Was ihr ändern wollt, zeichnet ihr in Suchlage.")
+
 Der Abschnitt gilt als erledigt, sobald eine Karte aus Suchlage geladen ist
 oder ein Kartenfoto vorliegt. Ein **Kartenfoto** geht zusätzlich als
 Kartenfoto des Abschnitts an Suchlage. In den Bericht kommt die Karte aus
