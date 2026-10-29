@@ -220,11 +220,15 @@ genau wie sonst, und der Abschnitt zählt nicht für **Weiter**.
    **Name** (Einsatzstichwort) und **Ort** und tippt auf **In Suchlage anlegen
    und verknüpfen**.
 
+![Aufgeklappter Abschnitt Suchlage: unter „Offene Einsätze in Suchlage“ der laufende Einsatz „Hochwasser Deich Nord“ mit dem Knopf „Wählen“ und die vorbereitete „Übung Kiesgrube“, mit anderer Flugmappe verknüpft, mit „Übernehmen …“; darunter „Neu in Suchlage anlegen“ mit Name, Ort und dem Knopf „In Suchlage anlegen und verknüpfen“](handbuch/einsatzdaten-suchlage-auswahl.webp "Läuft euer Einsatz schon in Suchlage, wählt ihn aus. Sonst legt ihr ihn hier neu an.")
+
 Erst mit diesem Tipp passiert etwas. Danach zeigt der Abschnitt den Namen des
 Einsatzes, **Verknüpft seit …**, das grüne Abzeichen **Verknüpft** und den
 Link **In Suchlage öffnen**. Was ihr bis dahin auf der Einsatzkarte
 gezeichnet habt (Einsatzgebiet und Standort), übernimmt die App einmalig nach
 Suchlage.
+
+![Abschnitt Suchlage nach dem Verknüpfen: grünes Abzeichen „Verknüpft“, der Einsatz „Hochwasser Deich Nord“ mit „Verknüpft seit …“ und der Link „In Suchlage öffnen“](handbuch/einsatzdaten-suchlage-verknuepft.webp "Nach dem Verknüpfen zeigt der Abschnitt nur noch den gewählten Einsatz.")
 
 > [!WICHTIG]
 > Eine Verknüpfung lässt sich in der Flugmappe nicht lösen. Sie endet mit dem

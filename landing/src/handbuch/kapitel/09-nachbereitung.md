@@ -425,6 +425,8 @@ Ist der Einsatz mit Suchlage verknüpft, ändert sich zweierlei:
   Fotos gemacht, steht dort „Fotos und Video zu diesem Flug liegen in
   Suchlage.“ Unbestätigte Vorschläge kommen nicht in den Bericht.
 
+![Seite des Berichts mit dem Flugtagebuch: Flug 1 bis 3 mit Block Off, Block On, Besatzung und Landung, darunter jeweils Fluggerät „RC Plus 1“, Max. Höhe und Strecke und der Satz „Fotos und Video zu diesem Flug liegen in Suchlage.“](handbuch/nachbereitung-pdf-suchlage-flugtagebuch.webp "Das Flugtagebuch eines verknüpften Einsatzes: Fluggerät, Höhe und Strecke kommen aus Suchlage.")
+
 Auf jeder Seite steht unten Seitenzahl, „UAV Missionsbericht“ und der
 Erstellungszeitpunkt. Habt ihr verlegt, wiederholen sich die Kapitel 2 und 3
 für jeden Standort, jeweils mit einem Balken mit Standortname davor.

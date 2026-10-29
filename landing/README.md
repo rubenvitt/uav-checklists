@@ -162,6 +162,8 @@ nicht nachgebaut. Erzeugt werden sie mit den Skripten in
 ```bash
 # 1. PWA starten (im Projektwurzelverzeichnis)
 pnpm dev                       # http://localhost:5174
+#    Für das Handbuch stattdessen mit Suchlage und Anmeldung (siehe unten):
+pnpm dev --mode handbuch
 
 # 2. Im landing/-Verzeichnis: Werkzeuge bereitstellen
 pnpm add -D playwright sharp
@@ -193,6 +195,17 @@ hinterlegt sind die Overpass-Antwort (Umgebungsprüfung) und die ADS-B-Antwort
 (erfundener, aber plausibler Verkehr um Hannover). Für die Aufnahme
 `luftraum` taucht ein zusätzlicher Hubschrauber auf, damit die
 Luftraumüberwachung ihre Meldung zeigt.
+
+Die Handbuch-Bilder zur Verknüpfung mit Suchlage (Kapitel Einsatzdaten,
+Flüge, Nachbereitung) brauchen keinen echten Suchlage-Server.
+`pnpm dev --mode handbuch` liest `.env.handbuch` im Projektwurzelverzeichnis
+(erfundene `.invalid`-Adressen für Suchlage, Anmeldung und Signatur-Backend).
+`tools/screenshots/suchlage.mjs` legt eine angemeldete Einsatzkraft in den
+Speicher und beantwortet die Anfragen an Suchlage mit den Beispieldaten aus
+Suchlage (`suchlage-fixtures.mjs`, wörtlich aus
+`suchlage/frontend/src/contract/fixtures.generated.ts`), angepasst an den
+Beispiel-Einsatz. Ohne angemeldete Einsatzkraft sieht die App in diesem Modus
+aus wie sonst; mit einfachem `pnpm dev` fehlen nur die Suchlage-Bilder.
 
 Alle Aufnahmen sind im Handyformat, auch für die Desktop-Ansicht der Seite:
 Desktop-Aufnahmen der App wären im Rahmen zu klein, um sie zu lesen.

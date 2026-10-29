@@ -6,8 +6,11 @@
  * Teil 1 zeigt einen frisch angelegten Einsatz ohne GPS-Freigabe (Standort
  * fehlt, Einsatzkarte gesperrt). Teil 2 arbeitet mit dem Beispiel-Einsatz aus
  * seed.mjs: ausgefüllte Abschnitte, Standortsuche, Zeichnen auf der
- * Einsatzkarte, Kartenfoto, Missionsbriefing.
+ * Einsatzkarte, Kartenfoto, Missionsbriefing. Teil 3 zeigt die Verknüpfung
+ * mit Suchlage (nachgebildet, siehe suchlage.mjs; braucht `pnpm dev --mode
+ * handbuch`): Auswahl, verknüpfter Abschnitt und die Karte aus Suchlage.
  */
+import { buildSuchlage, loginStorage, routeSuchlage, suchlageAvailable } from '../suchlage.mjs'
 
 const FRESH = 'cccccccc-dddd-4eee-8fff-000000000001'
 const FRESH_SEG = 'cccccccc-dddd-4eee-8fff-000000000002'
@@ -200,4 +203,36 @@ export default async function ({ makeContext, go, shot: rawShot, crop, scrollTo,
   await crop(page, brief, 'einsatzdaten-missionsbriefing')
 
   await ctx.close()
+
+  // ── Teil 3: Verknüpfung mit Suchlage ─────────────────────────────────────
+  {
+    const now = Date.now()
+    const sl = buildSuchlage(now, seed)
+    const ctx = await makeContext({ storage: { ...seed.buildStorage(now), ...loginStorage(now) }, reseed: 'once' })
+    await routeSuchlage(ctx, sl)
+    const page = await ctx.newPage()
+    await go(page, `/mission/${MID}/einsatzdaten`, 3000)
+    if (await suchlageAvailable(page)) {
+      await close(page, 'Einsatzdetails')
+      await close(page, 'Einsatzauftrag')
+      await open(page, 'Suchlage')
+      await section(page, 'Suchlage').getByText(sl.missions[0].name).waitFor({ timeout: 15000 })
+      await page.waitForTimeout(400)
+      await crop(page, section(page, 'Suchlage'), 'einsatzdaten-suchlage-auswahl')
+
+      await section(page, 'Suchlage').getByRole('button', { name: 'Wählen' }).first().click()
+      await section(page, 'Suchlage').getByText('Verknüpft seit', { exact: false }).waitFor({ timeout: 15000 })
+      await page.waitForTimeout(600)
+      await crop(page, section(page, 'Suchlage'), 'einsatzdaten-suchlage-verknuepft')
+      await close(page, 'Suchlage')
+
+      // Einsatzkarte: jetzt die Karte aus Suchlage (nur ansehen)
+      await open(page, 'Einsatzkarte')
+      await section(page, 'Einsatzkarte').getByText('Gezeichnet wird in Suchlage', { exact: false }).waitFor({ timeout: 20000 })
+      await section(page, 'Einsatzkarte').locator('canvas').first().waitFor({ timeout: 20000 })
+      await page.waitForTimeout(8000) // Kartenkacheln
+      await crop(page, section(page, 'Einsatzkarte'), 'einsatzdaten-karte-suchlage')
+    }
+    await ctx.close()
+  }
 }

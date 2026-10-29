@@ -8,12 +8,17 @@
  * wird eine Unterschrift gezeichnet und eine getippt; daraus entsteht das PDF,
  * dessen Seiten zusätzlich als Bild abgelegt werden (braucht `pdftoppm` aus
  * poppler-utils; fehlt es, werden nur diese Bilder übersprungen).
+ *
+ * Teil 10 erzeugt den Bericht eines mit Suchlage verknüpften Einsatzes
+ * (Suchlage nachgebildet, siehe suchlage.mjs; braucht `pnpm dev --mode
+ * handbuch`): Einsatzkarte aus Suchlage und Flugtagebuch mit Suchlage-Werten.
  */
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { buildSuchlage, linkFlightLog, linkStorage, loginStorage, routeSuchlage } from '../suchlage.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 // Gleiches Zwischenverzeichnis wie handbuch.mjs — PNGs darin werden danach in WebP umgewandelt.
@@ -78,6 +83,42 @@ export default async function ({ makeContext, go, shot, crop, expand, scrollTo, 
     }
     await page.screenshot({ path: path.join(TMP, `${name}.png`), clip, fullPage: true })
     console.log('  ->', name, '(Bereich)')
+  }
+
+  /**
+   * Holt das PDF aus der offenen Dokument-Vorschau und legt ausgewählte Seiten
+   * als Bild ab. `pick(pdf, pages, pageText)` liefert Seitenindex → Bildname
+   * (Objekt) oder Paare `[index, name]`, wenn eine Seite mehrere Bilder ergibt.
+   */
+  async function capturePdf(page, pick) {
+    const src = await page.locator('iframe[title="PDF-Vorschau"]').getAttribute('src').catch(() => null)
+    if (!src) {
+      console.log('    (keine PDF-Vorschau)')
+      return
+    }
+    const b64 = await page.evaluate(async (u) => {
+      const buf = new Uint8Array(await (await fetch(u)).arrayBuffer())
+      let s = ''
+      for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000))
+      return btoa(s)
+    }, src)
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'flugmappe-pdf-'))
+    const pdf = path.join(dir, 'bericht.pdf')
+    fs.writeFileSync(pdf, Buffer.from(b64, 'base64'))
+    try {
+      execFileSync('pdftoppm', ['-png', '-r', '110', pdf, path.join(dir, 'seite')])
+      const pages = fs.readdirSync(dir).filter((f) => f.startsWith('seite') && f.endsWith('.png')).sort()
+      console.log('    PDF:', pages.length, 'Seiten')
+      const pageText = (i) => execFileSync('pdftotext', ['-f', String(i + 1), '-l', String(i + 1), pdf, '-']).toString()
+      const picked = pick(pdf, pages, pageText)
+      for (const [i, name] of Array.isArray(picked) ? picked : Object.entries(picked)) {
+        fs.copyFileSync(path.join(dir, pages[i]), path.join(TMP, `${name}.png`))
+        console.log('  ->', name, '(PDF-Seite', Number(i) + 1, ')')
+      }
+    } catch (err) {
+      console.log('    (PDF-Seiten übersprungen:', err.message, ')')
+    }
+    fs.rmSync(dir, { recursive: true, force: true })
   }
 
   const ctx = await makeContext({ storage: storage(), reseed: 'once' })
@@ -187,39 +228,14 @@ export default async function ({ makeContext, go, shot, crop, expand, scrollTo, 
     console.log('  -> nachbereitung-vorschau-leiste (Bereich)')
   }
 
-  const src = await page.locator('iframe[title="PDF-Vorschau"]').getAttribute('src').catch(() => null)
-  if (src) {
-    const b64 = await page.evaluate(async (u) => {
-      const buf = new Uint8Array(await (await fetch(u)).arrayBuffer())
-      let s = ''
-      for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode(...buf.subarray(i, i + 0x8000))
-      return btoa(s)
-    }, src)
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'flugmappe-pdf-'))
-    const pdf = path.join(dir, 'bericht.pdf')
-    fs.writeFileSync(pdf, Buffer.from(b64, 'base64'))
-    try {
-      execFileSync('pdftoppm', ['-png', '-r', '110', pdf, path.join(dir, 'seite')])
-      const pages = fs.readdirSync(dir).filter((f) => f.startsWith('seite') && f.endsWith('.png')).sort()
-      console.log('    PDF:', pages.length, 'Seiten')
-      // Seite mit Abschnitt 4.2 „Nachflugkontrolle“ suchen (Kapitel 4 „Nachbereitung“)
-      let nb = -1
-      for (let i = 0; i < pages.length && nb < 0; i++) {
-        const txt = execFileSync('pdftotext', ['-f', String(i + 1), '-l', String(i + 1), pdf, '-']).toString()
-        if (/4\.2\s+Nachflugkontrolle/.test(txt)) nb = i
-      }
-      const wanted = { 0: 'nachbereitung-pdf-deckblatt', 1: 'nachbereitung-pdf-einsatzuebersicht' }
-      if (nb >= 0) wanted[nb] = 'nachbereitung-pdf-nachbereitung'
-      wanted[pages.length - 1] = 'nachbereitung-pdf-unterschriften'
-      for (const [i, name] of Object.entries(wanted)) {
-        fs.copyFileSync(path.join(dir, pages[i]), path.join(TMP, `${name}.png`))
-        console.log('  ->', name, '(PDF-Seite', Number(i) + 1, ')')
-      }
-    } catch (err) {
-      console.log('    (PDF-Seiten übersprungen:', err.message, ')')
-    }
-    fs.rmSync(dir, { recursive: true, force: true })
-  }
+  await capturePdf(page, (pdf, pages, pageText) => {
+    // Seite mit Abschnitt 4.2 „Nachflugkontrolle“ suchen (Kapitel 4 „Nachbereitung“)
+    const nb = pages.findIndex((_, i) => /4\.2\s+Nachflugkontrolle/.test(pageText(i)))
+    const wanted = { 0: 'nachbereitung-pdf-deckblatt', 1: 'nachbereitung-pdf-einsatzuebersicht' }
+    if (nb >= 0) wanted[nb] = 'nachbereitung-pdf-nachbereitung'
+    wanted[pages.length - 1] = 'nachbereitung-pdf-unterschriften'
+    return wanted
+  })
   await ctx.close()
 
   // 9) Abgeschlossener Einsatz (zweiter Einsatz im Seed)
@@ -234,4 +250,32 @@ export default async function ({ makeContext, go, shot, crop, expand, scrollTo, 
   })
   console.log('  -> nachbereitung-abgeschlossen (Bereich)')
   await ctx2.close()
+
+  // 10) Bericht eines mit Suchlage verknüpften Einsatzes
+  {
+    const now = Date.now()
+    const sl = buildSuchlage(now, seed)
+    const s = { ...storage(), ...loginStorage(now), ...linkStorage(sl, now - 80 * 60e3) }
+    linkFlightLog(s, sl, { confirmed: ['f1', 'f2', 'f3'] })
+    const ctx3 = await makeContext({ storage: s, reseed: 'once' })
+    await routeSuchlage(ctx3, sl)
+    const page3 = await ctx3.newPage()
+    await go(page3, `/mission/${MID}/nachbereitung`, 3500)
+    await page3.evaluate(() => { URL.revokeObjectURL = () => {} })
+    await expand(page3, 'Einsatzabschluss')
+    await page3.getByRole('button', { name: 'Dokument prüfen' }).click()
+    // Die Karte aus Suchlage wird vor dem Erstellen frisch geladen und gezeichnet (bis 15 s).
+    await page3.locator('iframe[title="PDF-Vorschau"]').waitFor({ timeout: 45000 }).catch(() => {})
+    await page3.waitForTimeout(1500)
+    await capturePdf(page3, (pdf, pages, pageText) => {
+      const wanted = []
+      const map = pages.findIndex((_, i) => /Karte aus Suchlage/.test(pageText(i)))
+      const log = pages.findIndex((_, i) => /Fotos und Video zu diesem Flug liegen/.test(pageText(i)))
+      if (map < 0) console.log('    (keine Seite mit „Karte aus Suchlage“ — Kartenkacheln nicht erreichbar, oder PWA nicht mit `pnpm dev --mode handbuch` gestartet)')
+      else wanted.push([map, 'nachbereitung-pdf-suchlage-karte'])
+      if (log >= 0) wanted.push([log, 'nachbereitung-pdf-suchlage-flugtagebuch'])
+      return wanted
+    })
+    await ctx3.close()
+  }
 }

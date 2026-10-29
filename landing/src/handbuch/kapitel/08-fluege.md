@@ -178,6 +178,8 @@ oben als gestrichelte Kästen **Von Suchlage erkannt · unbestätigt**, mit
 Start und Ende, Fluggerät, größter Höhe, Strecke und der Zahl der Fotos.
 Ein Flug, der gerade läuft, trägt das Zeichen **Läuft**.
 
+![Zwei gestrichelte Kästen „Von Suchlage erkannt · unbestätigt“ mit Start und Ende, Fluggerät „RC Plus 1“, Höhe, Strecke und Fotos: der erste mit dem Knopf „Mit Flug 2 zusammenführen“, der zweite mit „Bestätigen“](handbuch/fluege-suchlage-vorschlaege.webp "Den ersten Flug habt ihr selbst gestartet, er wird zusammengeführt. Der zweite fehlt noch im Flugbuch und wird bestätigt.")
+
 Ein solcher Vorschlag ist noch **kein** Eintrag im Flugtagebuch und kommt
 nicht in den Bericht. Ihr entscheidet mit einem Tipp:
 
@@ -200,6 +202,8 @@ Bestätigte Flüge tragen im Flugtagebuch die Marke **Suchlage** mit
 Fluggerät, Höhe, Strecke und Fotos. Landet die Drohne, trägt die App die
 Landezeit aus Suchlage ein, solange ihr selbst noch keine eingetragen habt.
 Eure eigenen Korrekturen überschreibt sie nicht.
+
+![Flugtagebuch mit drei Flügen; unter jedem steht die Marke „Suchlage“ mit Fluggerät, größter Höhe, Strecke und Fotos](handbuch/fluege-suchlage-flugtagebuch.webp "Bestätigte und zusammengeführte Flüge tragen die Marke „Suchlage“.")
 
 > [!WICHTIG]
 > Reißt die Verbindung zur Drohne ab, kennt Suchlage keine Landezeit. Der
