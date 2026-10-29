@@ -532,7 +532,9 @@ function GroupedFlightList({
     }
   }
 
-  let globalIndex = entries.length
+  // Nummer aus der Startreihenfolge (entries: neuester zuerst), nicht aus der Gruppierung –
+  // ein Flug kann nachträglich einem früheren Standort zugeordnet sein
+  const numberOf = new Map(entries.map((e, i) => [e.id, entries.length - i]))
 
   return (
     <>
@@ -546,12 +548,11 @@ function GroupedFlightList({
           </div>
           <div className="divide-y divide-line border-t border-line">
             {group.entries.map((entry) => {
-              const idx = globalIndex--
               return (
                 <CompletedFlightCard
                   key={entry.id}
                   entry={entry}
-                  index={idx}
+                  index={numberOf.get(entry.id)!}
                   drone={drone}
                   suggestions={suggestions}
                   onUpdate={(updates) => onUpdate(entry.id, updates)}
