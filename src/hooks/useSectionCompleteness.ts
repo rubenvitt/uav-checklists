@@ -6,6 +6,7 @@ import type { SectionConfig } from './useAutoExpand'
 import { AUFSTIEGSORT_ITEMS, UAV_ITEMS, RC_ITEMS } from '../data/technischeKontrolleItems'
 import { FLUGBRIEFING_ITEMS } from '../data/flugbriefingItems'
 import { isAnswered } from '../utils/checklistState'
+import { isEinsatzkarteComplete } from '../utils/einsatzkarteState'
 
 // Helper: check if all items in a checklist are checked
 function allChecked(checked: Record<string, boolean | string> | undefined, items: ReadonlyArray<{ readonly key: string }>): boolean {
@@ -28,11 +29,7 @@ export function useEinsatzdatenCompleteness(suchlageLinked: boolean = false): Se
     crewFk: s['crew_fk'] as string | undefined,
     crewFp: s['crew_fp'] as string | undefined,
     crewLrb: s['crew_lrb'] as string | undefined,
-    karteSnapshot: s['einsatzkarte:snapshot'] as string | undefined,
-    kartePhoto: s['einsatzkarte:photo'] as string | undefined,
-    // Verknüpft mit Suchlage: Karte aus Suchlage geladen oder Foto vorhanden
-    suchlageMapLoaded: !!s[`${segPrefix}suchlage:map`],
-    segPhoto: s[`${segPrefix}einsatzkarte:photo`] as string | undefined,
+    karteComplete: isEinsatzkarteComplete(s, segPrefix, suchlageLinked),
     briefingChecked: s['briefing:checked'] as Record<string, boolean> | undefined,
   }))
 
@@ -55,9 +52,7 @@ export function useEinsatzdatenCompleteness(suchlageLinked: boolean = false): Se
     },
     {
       id: 'einsatzkarte',
-      isComplete: suchlageLinked
-        ? state.suchlageMapLoaded || !!state.segPhoto
-        : !!(state.karteSnapshot || state.kartePhoto),
+      isComplete: state.karteComplete,
     },
     {
       id: 'missionsbriefing',
