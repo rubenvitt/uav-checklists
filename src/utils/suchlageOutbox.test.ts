@@ -77,6 +77,35 @@ describe('enqueue', () => {
     expect(items).toHaveLength(1)
     expect(items[0]).toMatchObject({ id: 'id0', attempts: 0, notBefore: 0, lastError: undefined })
   })
+  it('eine Ortsänderung je Abschnitt; eine neue bekommt eine neue ID', () => {
+    let items = build(
+      { kind: 'section', segmentId: 's2', label: 'Standort 2', location: null },
+      { kind: 'sectionUpdate', segmentId: 's2' },
+      { kind: 'sectionUpdate', segmentId: 's3' },
+    )
+    expect(items.map((i) => `${i.kind}:${i.id}`)).toEqual(['section:id0', 'sectionUpdate:id1', 'sectionUpdate:id2'])
+    items = items.map((i) => (i.id === 'id1' ? { ...i, attempts: 2, notBefore: T0 + 99_999, lastError: 'offline' as const } : i))
+    items = enqueue(items, { kind: 'sectionUpdate', segmentId: 's2' }, T0, 'neu')
+    expect(items).toHaveLength(3)
+    expect(items[1]).toMatchObject({ kind: 'sectionUpdate', id: 'neu', attempts: 0, notBefore: 0, lastError: undefined })
+  })
+
+  it('eine Ortsänderung während des Sendens geht noch einmal hinaus', async () => {
+    let items = build({ kind: 'sectionUpdate', segmentId: 's2' })
+    let sends = 0
+    await drainOutbox({
+      read: () => items,
+      write: (next) => { items = next },
+      send: async () => {
+        // Der Truppführer ändert den Ort, während der erste Stand unterwegs ist.
+        if (sends++ === 0) items = enqueue(items, { kind: 'sectionUpdate', segmentId: 's2' }, T0, 'neu')
+        return { ok: true }
+      },
+      now: () => T0,
+    })
+    expect(sends).toBe(2)
+    expect(items).toEqual([])
+  })
 })
 
 describe('nextDue', () => {
@@ -275,6 +304,14 @@ describe('sectionsToHeal / healOutbox', () => {
     ])
   })
 
+  it('setzt den geheilten Abschnitt vor die wartende Ortsänderung desselben Abschnitts', () => {
+    const items = build({ kind: 'sectionUpdate', segmentId: 's1' }, { kind: 'sectionUpdate', segmentId: 's3' })
+    const healed = healOutbox(segs, link, items, T0, newId)
+    expect(healed.map((i) => `${i.kind}:${'segmentId' in i ? i.segmentId : ''}`)).toEqual([
+      'sectionUpdate:s1', 'section:s2', 'section:s3', 'sectionUpdate:s3',
+    ])
+  })
+
   it('vor einen wartenden Abschnitt eines neueren Segments', () => {
     const items = build({ kind: 'section', segmentId: 's3', label: 'S3', location: null })
     const healed = healOutbox(segs, link, items, T0, newId)
@@ -303,6 +340,16 @@ describe('Foto zurückstellen', () => {
     await h.run(true)
     expect(h.sentKinds).toEqual(['photo'])
     expect(h.items.map((i) => [i.kind, i.attempts])).toEqual([['photo', 1], ['close', 0]])
+  })
+
+  it('eine Ortsänderung wird wie ein Foto zurückgestellt und bei 422 verworfen', () => {
+    const items = build({ kind: 'sectionUpdate', segmentId: 's2' }, { kind: 'close' })
+    const deferred = applyOutcome(items, 'id0', { ok: false, kind: 'other', status: 404, defer: true }, T0)
+    expect(deferred.items.map((i) => i.kind)).toEqual(['sectionUpdate', 'close'])
+    expect(deferred.removed).toBeUndefined()
+    const closed = applyOutcome(items, 'id0', { ok: false, kind: 'unprocessable', status: 422 }, T0)
+    expect(closed.items.map((i) => i.kind)).toEqual(['close'])
+    expect(closed.remote).toBe('closed')
   })
 
   it('nach zu vielen Zurückstellungen verworfen', () => {

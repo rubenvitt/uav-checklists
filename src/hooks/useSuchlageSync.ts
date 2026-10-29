@@ -11,6 +11,7 @@ import {
   setSuchlageOutbox,
   hintSuchlageRemoteState,
   updateSuchlageLink,
+  type SuchlageLink,
 } from '../utils/suchlageStore'
 import { dataUrlToJpegBlob } from '../utils/imageJpeg'
 
@@ -83,6 +84,20 @@ async function syncAll(force: boolean, isStopped: () => boolean): Promise<boolea
   return false
 }
 
+/**
+ * Abschnitt in Suchlage noch nicht angelegt: zurückstellen, wenn er noch kommt
+ * (wartender Eintrag oder Heilung), sonst verwerfen – senden gäbe nur 404.
+ */
+function sectionNotThere(missionId: string, segmentId: string, link: SuchlageLink): SendOutcome {
+  const segments = loadMissions().find((m) => m.id === missionId)?.segments ?? []
+  const segment = segments.find((sg) => sg.id === segmentId)
+  const waiting = getSuchlageOutbox(missionId).some((i) => i.kind === 'section' && i.segmentId === segmentId)
+  const coming = waiting || (!!segment && isHealable(segment, segments, link))
+  return coming
+    ? { ok: false, kind: 'other', status: 404, defer: true }
+    : { ok: false, kind: 'other', status: 404 }
+}
+
 async function sendItem(missionId: string, item: OutboxItem): Promise<SendOutcome> {
   const link = getSuchlageLink(missionId)
   if (!link) return { ok: true }
@@ -99,18 +114,18 @@ async function sendItem(missionId: string, item: OutboxItem): Promise<SendOutcom
         })
         break
       }
+      case 'sectionUpdate': {
+        if (!link.sections[item.segmentId]) return sectionNotThere(missionId, item.segmentId, link)
+        const seg = loadMissions().find((m) => m.id === missionId)?.segments.find((s) => s.id === item.segmentId)
+        if (!seg) break // Abschnitt weg: nichts zu senden
+        await suchlage.updateSection(id, missionId, item.segmentId, {
+          label: seg.label,
+          location: seg.locationName || null,
+        })
+        break
+      }
       case 'photo': {
-        // Abschnitt in Suchlage noch nicht angelegt: zurückstellen, wenn er noch kommt
-        // (wartender Eintrag oder Heilung), sonst verwerfen – senden gäbe nur 404.
-        if (!link.sections[item.segmentId]) {
-          const segments = loadMissions().find((m) => m.id === missionId)?.segments ?? []
-          const segment = segments.find((sg) => sg.id === item.segmentId)
-          const waiting = getSuchlageOutbox(missionId).some((i) => i.kind === 'section' && i.segmentId === item.segmentId)
-          const coming = waiting || (!!segment && isHealable(segment, segments, link))
-          return coming
-            ? { ok: false, kind: 'other', status: 404, defer: true }
-            : { ok: false, kind: 'other', status: 404 }
-        }
+        if (!link.sections[item.segmentId]) return sectionNotThere(missionId, item.segmentId, link)
         const photo = getMissionField<string>(missionId, `seg:${item.segmentId}:einsatzkarte:photo`, '')
         if (!photo) break // inzwischen entfernt: nichts zu senden
         const jpeg = await dataUrlToJpegBlob(photo)

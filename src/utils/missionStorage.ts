@@ -200,15 +200,16 @@ export function createSegment(missionId: string, label: string): MissionSegment 
   return segment
 }
 
-export function updateSegmentLocationName(missionId: string, segmentId: string, name: string) {
+/** Setzt den Ortsnamen eines Abschnitts; `true`, wenn er sich geändert hat. */
+export function updateSegmentLocationName(missionId: string, segmentId: string, name: string): boolean {
   const missions = loadMissions()
   const mission = missions.find(m => m.id === missionId)
-  if (!mission) return
+  if (!mission) return false
   const segment = mission.segments.find(s => s.id === segmentId)
-  if (segment) {
-    segment.locationName = name
-    saveMissions(missions)
-  }
+  if (!segment || segment.locationName === name) return false
+  segment.locationName = name
+  saveMissions(missions)
+  return true
 }
 
 export function canAccessPhase(missionId: string, phase: MissionPhase): boolean {

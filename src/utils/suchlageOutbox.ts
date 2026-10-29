@@ -10,12 +10,14 @@
  * - 401/403 → nichts ändern, alles ruht bis zur nächsten Anmeldung.
  * - 409 (andere Flugmappe hat übernommen) → bleibt, Hinweis „abgelöst“, Senden pausiert.
  * - `close` mit 422 (Flug läuft noch) → später erneut.
+ * - Foto und Abschnittsänderung, deren Abschnitt in Suchlage noch angelegt wird
+ *   → zurückstellen (`defer`), der Rest läuft weiter.
  * - Andere Ablehnungen (400, 404, 422 bei Abschnitt/Foto, 413 …) → Eintrag
  *   verworfen; er kann nie gelingen und darf die Liste nicht blockieren.
  */
 import type { SuchlageErrorKind } from '../services/suchlageApi'
 
-export type OutboxKind = 'section' | 'photo' | 'close'
+export type OutboxKind = 'section' | 'sectionUpdate' | 'photo' | 'close'
 
 interface OutboxBase {
   id: string
@@ -42,14 +44,24 @@ export interface OutboxPhoto extends OutboxBase {
   segmentId: string
 }
 
+/**
+ * Bezeichnung/Ort eines schon angelegten Abschnitts nachreichen (der Ort steht
+ * oft erst nach der Verlegung fest). Beides liest der Sender frisch.
+ */
+export interface OutboxSectionUpdate extends OutboxBase {
+  kind: 'sectionUpdate'
+  segmentId: string
+}
+
 export interface OutboxClose extends OutboxBase {
   kind: 'close'
 }
 
-export type OutboxItem = OutboxSection | OutboxPhoto | OutboxClose
+export type OutboxItem = OutboxSection | OutboxSectionUpdate | OutboxPhoto | OutboxClose
 
 export type NewOutboxItem =
   | { kind: 'section'; segmentId: string; label: string; location: string | null }
+  | { kind: 'sectionUpdate'; segmentId: string }
   | { kind: 'photo'; segmentId: string }
   | { kind: 'close' }
 
@@ -60,8 +72,8 @@ export type SendOutcome =
       kind: SuchlageErrorKind
       status: number | null
       /**
-       * Noch nicht möglich, später schon (Foto, dessen Abschnitt in Suchlage noch
-       * angelegt wird): zurückstellen statt verwerfen, der Rest läuft weiter.
+       * Noch nicht möglich, später schon (Foto oder Änderung, deren Abschnitt in
+       * Suchlage noch angelegt wird): zurückstellen statt verwerfen, der Rest läuft weiter.
        */
       defer?: boolean
     }
@@ -92,10 +104,16 @@ export function backoffMs(attempts: number, max = BACKOFF_MAX_MS): number {
 }
 
 /**
- * Fügt einen Eintrag hinzu – idempotent: je Abschnitt höchstens ein `section`
- * und ein `photo`, je Einsatz höchstens ein `close`. Ein neues Foto für einen
- * Abschnitt mit wartendem Foto setzt nur dessen Versuche zurück (das Bild wird
- * beim Senden frisch gelesen).
+ * Fügt einen Eintrag hinzu – idempotent: je Abschnitt höchstens ein `section`,
+ * ein `sectionUpdate` und ein `photo`, je Einsatz höchstens ein `close`. Ein
+ * neues Foto für einen Abschnitt mit wartendem Foto setzt nur dessen Versuche
+ * zurück (das Bild wird beim Senden frisch gelesen).
+ *
+ * Eine Änderung kommt auch, wenn der Abschnitt selbst noch wartet: Er könnte
+ * gerade mit dem alten Ort unterwegs sein. Ist nichts mehr anders, ändert
+ * Suchlage nichts. Eine wartende Änderung bekommt eine neue ID: Ist die alte
+ * gerade unterwegs, entfernt deren Erfolg sie nicht, und der neuere Stand geht
+ * noch einmal hinaus.
  */
 export function enqueue(items: OutboxItem[], entry: NewOutboxItem, now: number, id: string): OutboxItem[] {
   const base = { id, createdAt: now, attempts: 0, notBefore: 0 }
@@ -103,6 +121,13 @@ export function enqueue(items: OutboxItem[], entry: NewOutboxItem, now: number, 
     case 'section':
       if (items.some((i) => i.kind === 'section' && i.segmentId === entry.segmentId)) return items
       return [...items, { ...base, ...entry }]
+    case 'sectionUpdate': {
+      const existing = items.findIndex((i) => i.kind === 'sectionUpdate' && i.segmentId === entry.segmentId)
+      if (existing >= 0) {
+        return items.map((i, idx) => (idx === existing ? { ...i, id, attempts: 0, notBefore: 0, lastError: undefined } : i))
+      }
+      return [...items, { ...base, ...entry }]
+    }
     case 'photo': {
       const existing = items.findIndex((i) => i.kind === 'photo' && i.segmentId === entry.segmentId)
       if (existing >= 0) {
@@ -280,7 +305,7 @@ export function sectionsToHeal(segments: readonly HealSegment[], link: HealLink,
 
 /**
  * Selbstheilung in die Liste einfügen: jeder nachgelegte Abschnitt kommt vor
- * das erste Foto desselben Abschnitts, vor jeden wartenden Abschnitt eines
+ * das erste Foto und die Änderung desselben Abschnitts, vor jeden wartenden Abschnitt eines
  * neueren Segments und vor den Abschluss – sonst ans Ende. Liefert dieselbe
  * Liste, wenn nichts zu heilen ist.
  */
@@ -301,7 +326,7 @@ export function healOutbox(
     const own = created.get(entry.segmentId) ?? 0
     const at = next.findIndex((i) =>
       i.kind === 'close'
-      || (i.kind === 'photo' && i.segmentId === entry.segmentId)
+      || ((i.kind === 'photo' || i.kind === 'sectionUpdate') && i.segmentId === entry.segmentId)
       || (i.kind === 'section' && (created.get(i.segmentId) ?? 0) > own))
     const item: OutboxItem = { ...entry, id: newId(), createdAt: now, attempts: 0, notBefore: 0 }
     next = at < 0 ? [...next, item] : [...next.slice(0, at), item, ...next.slice(at)]
