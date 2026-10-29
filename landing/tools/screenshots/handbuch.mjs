@@ -11,7 +11,9 @@
  * Die Bilder landen als PNG in public/screenshots/handbuch/ und werden danach
  * in WebP umgewandelt (Breite 860 px, wie die Startseite).
  *
- * Voraussetzung: Die PWA läuft (im Projektwurzelverzeichnis `pnpm dev`).
+ * Voraussetzung: Die PWA läuft (im Projektwurzelverzeichnis
+ * `pnpm dev --mode handbuch`; mit einfachem `pnpm dev` fehlen nur die Bilder
+ * zur Verknüpfung mit Suchlage, siehe suchlage.mjs).
  *
  *   node tools/screenshots/handbuch.mjs              # alle Kapitel
  *   node tools/screenshots/handbuch.mjs fluege       # nur handbuch/fluege.mjs

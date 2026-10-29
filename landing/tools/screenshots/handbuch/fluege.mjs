@@ -2,7 +2,11 @@
  * Aufnahmen für Kapitel 08 „Flüge" (handbuch/08-fluege.md).
  *
  *   node tools/screenshots/handbuch.mjs fluege
+ *
+ * Teil 5 (von Suchlage erkannte Flüge) braucht `pnpm dev --mode handbuch`,
+ * Suchlage selbst ist nachgebildet (suchlage.mjs).
  */
+import { buildSuchlage, linkFlightLog, linkStorage, loginStorage, routeSuchlage } from '../suchlage.mjs'
 
 /** Liest/schreibt ein Formularfeld im Seed (Schlüssel wie seed.mjs). */
 function field(storage, mid, key) {
@@ -159,6 +163,32 @@ export default async function ({ makeContext, go, shot, crop, scrollTo, seed }) 
     await page.waitForTimeout(300)
     await shot(page, 'fluege-standort-2')
     await crop(page, page.locator('section', { hasText: 'Flugtagebuch' }).first(), 'fluege-standorte-flugtagebuch')
+    await ctx.close()
+  }
+
+  // ── 5. Von Suchlage erkannte Flüge ───────────────────────
+  {
+    const sl = buildSuchlage(now, seed)
+    const s = { ...baseStorage(), ...loginStorage(now), ...linkStorage(sl, now - 80 * 60e3) }
+    // Flug 1 ist schon bestätigt, Flug 2 selbst gestartet, Flug 3 nur in Suchlage.
+    linkFlightLog(s, sl, { confirmed: ['f1'], drop: ['f3'] })
+    const ctx = await makeContext({ storage: s, reseed: 'once' })
+    await routeSuchlage(ctx, sl)
+    const page = await ctx.newPage()
+    await go(page, `/mission/${MID}/fluege`, 3500)
+    const proposals = page.locator('section[aria-label="Von Suchlage erkannte Flüge"]')
+    const found = await proposals.waitFor({ timeout: 15000 }).then(() => true, () => false)
+    if (!found) {
+      console.log('    (keine Vorschläge aus Suchlage — PWA mit `pnpm dev --mode handbuch` starten; übersprungen)')
+    } else {
+      await page.waitForTimeout(600)
+      await crop(page, proposals, 'fluege-suchlage-vorschlaege')
+      await proposals.getByRole('button', { name: /zusammenführen/ }).click()
+      await page.waitForTimeout(300)
+      await proposals.getByRole('button', { name: 'Bestätigen' }).click()
+      await page.waitForTimeout(800)
+      await crop(page, page.locator('section', { hasText: 'Flugtagebuch' }).first(), 'fluege-suchlage-flugtagebuch')
+    }
     await ctx.close()
   }
 }
