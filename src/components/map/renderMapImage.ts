@@ -1,6 +1,7 @@
 import * as maplibregl from 'maplibre-gl'
 import './maplibreWorker'
-import { basemapStyle } from './basemapStyle'
+import { mapCanvasToJpeg } from './attribution'
+import { BASEMAP_ATTRIBUTION, basemapStyle } from './basemapStyle'
 import { addSuchlageOverlay } from './suchlageOverlay'
 import { collectionBounds, type DisplayCollection } from '../../utils/suchlageMap'
 
@@ -16,7 +17,7 @@ export interface RenderMapImageOptions {
 /**
  * Zeichnet eine GeoJSON-Karte ohne sichtbare Karte (für den Bericht): eine
  * unsichtbare MapLibre-Karte im hellen Stil, eingepasst auf alle Formen, als
- * JPEG-Data-URL. Seitenverhältnis wie im Bericht (5:3). `null`, wenn es nichts
+ * JPEG-Data-URL mit Quellenangabe rechts unten. Seitenverhältnis wie im Bericht (5:3). `null`, wenn es nichts
  * zu zeigen gibt oder WebGL fehlt.
  */
 export async function renderMapImage(data: DisplayCollection, opts: RenderMapImageOptions = {}): Promise<string | null> {
@@ -93,7 +94,7 @@ export async function renderMapImage(data: DisplayCollection, opts: RenderMapIma
         reject(ev.error ?? new Error('Karte nicht geladen'))
       })
     })
-    return m.getCanvas().toDataURL('image/jpeg', 0.85)
+    return mapCanvasToJpeg(m.getCanvas(), BASEMAP_ATTRIBUTION)
   } finally {
     map?.remove()
     host.remove()
