@@ -263,12 +263,6 @@ export default async function ({ makeContext, go, shot, crop, expand, scrollTo, 
     await go(page3, `/mission/${MID}/nachbereitung`, 3500)
     await page3.evaluate(() => { URL.revokeObjectURL = () => {} })
     await expand(page3, 'Einsatzabschluss')
-    // „Dokument prüfen“ lädt die Karte aus Suchlage nicht (nur Herunterladen/Teilen
-    // tun das); daher hier vorab, im selben Modul wie die App (Vite-Dev, bis 15 s).
-    await page3.evaluate(async (mid) => {
-      const { prepareSuchlageReportMaps } = await import('/src/utils/suchlageReportMap.ts')
-      await prepareSuchlageReportMaps(mid, true)
-    }, MID)
     await page3.getByRole('button', { name: 'Dokument prüfen' }).click()
     await page3.locator('iframe[title="PDF-Vorschau"]').waitFor({ timeout: 45000 }).catch(() => {})
     await page3.waitForTimeout(1500)
