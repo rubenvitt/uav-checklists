@@ -25,6 +25,8 @@ import { renderTypedSignature } from '../../utils/renderTypedSignature'
 import StoredSignaturePanel from '../StoredSignaturePanel'
 import PdfPreviewModal from '../PdfPreviewModal'
 import { generateMissionReport } from '../../utils/generateMissionReport'
+import { prepareSuchlageReportMaps } from '../../utils/suchlageReportMap'
+import { useSuchlageMission } from '../../hooks/useSuchlage'
 import { useAuth } from '../../context/useAuth'
 import { useMissionPersistedState } from '../../hooks/useMissionPersistedState'
 import { useMissionId } from '../../context/useMissionId'
@@ -237,7 +239,20 @@ export default function EinsatzabschlussSection({ open, onToggle, isComplete, on
   const [preview, setPreview] = useState<{ blob: Blob; filename: string } | null>(null)
   const [previewError, setPreviewError] = useState(false)
 
-  function handlePreview() {
+  // Verknüpft mit Suchlage: die Vorschau zeigt dieselbe Karte wie das endgültige
+  // PDF, also vorher wie dort frisch laden (höchstens 15 s, sonst letzter Stand).
+  const suchlageMission = useSuchlageMission()
+  const [preparing, setPreparing] = useState(false)
+
+  async function handlePreview() {
+    if (suchlageMission.link) {
+      setPreparing(true)
+      try {
+        await prepareSuchlageReportMaps(missionId, suchlageMission.linked)
+      } finally {
+        setPreparing(false)
+      }
+    }
     const result = generateMissionReport(missionId, queryClient)
     if (result) {
       setPreviewError(false)
@@ -423,11 +438,12 @@ export default function EinsatzabschlussSection({ open, onToggle, isComplete, on
             <div className="space-y-1.5">
               <button
                 type="button"
-                onClick={handlePreview}
-                className="flex items-center gap-2 rounded-lg bg-surface-alt px-3 py-2 text-sm text-text transition-colors hover:bg-surface active:scale-[0.99]"
+                onClick={() => void handlePreview()}
+                disabled={preparing}
+                className="flex items-center gap-2 rounded-lg bg-surface-alt px-3 py-2 text-sm text-text transition-colors hover:bg-surface active:scale-[0.99] disabled:opacity-60"
               >
                 <PiFilePdf className="text-base text-text-muted" />
-                Dokument prüfen
+                {preparing ? 'Karte aus Suchlage wird geladen …' : 'Dokument prüfen'}
               </button>
               <p className="text-[0.7rem] text-text-muted/70">
                 Bitte vor dem Unterschreiben das Abschlussdokument prüfen.
