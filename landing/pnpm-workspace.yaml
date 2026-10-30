@@ -2,5 +2,8 @@
 # (z. B. die Vite-8-Beta der PWA) in diese Landingpage hineinwirken.
 packages: []
 
+allowBuilds:
+  esbuild: true
+
 onlyBuiltDependencies:
   - esbuild
