@@ -423,6 +423,9 @@ function regionLayers(f: Record<string, string>, src: string): LayerSpecificatio
 
 const VERSATILES = 'https://tiles.versatiles.org';
 
+/** Quellenangabe der Kartengrundlage (VersaTiles liefert OpenStreetMap-Daten). */
+export const BASEMAP_ATTRIBUTION = '© OpenStreetMap-Mitwirkende';
+
 /** Dunkler bzw. heller Shortbread-Stil aus Lifeline, gespeist von VersaTiles (online). */
 export function basemapStyle(theme: KartenTheme): StyleSpecification {
   const f = FARBEN[theme];
@@ -435,7 +438,7 @@ export function basemapStyle(theme: KartenTheme): StyleSpecification {
         tiles: [`${VERSATILES}/tiles/osm/{z}/{x}/{y}`],
         minzoom: 0,
         maxzoom: 14,
-        attribution: '© OpenStreetMap-Mitwirkende',
+        attribution: BASEMAP_ATTRIBUTION,
       },
     },
     layers: [

@@ -5,7 +5,8 @@ import './maplibreWorker'
 import type { MapData, ShapeType } from '../../types/mapData'
 import { SHAPE_COLORS } from '../../types/mapData'
 import MapToolbar from './MapToolbar'
-import { basemapStyle } from './basemapStyle'
+import { mapCanvasToJpeg } from './attribution'
+import { BASEMAP_ATTRIBUTION, basemapStyle } from './basemapStyle'
 import { addPoint, boundsOf, canFinish, draftCollection, removeLastPoint, toFeature, type Draft } from './draft'
 
 export interface EinsatzMapHandle {
@@ -280,7 +281,7 @@ const EinsatzMap = forwardRef<EinsatzMapHandle, EinsatzMapProps>(function Einsat
           setStyle(map, shown)
         }
         await settled(map)
-        return map.getCanvas().toDataURL('image/jpeg', 0.85)
+        return mapCanvasToJpeg(map.getCanvas(), BASEMAP_ATTRIBUTION)
       } finally {
         capturing.current = false
         theme.current = currentTheme()
