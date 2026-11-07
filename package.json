@@ -34,7 +34,7 @@
     "@eslint/js": "^10.0.1",
     "@rolldown/plugin-babel": "^0.2.4",
     "@tailwindcss/vite": "^4.3.3",
-    "@tanstack/devtools-vite": "^0.8.5",
+    "@tanstack/devtools-vite": "^0.8.6",
     "@tanstack/react-devtools": "^0.10.14",
     "@tanstack/react-query-devtools": "^5.104.3",
     "@types/babel__core": "^7.20.5",
