@@ -3,7 +3,9 @@ import type { FlightLogEntry } from '../types/flightLog'
 import {
   UNKNOWN_AIRCRAFT,
   dropConfirmation,
+  forgetReported,
   logbookSnapshot,
+  storedDiverges,
   reconcileLogbook,
   toFmLogbookEntry,
   type LogbookContext,
@@ -112,5 +114,29 @@ describe('reconcileLogbook', () => {
     expect(next.items[0]).toMatchObject({ entryId: 'a', revision: 2, entry: { flightId: null } })
     // Trägt der Eintrag den Flug nicht mehr, ändert sich nichts.
     expect(dropConfirmation(dropped, 'a', 7)).toBe(dropped)
+  })
+})
+
+describe('storedDiverges / forgetReported', () => {
+  const sent = toFmLogbookEntry(logbookSnapshot(entry('a', 0, 10), ctx, 5)!, 3, { s1: true })
+
+  it('übernommen oder gleicher Inhalt (Texte getrimmt): kein Abweichen', () => {
+    expect(storedDiverges(sent, { entry_id: 'a', revision: 3, entry: sent })).toBe(false)
+    expect(storedDiverges(sent, { entry_id: 'a', revision: 3, entry: { ...sent, pilot: ' Pilot ', changed_at_ms: 1 } })).toBe(false)
+    expect(storedDiverges(sent, { entry_id: 'a', revision: 5, entry: { ...sent, revision: 5 } })).toBe(false)
+  })
+
+  it('anderer Stand oder Löschmarke mit gleicher oder höherer Revision: weicht ab', () => {
+    expect(storedDiverges(sent, { entry_id: 'a', revision: 3, entry: { ...sent, landed_at_ms: 1 } })).toBe(true)
+    expect(storedDiverges(sent, { entry_id: 'a', revision: 4, entry: null })).toBe(true)
+  })
+
+  it('hebt die Revision und meldet beim nächsten Abgleich darüber neu', () => {
+    const first = reconcileLogbook([entry('a', 0, 10)], null, 1, ctx, T)
+    const forgotten = forgetReported(first.state, 'a', 7)!
+    expect(forgotten.entries.a).toEqual({ revision: 7 })
+    const next = reconcileLogbook([entry('a', 0, 10)], forgotten, 1, ctx, T)
+    expect(next.items).toEqual([expect.objectContaining({ entryId: 'a', revision: 8 })])
+    expect(forgetReported(null, 'a', 7)).toBeNull()
   })
 })

@@ -21,6 +21,7 @@ import {
   getSuchlageLink,
   getSuchlageLogbook,
   getSuchlageOutbox,
+  kickSuchlageSync,
   onSuchlageSyncKick,
   setSuchlageLogbook,
   setSuchlageOutbox,
@@ -28,7 +29,7 @@ import {
   updateSuchlageLink,
   type SuchlageLink,
 } from '../utils/suchlageStore'
-import { dropConfirmation, reconcileLogbook, toFmLogbookEntry, UNKNOWN_AIRCRAFT } from '../utils/suchlageLogbook'
+import { dropConfirmation, forgetReported, reconcileLogbook, storedDiverges, toFmLogbookEntry, UNKNOWN_AIRCRAFT } from '../utils/suchlageLogbook'
 import { dataUrlToJpegBlob } from '../utils/imageJpeg'
 import { drones } from '../data/drones'
 import type { FlightLogEntry } from '../types/flightLog'
@@ -119,6 +120,10 @@ async function syncAll(force: boolean, isStopped: () => boolean): Promise<boolea
       onRemoved: ({ item, sent }, outcome) => {
         if (item.kind === 'logbook' && !sent && isConfirmationConflict(item, outcome) && item.entry?.flightId != null) {
           handleConfirmationConflict(mission.id, item.entryId, item.entry.flightId, outcome)
+          // Den Handeintrag gleich einreihen – vor einen wartenden Abschluss, der
+          // sonst als Nächstes hinausginge und den Einsatz schließen könnte.
+          const current = getSuchlageLink(mission.id)
+          if (current) reconcileMissionLogbook(mission, current)
           return
         }
         if (item.kind !== 'section') return
@@ -209,7 +214,15 @@ async function sendItem(missionId: string, item: OutboxItem): Promise<SendOutcom
       }
       case 'logbook':
         if (item.entry) {
-          await suchlage.putLogbookEntry(id, missionId, item.entryId, toFmLogbookEntry(item.entry, item.revision, link.sections))
+          const sent = toFmLogbookEntry(item.entry, item.revision, link.sections)
+          const stored = await suchlage.putLogbookEntry(id, missionId, item.entryId, sent)
+          // Suchlage hat einen anderen Stand mit gleicher oder höherer Revision
+          // (Revisionen hier verloren): mit höherer Revision neu melden.
+          if (storedDiverges(sent, stored)) {
+            const state = forgetReported(getSuchlageLogbook(missionId), item.entryId, stored.revision)
+            if (state) setSuchlageLogbook(missionId, state)
+            kickSuchlageSync()
+          }
         } else {
           await suchlage.deleteLogbookEntry(id, missionId, item.entryId, item.revision)
         }
@@ -238,9 +251,10 @@ async function sendItem(missionId: string, item: OutboxItem): Promise<SendOutcom
  */
 export function useSuchlageSync(): void {
   const { isAuthenticated, user } = useAuth()
-  // Andere Schnittstellenversion: nichts senden (die Aufrufe gingen ins Leere und würden verworfen).
-  const { incompatible } = useSuchlage()
-  const enabled = isSuchlageConfigured() && isAuthenticated && !incompatible
+  // Erst senden, wenn die Probe eine passende Schnittstelle bestätigt hat: Gegen ein
+  // altes Suchlage gingen die Aufrufe ins Leere (404) und würden verworfen.
+  const { available } = useSuchlage()
+  const enabled = isSuchlageConfigured() && isAuthenticated && available
   const token = user?.access_token ?? null
 
   useEffect(() => {
