@@ -67,14 +67,15 @@ export function wouldStayOpen(f: FmFlight): boolean {
 }
 
 /**
- * Vorschläge = Suchlage-Flüge, die in keinem Eintrag stehen, ältester zuerst.
- * Zusammenführen wird paarweise nach kleinstem Zeitabstand vergeben, damit
- * jeder Eintrag höchstens einem Flug angeboten wird (der nächste gewinnt).
+ * Vorschläge = Suchlage-Flüge, die in keinem Eintrag stehen und die keine
+ * andere Flugmappe bestätigt hat, ältester zuerst. Zusammenführen wird
+ * paarweise nach kleinstem Zeitabstand vergeben, damit jeder Eintrag
+ * höchstens einem Flug angeboten wird (der nächste gewinnt).
  */
 export function computeProposals(flights: readonly FmFlight[], entries: readonly FlightLogEntry[]): FlightProposal[] {
   const linked = new Set(entries.flatMap((e) => (e.suchlage ? [e.suchlage.flightId] : [])))
   const open = flights
-    .filter((f) => !linked.has(f.id))
+    .filter((f) => !linked.has(f.id) && !f.confirmed_by)
     .slice()
     .sort((a, b) => a.started_at_ms - b.started_at_ms)
 
@@ -216,6 +217,14 @@ export function syncFromSuchlage(entries: FlightLogEntry[], flights: readonly Fm
     return { ...e, suchlage: ref, blockOn: fillLanding ? iso(f.ended_at_ms!) : e.blockOn }
   })
   return changed ? next : entries
+}
+
+/**
+ * Flüge, die eben noch Vorschlag waren und jetzt eine andere Flugmappe
+ * bestätigt hat (für den Hinweis „Flug … hat <Fluggerät> bestätigt“).
+ */
+export function takenByOthers(flights: readonly FmFlight[], previousProposalIds: ReadonlySet<number>): FmFlight[] {
+  return flights.filter((f) => !!f.confirmed_by && previousProposalIds.has(f.id))
 }
 
 /** Flug endete mit Verbindungsabriss und es fehlt noch eine Landezeit. */

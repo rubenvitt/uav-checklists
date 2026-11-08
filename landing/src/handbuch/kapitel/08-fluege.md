@@ -181,7 +181,8 @@ Ein Flug, der gerade läuft, trägt das Zeichen **Läuft**.
 ![Zwei gestrichelte Kästen „Von Suchlage erkannt · unbestätigt“ mit Start und Ende, Fluggerät „RC Plus 1“, Höhe, Strecke und Fotos: der erste mit dem Knopf „Mit Flug 2 zusammenführen“, der zweite mit „Bestätigen“](handbuch/fluege-suchlage-vorschlaege.webp "Den ersten Flug habt ihr selbst gestartet, er wird zusammengeführt. Der zweite fehlt noch im Flugbuch und wird bestätigt.")
 
 Ein solcher Vorschlag ist noch **kein** Eintrag im Flugtagebuch und kommt
-nicht in den Bericht. Ihr entscheidet mit einem Tipp:
+nicht in den Bericht. Flüge, die schon ein anderer Trupp bestätigt hat,
+erscheinen nicht als Vorschlag. Ihr entscheidet mit einem Tipp:
 
 - **Bestätigen**: Die App legt einen Flug mit den Zeiten aus Suchlage an.
   Fernpilot, Luftraumbeobachter und Nutzlast sind wie beim **Flug starten**
@@ -198,6 +199,14 @@ die Startzeiten weiter auseinanderliegen. Einen zweiten laufenden Flug legt sie
 nie an; dann steht im Kasten **Erst den offenen Flug beenden, dann
 bestätigen.**
 
+Bestätigt ein anderer Trupp einen Flug, den ihr gerade als Vorschlag seht,
+verschwindet er bei euch, und ein Hinweis sagt, welches Fluggerät ihn hat.
+Tippen zwei Trupps fast gleichzeitig auf **Bestätigen**, gewinnt der erste.
+Beim zweiten bleibt der Eintrag im Flugtagebuch, aber ohne Bezug zu Suchlage,
+und oben steht z. B. **Flug wurde von Matrice 200 bestätigt. Der Eintrag
+bleibt im Flugbuch, jetzt ohne Suchlage-Bezug.** Löscht ihn, wenn es derselbe
+Flug war. Mit dem **X** schließt ihr den Hinweis.
+
 Bestätigte Flüge tragen im Flugtagebuch die Marke **Suchlage** mit
 Fluggerät, Höhe, Strecke und Fotos. Landet die Drohne, trägt die App die
 Landezeit aus Suchlage ein, solange ihr selbst noch keine eingetragen habt.
@@ -210,12 +219,20 @@ Eure eigenen Korrekturen überschreibt sie nicht.
 > Flug zeigt dann **Verbindung abgerissen – Landezeit bitte selbst
 > eintragen.** Tragt die Zeit im Feld **Block On (Landung)** ein.
 
+### Flugbuch in Suchlage
+
+Jeder Eintrag im Flugtagebuch geht an Suchlage: bestätigte Flüge und die, die
+ihr selbst mit **Flug starten** und **Landung** eintragt, auch Änderungen und
+Löschungen. So sieht die Einsatzleitung in Suchlage alle Flüge des Einsatzes,
+auch die eines Fluggeräts, das Suchlage nicht selbst erkennt (z. B. die M200).
+Ihr müsst dafür nichts tun. Bemerkungen gehen nicht an Suchlage.
+
 **Flug starten** und **Landung** funktionieren wie immer, auch ohne Netz.
 Fehlt die Verbindung zu Suchlage, steht oben **Suchlage nicht erreichbar –
 Flugbuch funktioniert weiter**; die Vorschläge kommen nach, sobald Suchlage
-wieder erreichbar ist. Ist der Einsatz in Suchlage abgeschlossen oder
-gelöscht, sagt die App das. Bestätigte Flüge bleiben, neue Vorschläge kommen
-nicht mehr.
+wieder erreichbar ist, und eure Einträge gehen dann hinaus. Ist der Einsatz in
+Suchlage abgeschlossen oder gelöscht, sagt die App das. Bestätigte Flüge
+bleiben, neue Vorschläge kommen nicht mehr.
 
 ## Ereignisse notieren
 
@@ -515,7 +532,9 @@ Es läuft ein Flug. Erst landen, dann verlegen.
 **… ein Flug aus Suchlage nicht als Vorschlag erscheint?**
 Der Flug muss in Suchlage diesem Einsatz zugeordnet sein. Startet die Drohne,
 bevor ihr verknüpft habt, ordnet ihn in Suchlage nachträglich zu; danach
-erscheint er als Vorschlag. Ohne Netz kommen keine neuen Vorschläge.
+erscheint er als Vorschlag. Hat ihn ein anderer Trupp schon bestätigt, steht
+er dort im Flugbuch und bei euch nicht. Ohne Netz kommen keine neuen
+Vorschläge.
 
 **… sich die Phase „Flüge“ nicht öffnen lässt?**
 Für den aktuellen Standort fehlt die Flugfreigabe. Das ist auch nach jedem

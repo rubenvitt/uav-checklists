@@ -1,5 +1,5 @@
 /**
- * Client für die Flugmappe-Schnittstelle von Suchlage (`/api/flugmappe/v1`).
+ * Client für die Flugmappe-Schnittstelle von Suchlage (`/api/flugmappe/v2`).
  *
  * Wie `signApi.ts` framework-frei. Ohne `VITE_SUCHLAGE_URL` oder ohne
  * Zugriffstoken geht **keine** Anfrage hinaus: die Aufrufe werfen dann sofort
@@ -10,6 +10,8 @@ import { getAccessToken } from './accessToken'
 import type {
   FmFeatureCollection,
   FmFlight,
+  FmLogbookEntry,
+  FmLogbookStored,
   FmMapImport,
   FmMapImportResult,
   FmMe,
@@ -20,7 +22,9 @@ import type {
   FmSectionUpdate,
 } from '../types/suchlage'
 
-export const SUCHLAGE_API_PREFIX = '/api/flugmappe/v1'
+export const SUCHLAGE_API_PREFIX = '/api/flugmappe/v2'
+/** Version der Schnittstelle, die diese Flugmappe spricht (`FmMe.api_version`). */
+export const SUCHLAGE_API_VERSION = 2
 /** Bindet einsatzbezogene Aufrufe an diesen Einsatz der Flugmappe. */
 export const MISSION_HEADER = 'X-Flugmappe-Einsatz'
 export const REQUEST_TIMEOUT_MS = 10_000
@@ -113,7 +117,7 @@ export interface SuchlageClientOptions {
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PUT'
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
   /** Einsatz-ID der Flugmappe für `X-Flugmappe-Einsatz`. */
   fmMissionId?: string
   json?: unknown
@@ -222,6 +226,16 @@ export function createSuchlageClient(opts: SuchlageClientOptions) {
       }),
     flights: (id: number, fmMissionId: string, signal?: AbortSignal) =>
       request<FmFlight[]>(`${m(id)}/flights`, { fmMissionId, signal }),
+    /** Flugbucheintrag melden (bestätigt oder von Hand); wiederholbar, Suchlage nimmt nur eine höhere Revision. */
+    putLogbookEntry: (id: number, fmMissionId: string, entryId: string, body: FmLogbookEntry) =>
+      request<FmLogbookStored>(`${m(id)}/logbook/${encodeURIComponent(entryId)}`, { method: 'PUT', json: body, fmMissionId }),
+    /** Flugbucheintrag löschen; immer 204, auch wiederholt oder unbekannt. */
+    deleteLogbookEntry: (id: number, fmMissionId: string, entryId: string, revision: number) =>
+      request<void>(`${m(id)}/logbook/${encodeURIComponent(entryId)}?revision=${encodeURIComponent(String(revision))}`, {
+        method: 'DELETE',
+        fmMissionId,
+        expect: 'none',
+      }),
     map: (id: number, fmMissionId: string, fmSectionId?: string | null, signal?: AbortSignal) =>
       request<FmFeatureCollection>(
         `${m(id)}/map${fmSectionId ? `?section=${encodeURIComponent(fmSectionId)}` : ''}`,

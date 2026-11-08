@@ -9,6 +9,8 @@ import {
   sectionErrorText,
   healOutbox,
   sectionsToHeal,
+  isConfirmationConflict,
+  type LogbookSnapshot,
   type OutboxItem,
   type SendOutcome,
 } from './suchlageOutbox'
@@ -51,6 +53,13 @@ function harness(initial: OutboxItem[], outcomes: SendOutcome[]) {
 }
 
 const offline: SendOutcome = { ok: false, kind: 'offline', status: null }
+
+function snap(extra: Partial<LogbookSnapshot> = {}): LogbookSnapshot {
+  return {
+    flightId: null, segmentId: 's1', startedAtMs: T0, landedAtMs: T0 + 600_000,
+    aircraftLabel: 'DJI Matrice 200', pilot: 'FP', landingStatus: 'In Ordnung', changedAtMs: T0, ...extra,
+  }
+}
 
 describe('enqueue', () => {
   it('behält die Reihenfolge', () => {
@@ -154,13 +163,20 @@ describe('applyOutcome', () => {
     expect(a.items).toHaveLength(1)
   })
 
-  it('409 bei jeder Art: bleibt, Hinweis abgelöst, pausiert', () => {
-    const all = build({ kind: 'section', segmentId: 's2', label: 'S', location: null }, { kind: 'photo', segmentId: 's2' }, { kind: 'close' })
-    for (const id of ['id0', 'id1', 'id2']) {
-      const a = applyOutcome(all, id, { ok: false, kind: 'conflict', status: 409 }, T0)
-      expect(a.items).toBe(all)
-      expect(a.effect).toBe('pause')
-      expect(a.remote).toBe('replaced')
+  it('409 bei jeder Art (Verknüpfung gelöst): bleibt, Hinweis gelöst, pausiert', () => {
+    const all = build(
+      { kind: 'section', segmentId: 's2', label: 'S', location: null },
+      { kind: 'photo', segmentId: 's2' },
+      { kind: 'logbook', entryId: 'e1', revision: 1, entry: snap({ flightId: 7 }) },
+      { kind: 'close' },
+    )
+    for (const id of ['id0', 'id1', 'id2', 'id3']) {
+      for (const message of [undefined, 'Verknüpfung in Suchlage gelöst', 'Der Einsatz ist nicht mit dieser Flugmappe verknüpft']) {
+        const a = applyOutcome(all, id, { ok: false, kind: 'conflict', status: 409, message }, T0)
+        expect(a.items).toBe(all)
+        expect(a.effect).toBe('pause')
+        expect(a.remote).toBe('released')
+      }
     }
   })
 
@@ -238,11 +254,11 @@ describe('drainOutbox', () => {
     expect(h.removed).toEqual([{ kind: 'photo', sent: false }, { kind: 'close', sent: true }])
   })
 
-  it('hört nach einem 409 auf und behält alles (abgelöst)', async () => {
+  it('hört nach einem 409 auf und behält alles (gelöst)', async () => {
     const h = harness(build({ kind: 'photo', segmentId: 's1' }, { kind: 'close' }), [{ ok: false, kind: 'conflict', status: 409 }])
     await h.run()
     expect(h.sentKinds).toEqual(['photo'])
-    expect(h.remotes).toEqual(['replaced'])
+    expect(h.remotes).toEqual(['released'])
     expect(h.items.map((i) => i.kind)).toEqual(['photo', 'close'])
   })
 
@@ -357,6 +373,62 @@ describe('Foto zurückstellen', () => {
     const a = applyOutcome(items, 'id0', { ok: false, kind: 'other', status: 404, defer: true }, T0)
     expect(a.items).toEqual([])
     expect(a.removed?.sent).toBe(false)
+  })
+})
+
+describe('Flugbuch melden', () => {
+  it('je Eintrag nur der letzte Stand, an seiner Stelle und mit neuer ID', () => {
+    let items = build(
+      { kind: 'logbook', entryId: 'e1', revision: 1, entry: snap() },
+      { kind: 'logbook', entryId: 'e2', revision: 1, entry: snap() },
+    )
+    items = items.map((i) => (i.id === 'id0' ? { ...i, attempts: 2, notBefore: T0 + 99_999, lastError: 'offline' as const } : i))
+    items = enqueue(items, { kind: 'logbook', entryId: 'e1', revision: 3, entry: null }, T0 + 5, 'neu')
+    expect(items.map((i) => (i.kind === 'logbook' ? `${i.entryId}:${i.revision}:${i.id}` : i.kind))).toEqual(['e1:3:neu', 'e2:1:id1'])
+    expect(items[0]).toMatchObject({ attempts: 0, notBefore: 0, entry: null })
+    expect(items[0].lastError).toBeUndefined()
+  })
+
+  it('neue Meldungen kommen vor den Abschluss', () => {
+    let items = build({ kind: 'photo', segmentId: 's1' }, { kind: 'close' })
+    items = enqueue(items, { kind: 'logbook', entryId: 'e1', revision: 1, entry: snap() }, T0, 'lb')
+    expect(items.map((i) => i.kind)).toEqual(['photo', 'logbook', 'close'])
+  })
+
+  it('409 auf eine Bestätigung: verworfen, kein Hinweis „gelöst“, weiter', () => {
+    const items = build({ kind: 'logbook', entryId: 'e1', revision: 1, entry: snap({ flightId: 7 }) }, { kind: 'close' })
+    const outcome: SendOutcome = { ok: false, kind: 'conflict', status: 409, message: 'Flug wurde von DJI Matrice 200 bestätigt' }
+    expect(isConfirmationConflict(items[0], outcome)).toBe(true)
+    const a = applyOutcome(items, 'id0', outcome, T0)
+    expect(a.effect).toBe('continue')
+    expect(a.remote).toBeUndefined()
+    expect(a.removed).toEqual({ item: items[0], sent: false })
+    expect(a.items.map((i) => i.kind)).toEqual(['close'])
+  })
+
+  it('409 auf einen Handeintrag oder ein Löschen ist keine Bestätigung', () => {
+    const outcome: SendOutcome = { ok: false, kind: 'conflict', status: 409, message: 'Flug wurde von X bestätigt' }
+    const [hand, del] = build(
+      { kind: 'logbook', entryId: 'e1', revision: 1, entry: snap() },
+      { kind: 'logbook', entryId: 'e2', revision: 2, entry: null },
+    )
+    expect(isConfirmationConflict(hand, outcome)).toBe(false)
+    expect(isConfirmationConflict(del, outcome)).toBe(false)
+  })
+
+  it('422 beim Flugbuch: verworfen, „abgeschlossen“ nur mit passender Meldung', () => {
+    const items = build({ kind: 'logbook', entryId: 'e1', revision: 1, entry: snap({ flightId: 9 }) })
+    const other = applyOutcome(items, 'id0', { ok: false, kind: 'unprocessable', status: 422, message: 'Der Flug gehört nicht zu diesem Einsatz' }, T0)
+    expect(other.items).toEqual([])
+    expect(other.remote).toBeUndefined()
+    const closed = applyOutcome(items, 'id0', { ok: false, kind: 'unprocessable', status: 422, message: 'Der Einsatz ist abgeschlossen' }, T0)
+    expect(closed.remote).toBe('closed')
+  })
+
+  it('Abschluss mit offen bleibendem Einsatz meldet kein „abgeschlossen“', () => {
+    const items = build({ kind: 'close' })
+    expect(applyOutcome(items, 'id0', { ok: true, closed: false }, T0).remote).toBeUndefined()
+    expect(applyOutcome(items, 'id0', { ok: true, closed: true }, T0).remote).toBe('closed')
   })
 })
 

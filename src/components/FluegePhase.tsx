@@ -22,11 +22,15 @@ import TrafficMonitorCard, { TrafficAlertBanner } from './TrafficMonitorCard'
 import FlightProposalCard from './suchlage/FlightProposalCard'
 import SuchlageStatusLine from './suchlage/SuchlageStatusLine'
 import SuchlageRemoteNotice from './suchlage/SuchlageRemoteNotice'
+import SuchlageLogbookNotices, { type LogbookNoticeItem } from './suchlage/SuchlageLogbookNotices'
 import { useSuchlageMission } from '../hooks/useSuchlage'
 import { useSuchlageFlights } from '../hooks/useSuchlageData'
-import { addConfirmedFlight, applyMerge, computeProposals, needsManualLanding, syncFromSuchlage } from '../utils/suchlageFlights'
+import { addConfirmedFlight, applyMerge, computeProposals, needsManualLanding, syncFromSuchlage, takenByOthers } from '../utils/suchlageFlights'
+import { dismissSuchlageLogbookNotice, kickSuchlageSync } from '../utils/suchlageStore'
 import { formatDistance } from '../utils/suchlageReport'
 import { sortByBlockOff } from '../utils/flightLogOrder'
+// UUID auch ohne sicheren Kontext: Suchlage nimmt Flugbucheinträge nur mit UUID an.
+import { generateId } from '../utils/missionStorage'
 import type { FmFlight } from '../types/suchlage'
 
 const LANDING_STATUS_CONFIG: Record<LandingStatus, { label: string; color: string; bgColor: string; borderColor: string; icon: React.ReactNode }> = {
@@ -37,10 +41,8 @@ const LANDING_STATUS_CONFIG: Record<LandingStatus, { label: string; color: strin
 
 const LANDING_STATUS_ORDER: LandingStatus[] = ['ok', 'auffaellig', 'notfall']
 
-function generateId() {
-  return typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : Math.random().toString(36).slice(2, 11)
+function formatClock(ms: number): string {
+  return new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 }
 
 function formatTime(iso: string): string {
@@ -119,10 +121,30 @@ export default function FluegePhase() {
   // Suchlage (nur bei Verknüpfung): erkannte Flüge als Vorschläge, Landung nachziehen
   const suchlageMission = useSuchlageMission()
   const suchlageFlights = useSuchlageFlights(suchlageMission, !!activeEntry)
-  const flightsFromSuchlage = suchlageFlights.flights
+  // Flüge, deren Bestätigung hier mit 409 abgelehnt wurde, hat ein anderer Trupp: kein Vorschlag mehr.
+  const takenFlightIds = suchlageMission.link?.takenFlightIds
+  const flightsFromSuchlage = suchlageFlights.flights && takenFlightIds?.length
+    ? suchlageFlights.flights.filter((f) => !takenFlightIds.includes(f.id))
+    : suchlageFlights.flights
+  // Vorschläge, die eben noch zu sehen waren: Bestätigt sie ein anderer Trupp, sagt ein Hinweis, wer.
+  const lastProposalIds = useRef<ReadonlySet<number>>(new Set())
+  const [takenNotices, setTakenNotices] = useState<LogbookNoticeItem[]>([])
   const applySuchlageFlights = useEffectEvent((flights: FmFlight[]) => {
     const next = syncFromSuchlage(entries, flights)
     if (next !== entries) setEntries(next)
+    const taken = takenByOthers(flights, lastProposalIds.current)
+    lastProposalIds.current = new Set(
+      suchlageMission.remoteEnded ? [] : computeProposals(flights, next).map((p) => p.flight.id),
+    )
+    if (taken.length > 0) {
+      setTakenNotices((prev) => [
+        ...prev.filter((n) => !taken.some((f) => n.key === `taken:${f.id}`)),
+        ...taken.map((f) => ({
+          key: `taken:${f.id}`,
+          text: `Den Flug ${formatClock(f.started_at_ms)}${f.ended_at_ms !== null ? `–${formatClock(f.ended_at_ms)}` : ''} hat ${f.confirmed_by} bestätigt. Er steht dort im Flugbuch und ist hier kein Vorschlag mehr.`,
+        })),
+      ])
+    }
   })
   useEffect(() => {
     if (flightsFromSuchlage) applySuchlageFlights(flightsFromSuchlage)
@@ -130,6 +152,21 @@ export default function FluegePhase() {
   const proposals = flightsFromSuchlage && !suchlageMission.remoteEnded
     ? computeProposals(flightsFromSuchlage, entries)
     : []
+  // Jeder Eintrag geht an Suchlage (bestätigt oder von Hand): nach jeder Änderung anstoßen.
+  const suchlageLinked = suchlageMission.linked
+  useEffect(() => {
+    if (suchlageLinked) kickSuchlageSync()
+  }, [rawEntries, suchlageLinked])
+  const logbookNotices: LogbookNoticeItem[] = suchlageMission.linked
+    ? [
+        ...(suchlageMission.link?.logbookNotices ?? []).map((n) => ({ key: `entry:${n.entryId}`, text: n.text })),
+        ...takenNotices,
+      ]
+    : []
+  function dismissLogbookNotice(key: string) {
+    if (key.startsWith('entry:')) dismissSuchlageLogbookNotice(missionId, key.slice('entry:'.length))
+    else setTakenNotices((prev) => prev.filter((n) => n.key !== key))
+  }
 
   // Standort wie in der Vorflugkontrolle; ohne GPS/manuellen Standort den der
   // dort zuletzt abgefragten Flugverkehrsdaten
@@ -241,6 +278,7 @@ export default function FluegePhase() {
 
       <SuchlageStatusLine show={suchlageMission.linked && (suchlageMission.unreachable || suchlageFlights.unreachable)} />
       {suchlageMission.linked && <SuchlageRemoteNotice state={suchlageMission.link?.remoteState} context="fluege" />}
+      <SuchlageLogbookNotices notices={logbookNotices} onDismiss={dismissLogbookNotice} />
 
       {/* Hinweis: Start und Landung melden */}
       <div className="flex items-start gap-3 border border-banner-line bg-banner px-4 py-3">

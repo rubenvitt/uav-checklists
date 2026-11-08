@@ -2,13 +2,13 @@
  * Beispieldaten der Flugmappe-Schnittstelle von Suchlage, wörtlich kopiert.
  *
  * Herkunft: rubenvitt/suchlage frontend/src/contract/fixtures.generated.ts,
- * Stand 37808d8 (erzeugt von `cargo test contract`). Nicht von Hand ändern —
+ * Stand b3a0361 (erzeugt von `cargo test contract`). Nicht von Hand ändern —
  * bei einem neuen Stand von dort neu kopieren. Angepasst (Zeiten, IDs,
  * Koordinaten des Beispiel-Einsatzes) wird erst in suchlage.mjs.
  */
 
 export const fmMe = {
-  "api_version": 1,
+  "api_version": 2,
   "name": "Gruppenführer I&K",
   "role": "operator"
 }
@@ -18,11 +18,32 @@ export const fmMissions = [
     "created_at_ms": 1792146400000,
     "created_by": "Gruppenführer I&K",
     "id": 3,
-    "link": {
-      "flugmappe_mission_id": "0f6b2a1e-5d43-4c8e-9b7a-2e1f3c4d5a6b",
-      "linked_at_ms": 1792146400000,
-      "linked_by": "Gruppenführer I&K"
-    },
+    "links": [
+      {
+        "aircraft_label": "Matrice 350 RTK",
+        "done_at_ms": null,
+        "flugmappe_mission_id": "0f6b2a1e-5d43-4c8e-9b7a-2e1f3c4d5a6b",
+        "linked_at_ms": 1792146400000,
+        "linked_by": "Gruppenführer I&K",
+        "released_at_ms": null
+      },
+      {
+        "aircraft_label": "Matrice 200",
+        "done_at_ms": 1792149700000,
+        "flugmappe_mission_id": "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+        "linked_at_ms": 1792147300000,
+        "linked_by": "Max Muster",
+        "released_at_ms": null
+      },
+      {
+        "aircraft_label": "Mavic 3T",
+        "done_at_ms": null,
+        "flugmappe_mission_id": "2b3c4d5e-6f7a-4b8c-9d0e-1f2a3b4c5d6e",
+        "linked_at_ms": 1792147000000,
+        "linked_by": "Gesa Gast",
+        "released_at_ms": 1792147200000
+      }
+    ],
     "location": "Forst Nord",
     "name": "Vermisste Person Waldweg",
     "sections": [
@@ -50,7 +71,7 @@ export const fmMissions = [
     "created_at_ms": 1792149400000,
     "created_by": "Erika Mustermann",
     "id": 4,
-    "link": null,
+    "links": [],
     "location": null,
     "name": "Übung Kiesgrube",
     "sections": [
@@ -72,6 +93,7 @@ export const fmFlights = [
   {
     "aircraft_label": "RC Plus 1",
     "aircraft_sn": "ACSIM0001",
+    "confirmed_by": null,
     "distance_m": 2310.0,
     "end_reason": "landed",
     "ended_at_ms": 1792148680000,
@@ -84,6 +106,7 @@ export const fmFlights = [
   {
     "aircraft_label": "RC Plus 1",
     "aircraft_sn": "ACSIM0001",
+    "confirmed_by": "Matrice 200",
     "distance_m": 431.0,
     "end_reason": null,
     "ended_at_ms": null,
@@ -94,6 +117,22 @@ export const fmFlights = [
     "started_at_ms": 1792149400000
   }
 ]
+
+export const fmLogbookStored = {
+  "entry": {
+    "aircraft_label": "Matrice 200",
+    "changed_at_ms": 1792149150000,
+    "flight_id": null,
+    "flugmappe_section_id": "b7e8f9a0-1b2c-4d3e-8f4a-5b6c7d8e9f0a",
+    "landed_at_ms": 1792149100000,
+    "landing_status": "normal",
+    "pilot": "Max Muster",
+    "revision": 2,
+    "started_at_ms": 1792148500000
+  },
+  "entry_id": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+  "revision": 2
+}
 
 export const fmMap = {
   "features": [

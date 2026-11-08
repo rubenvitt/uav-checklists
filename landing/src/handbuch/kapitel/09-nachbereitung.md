@@ -465,10 +465,17 @@ Wenn alles eingetragen und unterschrieben ist, schließt ihr den Einsatz ab.
 
 ![Rückfrage „Einsatz wirklich abschliessen? Der Einsatz kann danach nicht mehr bearbeitet werden und wird nach 24 Stunden automatisch gelöscht.“ mit dem Knopf „Bestätigen: Einsatz abschliessen“](handbuch/nachbereitung-abschliessen.webp "Erst das zweite Tippen schließt ab.")
 
-Ist der Einsatz mit Suchlage verknüpft, schließt die App ihn dort mit ab. Ihr
-müsst nichts weiter tun: Läuft in Suchlage noch ein Flug oder ist Suchlage
-gerade nicht erreichbar, holt die App den Abschluss nach, solange der Einsatz
-auf diesem Gerät gespeichert ist.
+Ist der Einsatz mit Suchlage verknüpft, meldet die App euren Teil dort als
+fertig. Ihr müsst nichts weiter tun: Läuft in Suchlage noch ein Flug oder ist
+Suchlage gerade nicht erreichbar, holt die App den Abschluss nach, solange der
+Einsatz auf diesem Gerät gespeichert ist.
+
+Arbeiten noch andere Trupps am selben Suchlage-Einsatz, bleibt er dort offen,
+bis alle fertig sind. Das ist kein Fehler. Vor dem Abschließen steht dann
+**In Suchlage arbeiten an diesem Einsatz noch andere Flugmappen (…)**, danach
+im abgeschlossenen Einsatz **In Suchlage ist der Teil dieser Flugmappe
+abgeschlossen. Der Suchlage-Einsatz bleibt offen, weil noch andere Trupps
+arbeiten (…).**
 
 Nach dem Abschließen könnt ihr nichts mehr ändern. Öffnet ihr den Einsatz,
 seht ihr nur noch **Einsatz abgeschlossen**, **PDF herunterladen** und

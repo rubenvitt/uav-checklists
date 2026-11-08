@@ -1,4 +1,4 @@
-// Einziger Einstieg für die Vertragstypen von Suchlage (`/api/flugmappe/v1`).
+// Einziger Einstieg für die Vertragstypen von Suchlage (`/api/flugmappe/v2`).
 // Die Dateien daneben sind Kopien aus rubenvitt/suchlage
 // (frontend/src/contract/generated/, erzeugt mit ts-rs). Zum Aktualisieren
 // neu kopieren, nicht von Hand ändern.
@@ -17,6 +17,8 @@ export type { FmMissionLink } from './FmMissionLink'
 export type { FmSectionCreate } from './FmSectionCreate'
 export type { FmSectionUpdate } from './FmSectionUpdate'
 export type { FmFlight } from './FmFlight'
+export type { FmLogbookEntry } from './FmLogbookEntry'
+export type { FmLogbookStored } from './FmLogbookStored'
 export type { FmImportFeature } from './FmImportFeature'
 export type { FmMapImport } from './FmMapImport'
 export type { FmMapImportResult } from './FmMapImportResult'
