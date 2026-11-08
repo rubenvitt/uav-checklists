@@ -172,11 +172,24 @@ describe('applyOutcome', () => {
     )
     for (const id of ['id0', 'id1', 'id2', 'id3']) {
       for (const message of [undefined, 'Verknüpfung in Suchlage gelöst', 'Der Einsatz ist nicht mit dieser Flugmappe verknüpft']) {
+        // Flugbuch ohne Antworttext: eigener Fall, siehe unten.
+        if (id === 'id2' && message === undefined) continue
         const a = applyOutcome(all, id, { ok: false, kind: 'conflict', status: 409, message }, T0)
         expect(a.items).toBe(all)
         expect(a.effect).toBe('pause')
         expect(a.remote).toBe('released')
       }
+    }
+  })
+
+  it('409 auf eine Flugbuch-Meldung ohne Antworttext: später erneut, kein „gelöst“', () => {
+    const items = build({ kind: 'logbook', entryId: 'e1', revision: 1, entry: snap({ flightId: 7 }) }, { kind: 'close' })
+    for (const message of [undefined, null, '']) {
+      const a = applyOutcome(items, 'id0', { ok: false, kind: 'conflict', status: 409, message }, T0)
+      expect(a.effect).toBe('retry')
+      expect(a.remote).toBeUndefined()
+      expect(a.removed).toBeUndefined()
+      expect(a.items[0]).toMatchObject({ id: 'id0', attempts: 1, notBefore: T0 + BACKOFF_BASE_MS, lastError: 'conflict' })
     }
   })
 
