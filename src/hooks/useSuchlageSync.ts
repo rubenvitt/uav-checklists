@@ -21,7 +21,6 @@ import {
   getSuchlageLink,
   getSuchlageLogbook,
   getSuchlageOutbox,
-  kickSuchlageSync,
   onSuchlageSyncKick,
   setSuchlageLogbook,
   setSuchlageOutbox,
@@ -64,8 +63,9 @@ export function aircraftLabelOf(missionId: string): string {
 function reconcileMissionLogbook(mission: Mission, link: SuchlageLink): OutboxItem[] {
   let items = getSuchlageOutbox(mission.id)
   const entries = getMissionField<FlightLogEntry[]>(mission.id, FLIGHT_LOG_KEY, [])
+  // Nur Abschnitte, die Suchlage kennt: genau die gehen mit. Wird ein wartender
+  // Abschnitt angelegt, gleicht `onRemoved` gleich ab und meldet mit Abschnitt neu.
   const sections = new Set(Object.keys(link.sections))
-  for (const i of items) if (i.kind === 'section') sections.add(i.segmentId)
   const now = Date.now()
   const before = getSuchlageLogbook(mission.id)
   // Neu mit einem anderen Suchlage-Einsatz verknüpft: Wartende Meldungen gehören zum alten.
@@ -120,24 +120,27 @@ async function syncAll(force: boolean, isStopped: () => boolean): Promise<boolea
       onRemoved: ({ item, sent }, outcome) => {
         if (item.kind === 'logbook' && !sent && isConfirmationConflict(item, outcome) && item.entry?.flightId != null) {
           handleConfirmationConflict(mission.id, item.entryId, item.entry.flightId, outcome)
-          // Den Handeintrag gleich einreihen – vor einen wartenden Abschluss, der
-          // sonst als Nächstes hinausginge und den Einsatz schließen könnte.
-          const current = getSuchlageLink(mission.id)
-          if (current) reconcileMissionLogbook(mission, current)
-          return
         }
-        if (item.kind !== 'section') return
-        const error = sent ? null : sectionErrorText(outcome)
-        updateSuchlageLink(mission.id, (l) => {
-          const sectionErrors = { ...l.sectionErrors }
-          if (sent) delete sectionErrors[item.segmentId]
-          else if (error) sectionErrors[item.segmentId] = error
-          return {
-            ...l,
-            sections: sent ? { ...l.sections, [item.segmentId]: true } : l.sections,
-            sectionErrors,
-          }
-        })
+        if (item.kind === 'section') {
+          const error = sent ? null : sectionErrorText(outcome)
+          updateSuchlageLink(mission.id, (l) => {
+            const sectionErrors = { ...l.sectionErrors }
+            if (sent) delete sectionErrors[item.segmentId]
+            else if (error) sectionErrors[item.segmentId] = error
+            return {
+              ...l,
+              sections: sent ? { ...l.sections, [item.segmentId]: true } : l.sections,
+              sectionErrors,
+            }
+          })
+        }
+        // Flugbuch gleich neu abgleichen (Handeintrag nach 409, Korrektur nach einem
+        // übergangenen PUT, Abschnitt jetzt bekannt). Neues kommt so in derselben
+        // Runde vor einen wartenden Abschluss, der sonst den Einsatz schließen könnte.
+        if (item.kind === 'logbook' || (item.kind === 'section' && sent)) {
+          const current = getSuchlageLink(mission.id)
+          if (current && !current.remoteState && !mission.deletedAt) reconcileMissionLogbook(mission, current)
+        }
       },
       onRemote: (hint) => hintSuchlageRemoteState(mission.id, hint),
     })
@@ -218,10 +221,10 @@ async function sendItem(missionId: string, item: OutboxItem): Promise<SendOutcom
           const stored = await suchlage.putLogbookEntry(id, missionId, item.entryId, sent)
           // Suchlage hat einen anderen Stand mit gleicher oder höherer Revision
           // (Revisionen hier verloren): mit höherer Revision neu melden.
+          // Der Abgleich in `onRemoved` reiht die Korrektur gleich ein.
           if (storedDiverges(sent, stored)) {
             const state = forgetReported(getSuchlageLogbook(missionId), item.entryId, stored.revision)
             if (state) setSuchlageLogbook(missionId, state)
-            kickSuchlageSync()
           }
         } else {
           await suchlage.deleteLogbookEntry(id, missionId, item.entryId, item.revision)

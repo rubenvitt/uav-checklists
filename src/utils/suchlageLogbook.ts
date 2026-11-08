@@ -17,7 +17,9 @@ export interface LogbookRecord {
   revision: number
   /**
    * Gemeldeter Stand; `null` = als gelöscht gemeldet; fehlt = an diesen
-   * Suchlage-Einsatz noch nicht gemeldet (nach einem Wechsel des Einsatzes).
+   * Suchlage-Einsatz noch nicht gemeldet (nach einem Wechsel des Einsatzes);
+   * {@link STALE} = gemeldet, aber Suchlage hält einen anderen Stand (neu melden
+   * bzw. löschen, falls der Eintrag inzwischen weg ist).
    */
   fingerprint?: string | null
 }
@@ -27,6 +29,9 @@ export interface LogbookState {
   suchlageMissionId: number
   entries: Record<string, LogbookRecord>
 }
+
+/** Fingerabdruck „gemeldet, aber überholt“: passt zu keinem echten Stand. */
+export const STALE = ''
 
 /** Fluggerät, wenn die Flugmappe keins kennt (wie die Migration in Suchlage). */
 export const UNKNOWN_AIRCRAFT = 'Fluggerät unbekannt'
@@ -41,7 +46,11 @@ const LANDING_STATUS_TEXT: Record<LandingStatus, string> = {
 export interface LogbookContext {
   /** Bezeichnung des Fluggeräts der Flugmappe, z. B. „DJI Matrice 200“. */
   aircraftLabel: string
-  /** Abschnitte, die Suchlage kennt oder die vorher in der Ausgangsliste angelegt werden. */
+  /**
+   * Abschnitte, die Suchlage kennt. Nur diese gehen mit; legt Suchlage einen
+   * Abschnitt später an, ändert sich der Fingerabdruck und der Eintrag wird mit
+   * Abschnitt neu gemeldet.
+   */
   sections: ReadonlySet<string>
 }
 
@@ -176,7 +185,8 @@ export function storedDiverges(sent: FmLogbookEntry, stored: FmLogbookStored): b
 export function forgetReported(state: LogbookState | null, entryId: string, storedRevision: number): LogbookState | null {
   if (!state) return state
   const revision = Math.max(state.entries[entryId]?.revision ?? 0, storedRevision)
-  return { ...state, entries: { ...state.entries, [entryId]: { revision } } }
+  // STALE statt „nie gemeldet“: Ist der Eintrag inzwischen gelöscht, folgt noch eine Löschmarke.
+  return { ...state, entries: { ...state.entries, [entryId]: { revision, fingerprint: STALE } } }
 }
 
 /**
