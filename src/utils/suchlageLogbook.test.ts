@@ -134,9 +134,17 @@ describe('storedDiverges / forgetReported', () => {
   it('hebt die Revision und meldet beim nächsten Abgleich darüber neu', () => {
     const first = reconcileLogbook([entry('a', 0, 10)], null, 1, ctx, T)
     const forgotten = forgetReported(first.state, 'a', 7)!
-    expect(forgotten.entries.a).toEqual({ revision: 7 })
+    expect(forgotten.entries.a).toEqual({ revision: 7, fingerprint: '' })
     const next = reconcileLogbook([entry('a', 0, 10)], forgotten, 1, ctx, T)
     expect(next.items).toEqual([expect.objectContaining({ entryId: 'a', revision: 8 })])
     expect(forgetReported(null, 'a', 7)).toBeNull()
+  })
+
+  it('während des PUT gelöscht: nach dem Vergessen folgt trotzdem eine Löschmarke', () => {
+    const first = reconcileLogbook([entry('a', 0, 10)], null, 1, ctx, T)
+    const forgotten = forgetReported(first.state, 'a', 4)
+    const next = reconcileLogbook([], forgotten, 1, ctx, T)
+    expect(next.items).toEqual([{ kind: 'logbook', entryId: 'a', revision: 5, entry: null }])
+    expect(reconcileLogbook([], next.state, 1, ctx, T).items).toEqual([])
   })
 })
