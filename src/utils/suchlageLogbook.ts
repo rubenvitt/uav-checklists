@@ -9,7 +9,7 @@
  * (`suchlage:logbook`) und überstehen so Neustarts.
  */
 import type { FlightLogEntry, LandingStatus } from '../types/flightLog'
-import type { FmLogbookEntry } from '../types/suchlage'
+import type { FmLogbookEntry, FmLogbookStored } from '../types/suchlage'
 import type { LogbookSnapshot, NewOutboxItem } from './suchlageOutbox'
 
 export interface LogbookRecord {
@@ -143,6 +143,40 @@ export function reconcileLogbook(
 
   if (items.length === 0 && base === previous) return { state: base, items }
   return { state: { suchlageMissionId, entries: next }, items }
+}
+
+const norm = (s: string | null | undefined) => (s ?? '').trim() || null
+
+/** Gleicher Inhalt wie gemeldet (ohne Revision und Änderungszeit, Texte getrimmt). */
+function sameContent(a: FmLogbookEntry, b: FmLogbookEntry): boolean {
+  return a.flight_id === b.flight_id
+    && norm(a.flugmappe_section_id) === norm(b.flugmappe_section_id)
+    && a.started_at_ms === b.started_at_ms
+    && a.landed_at_ms === b.landed_at_ms
+    && norm(a.aircraft_label) === norm(b.aircraft_label)
+    && norm(a.pilot) === norm(b.pilot)
+    && norm(a.landing_status) === norm(b.landing_status)
+}
+
+/**
+ * Hat Suchlage die Meldung übergangen und hält einen anderen Stand? Das passiert,
+ * wenn die Revisionen hier verloren gingen (Speicher voll, Daten zurückgesetzt):
+ * Suchlage nimmt nur eine höhere Revision und antwortet sonst mit dem Gespeicherten.
+ */
+export function storedDiverges(sent: FmLogbookEntry, stored: FmLogbookStored): boolean {
+  if (stored.revision < sent.revision) return false
+  return !stored.entry || !sameContent(stored.entry, sent)
+}
+
+/**
+ * Nach {@link storedDiverges}: Revision auf den Stand von Suchlage heben und den
+ * Eintrag als nicht gemeldet markieren, damit der nächste Abgleich ihn mit
+ * höherer Revision neu meldet.
+ */
+export function forgetReported(state: LogbookState | null, entryId: string, storedRevision: number): LogbookState | null {
+  if (!state) return state
+  const revision = Math.max(state.entries[entryId]?.revision ?? 0, storedRevision)
+  return { ...state, entries: { ...state.entries, [entryId]: { revision } } }
 }
 
 /**
