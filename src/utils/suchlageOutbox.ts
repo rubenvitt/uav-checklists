@@ -12,6 +12,8 @@
  * - Flugbucheintrag mit Suchlage-Flug und 409, weil eine andere Flugmappe den
  *   Flug schon bestätigt hat → verworfen; der Aufrufer macht den Eintrag zum
  *   Handeintrag (`isConfirmationConflict`), der dann neu gemeldet wird.
+ * - Flugbucheintrag mit 409 ohne Antworttext → später erneut (Backoff); ohne
+ *   Text ist „gelöst“ nicht von einem Flugkonflikt zu unterscheiden.
  * - Flugbucheinträge: je Eintrag nur der letzte Stand (mit Revision), immer vor
  *   dem Abschluss.
  * - `close` mit 422 (Flug läuft noch) → später erneut.
@@ -270,6 +272,11 @@ export function applyOutcome(items: OutboxItem[], id: string, outcome: SendOutco
   if (isConfirmationConflict(item, outcome)) {
     return { items: without, effect: 'continue', removed: { item, sent: false } }
   }
+
+  // Flugbuch ohne Antworttext (z. B. ein Proxy dazwischen): Gelöst oder Flugkonflikt
+  // ist nicht zu unterscheiden. Später erneut statt pausieren – sonst hebt
+  // GET /missions/{id} die Pause jede Minute auf und es beginnt von vorn.
+  if (kind === 'conflict' && item.kind === 'logbook' && !outcome.message) return retry()
 
   // Sonst heißt 409: Die Verknüpfung ist in Suchlage gelöst (oder fehlt). Nichts
   // verwerfen, sondern pausieren: Stellt GET /missions/{id} die Bindung wieder fest
