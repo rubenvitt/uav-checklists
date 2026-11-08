@@ -57,7 +57,7 @@ describe('suchlageApi Anfragen', () => {
     await client.flights(42, 'fm-uuid')
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
-    expect(url).toBe('https://suchlage.example/api/flugmappe/v1/missions/42/flights')
+    expect(url).toBe('https://suchlage.example/api/flugmappe/v2/missions/42/flights')
     const headers = init.headers as Record<string, string>
     expect(headers.Authorization).toBe('Bearer tok')
     expect(headers[MISSION_HEADER]).toBe('fm-uuid')
@@ -69,7 +69,7 @@ describe('suchlageApi Anfragen', () => {
     const m = await client.mission(5, 'fm')
     expect(m.state).toBe('closed')
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
-    expect(url).toBe('https://suchlage.example/api/flugmappe/v1/missions/5')
+    expect(url).toBe('https://suchlage.example/api/flugmappe/v2/missions/5')
     expect((init.headers as Record<string, string>)[MISSION_HEADER]).toBe('fm')
   })
 
@@ -84,22 +84,44 @@ describe('suchlageApi Anfragen', () => {
   it('schickt JSON beim Anlegen und den Abschnitt in der Karte', async () => {
     const { client, fetchMock } = setup({ response: () => jsonResponse(200, { type: 'FeatureCollection', features: [] }) })
     await client.map(7, 'fm', 'seg 1')
-    expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe('https://suchlage.example/api/flugmappe/v1/missions/7/map?section=seg%201')
+    expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe('https://suchlage.example/api/flugmappe/v2/missions/7/map?section=seg%201')
     await client.createMission({
       name: 'N', location: null, section_label: 'Standort 1', section_location: null,
-      flugmappe_mission_id: 'fm', flugmappe_section_id: 's1',
+      flugmappe_mission_id: 'fm', flugmappe_section_id: 's1', aircraft_label: 'DJI Matrice 350 RTK',
     })
     const init = (fetchMock.mock.calls[1] as unknown as [string, RequestInit])[1]
     expect(init.method).toBe('POST')
     expect((init.headers as Record<string, string>)['Content-Type']).toBe('application/json')
     expect(JSON.parse(init.body as string).flugmappe_mission_id).toBe('fm')
+    expect(JSON.parse(init.body as string).aircraft_label).toBe('DJI Matrice 350 RTK')
+  })
+
+  it('meldet einen Flugbucheintrag mit PUT und löscht ihn mit DELETE samt Revision', async () => {
+    const { client, fetchMock } = setup({ response: () => jsonResponse(200, { entry_id: 'e1', revision: 2, entry: null }) })
+    const body = {
+      revision: 2, flight_id: null, flugmappe_section_id: 's1', started_at_ms: 1, landed_at_ms: 2,
+      aircraft_label: 'DJI Matrice 200', pilot: 'A', landing_status: 'normal', changed_at_ms: 3,
+    }
+    const stored = await client.putLogbookEntry(4, 'fm', 'e1', body)
+    expect(stored.revision).toBe(2)
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('https://suchlage.example/api/flugmappe/v2/missions/4/logbook/e1')
+    expect(init.method).toBe('PUT')
+    expect(JSON.parse(init.body as string)).toEqual(body)
+    expect((init.headers as Record<string, string>)[MISSION_HEADER]).toBe('fm')
+
+    fetchMock.mockImplementationOnce(async () => new Response(null, { status: 204 }))
+    await expect(client.deleteLogbookEntry(4, 'fm', 'e1', 3)).resolves.toBeUndefined()
+    const [delUrl, delInit] = fetchMock.mock.calls[1] as unknown as [string, RequestInit]
+    expect(delUrl).toBe('https://suchlage.example/api/flugmappe/v2/missions/4/logbook/e1?revision=3')
+    expect(delInit.method).toBe('DELETE')
   })
 
   it('lädt das Kartenfoto als JPEG hoch und erwartet keinen Inhalt', async () => {
     const { client, fetchMock } = setup({ response: () => new Response(null, { status: 204 }) })
     await client.uploadPhoto(3, 'fm', 'seg', new Blob([new Uint8Array([0xff, 0xd8, 0xff])]))
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
-    expect(url).toBe('https://suchlage.example/api/flugmappe/v1/missions/3/sections/seg/photo')
+    expect(url).toBe('https://suchlage.example/api/flugmappe/v2/missions/3/sections/seg/photo')
     expect(init.method).toBe('PUT')
     expect((init.headers as Record<string, string>)['Content-Type']).toBe('image/jpeg')
   })
@@ -122,7 +144,7 @@ describe('suchlageApi Fehlerklassen', () => {
   it('übernimmt die Meldung aus ApiError', async () => {
     const { client } = setup({ response: () => jsonResponse(409, { error: 'Ein anderer Einsatz läuft' }) })
     const err = await caught(client.linkMission(1, {
-      flugmappe_mission_id: 'fm', flugmappe_section_id: 's', section_label: 'S', section_location: null, take_over: false,
+      flugmappe_mission_id: 'fm', flugmappe_section_id: 's', section_label: 'S', section_location: null, aircraft_label: 'DJI Matrice 200',
     }))
     expect(err.kind).toBe('conflict')
     expect(err.status).toBe(409)

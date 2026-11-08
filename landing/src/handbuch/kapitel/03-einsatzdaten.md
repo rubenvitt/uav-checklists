@@ -202,8 +202,14 @@ einem Einsatz in Suchlage,
   (siehe [Von Suchlage erkannte Flüge](#fluege-von-suchlage-erkannte-fluege)),
 - kommt die **Einsatzkarte** aus Suchlage (siehe [Karte aus
   Suchlage](#einsatzdaten-karte-aus-suchlage)),
+- geht jeder Eintrag im Flugbuch an Suchlage, ob bestätigt oder von Hand
+  eingetragen (etwa die Flüge einer M200, die Suchlage nicht selbst sieht),
 - legt eine Verlegung in Suchlage einen neuen Abschnitt an, und der Abschluss
-  in der Nachbereitung schließt den Einsatz auch dort.
+  in der Nachbereitung meldet euren Teil dort als fertig.
+
+Mehrere Trupps können denselben Einsatz in Suchlage verknüpfen, jeder mit
+seiner eigenen Flugmappe und seinem Fluggerät. Suchlage zeigt dann alle Flüge
+des Einsatzes in einer Liste.
 
 Der Abschnitt **Suchlage** erscheint nur, wenn eure Organisation Suchlage für
 die Flugmappe eingerichtet hat, ihr angemeldet seid und euer Konto in Suchlage
@@ -214,39 +220,53 @@ genau wie sonst, und der Abschnitt zählt nicht für **Weiter**.
 
 1. Klappt den Abschnitt **Suchlage** auf. Unter **Offene Einsätze in
    Suchlage** stehen die vorbereiteten und der laufende Einsatz mit Zustand
-   (**Vorbereitet** oder **Läuft**) und Beginn.
+   (**Vorbereitet** oder **Läuft**) und Beginn. Arbeitet schon ein anderer
+   Trupp daran, steht darunter **Verknüpft:** mit dessen Fluggerät und Namen.
 2. Passt einer, tippt bei ihm auf **Wählen**.
 3. Passt keiner, prüft unter **Neu in Suchlage anlegen** den vorbelegten
    **Name** (Einsatzstichwort) und **Ort** und tippt auf **In Suchlage anlegen
    und verknüpfen**.
 
-![Aufgeklappter Abschnitt Suchlage: unter „Offene Einsätze in Suchlage“ der laufende Einsatz „Hochwasser Deich Nord“ mit dem Knopf „Wählen“ und die vorbereitete „Übung Kiesgrube“, mit anderer Flugmappe verknüpft, mit „Übernehmen …“; darunter „Neu in Suchlage anlegen“ mit Name, Ort und dem Knopf „In Suchlage anlegen und verknüpfen“](handbuch/einsatzdaten-suchlage-auswahl.webp "Läuft euer Einsatz schon in Suchlage, wählt ihn aus. Sonst legt ihr ihn hier neu an.")
+Die App meldet dabei das Fluggerät, das ihr unter **Drohne auswählen**
+gewählt habt. So sehen die anderen Trupps und Suchlage, wer womit fliegt.
+
+![Aufgeklappter Abschnitt Suchlage: unter „Offene Einsätze in Suchlage“ der laufende Einsatz „Hochwasser Deich Nord“, verknüpft mit „Matrice 200 (Max Muster)“, und die vorbereitete „Übung Kiesgrube“, verknüpft mit „Matrice 350 RTK“, beide mit dem Knopf „Wählen“; darunter „Neu in Suchlage anlegen“ mit Name, Ort und dem Knopf „In Suchlage anlegen und verknüpfen“](handbuch/einsatzdaten-suchlage-auswahl.webp "Läuft euer Einsatz schon in Suchlage, wählt ihn aus, auch wenn schon ein anderer Trupp daran arbeitet. Sonst legt ihr ihn hier neu an.")
 
 Erst mit diesem Tipp passiert etwas. Danach zeigt der Abschnitt den Namen des
 Einsatzes, **Verknüpft seit …**, das grüne Abzeichen **Verknüpft** und den
-Link **In Suchlage öffnen**. Was ihr bis dahin auf der Einsatzkarte
-gezeichnet habt (Einsatzgebiet und Standort), übernimmt die App einmalig nach
-Suchlage.
+Link **In Suchlage öffnen**. Arbeiten weitere Trupps am selben Einsatz, stehen
+sie unter **Ebenfalls verknüpft** mit Fluggerät, Name und **Offen** oder
+**Fertig**. Was ihr bis dahin auf der Einsatzkarte gezeichnet habt
+(Einsatzgebiet und Standort), übernimmt die App einmalig nach Suchlage, aber
+nur, wenn ihr die erste Flugmappe am Einsatz seid.
 
-![Abschnitt Suchlage nach dem Verknüpfen: grünes Abzeichen „Verknüpft“, der Einsatz „Hochwasser Deich Nord“ mit „Verknüpft seit …“ und der Link „In Suchlage öffnen“](handbuch/einsatzdaten-suchlage-verknuepft.webp "Nach dem Verknüpfen zeigt der Abschnitt nur noch den gewählten Einsatz.")
+![Abschnitt Suchlage nach dem Verknüpfen: grünes Abzeichen „Verknüpft“, der Einsatz „Hochwasser Deich Nord“ mit „Verknüpft seit …“, der Link „In Suchlage öffnen“ und unter „Ebenfalls verknüpft“ die „Matrice 200“ von Max Muster mit „Offen“](handbuch/einsatzdaten-suchlage-verknuepft.webp "Nach dem Verknüpfen zeigt der Abschnitt den gewählten Einsatz und die anderen Trupps daran.")
 
 > [!WICHTIG]
 > Eine Verknüpfung lässt sich in der Flugmappe nicht lösen. Sie endet mit dem
 > Abschluss des Einsatzes. Wählt deshalb mit Bedacht.
 
-### Einsatz einer anderen Flugmappe übernehmen
+### Mehrere Trupps am selben Einsatz
 
-Steht bei einem Einsatz **Mit anderer Flugmappe verknüpft** (mit Name und
-Uhrzeit), heißt der Knopf **Übernehmen …**. Das braucht ihr, wenn ihr das
-Gerät wechselt, die Schicht übergebt oder die Daten im Browser verloren
-gegangen sind. Die App fragt **Einsatz übernehmen?** Mit **Übernehmen**
-bekommt ab jetzt diese Flugmappe die Flüge, die andere keine neuen mehr.
+Jede verknüpfte Flugmappe ist gleichberechtigt. Niemand übernimmt einen
+Einsatz und niemand wird abgelöst. Wechselt ihr das Gerät oder übergebt die
+Schicht, verknüpft die neue Flugmappe einfach denselben Einsatz dazu.
+
+Einen Flug, den Suchlage erkennt, bestätigt nur ein Trupp. Danach ist er bei
+den anderen kein Vorschlag mehr (siehe [Von Suchlage erkannte
+Flüge](#fluege-von-suchlage-erkannte-fluege)).
+
+Geht eine Flugmappe verloren, kann die Einsatzleitung ihre Verknüpfung in
+Suchlage **lösen**. Steht bei euch **Gelöst** und **Die Verknüpfung wurde in
+Suchlage gelöst.**, arbeitet die Flugmappe ohne Suchlage weiter. Mit
+**Erneut verknüpfen** hängt ihr euch wieder an denselben Einsatz. Was in der
+Zwischenzeit gewartet hat, geht dann hinaus.
 
 ### Wenn Suchlage nicht erreichbar ist
 
 Fällt das Netz aus, steht oben **Suchlage nicht erreichbar – Flugbuch
 funktioniert weiter**. Ihr arbeitet normal weiter. Was an Suchlage gehen
-soll (neuer Abschnitt, Kartenfoto, Abschluss), merkt sich die App und
+soll (neuer Abschnitt, Kartenfoto, Flugbucheinträge, Abschluss), merkt sich die App und
 schickt es, sobald Suchlage wieder erreichbar ist. Im Abschnitt **Suchlage**
 steht dann, wie viele Änderungen noch warten.
 
@@ -415,5 +435,10 @@ keinen Zugriff. Die Flugmappe funktioniert trotzdem vollständig.
 **… beim Verknüpfen „In Suchlage läuft schon …“ steht?** In Suchlage läuft
 bereits ein anderer Einsatz. Wählt diesen oder lasst ihn in Suchlage
 abschließen.
+
+**… beim Verknüpfen „Diese Flugmappe ist schon mit einem anderen Einsatz
+verknüpft“ steht?** Dieser Einsatz der Flugmappe hängt in Suchlage schon an
+einem anderen Einsatz. Legt für den neuen Einsatz auch in der Flugmappe einen
+neuen Einsatz an, oder lasst die alte Verknüpfung in Suchlage lösen.
 
 **… ein Name in den Vorschlägen falsch geschrieben ist?** Entfernt ihn mit dem **X** in der Vorschlagsliste und tippt ihn richtig ein. Beim Verlassen des Felds merkt sich die App die neue Schreibweise.

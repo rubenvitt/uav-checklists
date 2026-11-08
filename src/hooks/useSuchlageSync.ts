@@ -1,19 +1,37 @@
 import { useEffect } from 'react'
 import { useAuth } from '../context/useAuth'
+import { useSuchlage } from './useSuchlage'
 import { isSuchlageConfigured, isSuchlageError, suchlage } from '../services/suchlageApi'
 import { generateId, loadMissions } from '../utils/missionStorage'
-import { getMissionField } from '../stores/missionFormStore'
-import { drainOutbox, healOutbox, isHealable, sectionErrorText, type OutboxItem, type SendOutcome } from '../utils/suchlageOutbox'
+import type { Mission } from '../types/mission'
+import { getMissionField, setMissionField } from '../stores/missionFormStore'
 import {
+  drainOutbox,
+  enqueue,
+  healOutbox,
+  isConfirmationConflict,
+  isHealable,
+  sectionErrorText,
+  type OutboxItem,
+  type SendOutcome,
+} from '../utils/suchlageOutbox'
+import {
+  addSuchlageLogbookNotice,
+  applySuchlageMissionInfo,
   getSuchlageLink,
+  getSuchlageLogbook,
   getSuchlageOutbox,
   onSuchlageSyncKick,
+  setSuchlageLogbook,
   setSuchlageOutbox,
   hintSuchlageRemoteState,
   updateSuchlageLink,
   type SuchlageLink,
 } from '../utils/suchlageStore'
+import { dropConfirmation, reconcileLogbook, toFmLogbookEntry, UNKNOWN_AIRCRAFT } from '../utils/suchlageLogbook'
 import { dataUrlToJpegBlob } from '../utils/imageJpeg'
+import { drones } from '../data/drones'
+import type { FlightLogEntry } from '../types/flightLog'
 
 export const SYNC_INTERVAL_MS = 30_000
 const LOCK_NAME = 'flugmappe-suchlage-sync'
@@ -30,23 +48,58 @@ let rerunForce: boolean | null = null
  */
 export const RUN_LIMIT_MS = 2 * 60_000
 
+export const FLIGHT_LOG_KEY = 'flightlog:entries'
+
+/** Fluggerät der Flugmappe für Suchlage (Bezeichnung aus der Geräteliste). */
+export function aircraftLabelOf(missionId: string): string {
+  const id = getMissionField<string>(missionId, 'selectedDrone', 'matrice-350-rtk')
+  return drones.find((d) => d.id === id)?.name ?? UNKNOWN_AIRCRAFT
+}
+
+/**
+ * Flugbuch mit dem gemeldeten Stand vergleichen und Neues, Geändertes und
+ * Gelöschtes in die Ausgangsliste legen (vor den Abschluss).
+ */
+function reconcileMissionLogbook(mission: Mission, link: SuchlageLink): OutboxItem[] {
+  let items = getSuchlageOutbox(mission.id)
+  const entries = getMissionField<FlightLogEntry[]>(mission.id, FLIGHT_LOG_KEY, [])
+  const sections = new Set(Object.keys(link.sections))
+  for (const i of items) if (i.kind === 'section') sections.add(i.segmentId)
+  const now = Date.now()
+  const before = getSuchlageLogbook(mission.id)
+  // Neu mit einem anderen Suchlage-Einsatz verknüpft: Wartende Meldungen gehören zum alten.
+  if (before && before.suchlageMissionId !== link.suchlageMissionId) {
+    items = items.filter((i) => i.kind !== 'logbook')
+  }
+  const result = reconcileLogbook(entries, before, link.suchlageMissionId, { aircraftLabel: aircraftLabelOf(mission.id), sections }, now)
+  if (result.state === before) return items
+  for (const entry of result.items) items = enqueue(items, entry, now, generateId())
+  // Erst die Ausgangsliste, dann die Revisionen: bricht etwas dazwischen ab, wird
+  // höchstens noch einmal gemeldet, aber nie etwas vergessen.
+  setSuchlageOutbox(mission.id, items)
+  setSuchlageLogbook(mission.id, result.state)
+  return items
+}
+
 /** Ausgangslisten aller Einsätze einmal abarbeiten. `true` = 401/403, alles ruht. */
 async function syncAll(force: boolean, isStopped: () => boolean): Promise<boolean> {
   for (const mission of loadMissions()) {
     if (isStopped()) return false
     const link = getSuchlageLink(mission.id)
     if (!link) continue
-    // Einsatz in Suchlage weg oder von anderer Flugmappe übernommen: pausieren, nichts
+    // Einsatz in Suchlage weg oder Verknüpfung dort gelöst: pausieren, nichts
     // verwerfen – löst sich der Zustand auf, geht es weiter.
-    if (link.remoteState === 'gone' || link.remoteState === 'replaced') continue
+    if (link.remoteState === 'gone' || link.remoteState === 'released') continue
     let items = getSuchlageOutbox(mission.id)
-    // Selbstheilung: nach dem Verknüpfen entstandene Abschnitte, die in Suchlage fehlen.
     if (!mission.deletedAt && !link.remoteState) {
+      // Selbstheilung: nach dem Verknüpfen entstandene Abschnitte, die in Suchlage fehlen.
       const healed = healOutbox(mission.segments, link, items, Date.now(), generateId)
       if (healed !== items) {
         items = healed
         setSuchlageOutbox(mission.id, items)
       }
+      // Flugbuch melden: was sich seit der letzten Meldung geändert hat.
+      items = reconcileMissionLogbook(mission, link)
     }
     if (items.length === 0) continue
     // Weich gelöscht: ein ausstehender Abschluss geht trotzdem noch hinaus, der Rest nicht.
@@ -64,6 +117,10 @@ async function syncAll(force: boolean, isStopped: () => boolean): Promise<boolea
       force,
       shouldStop: isStopped,
       onRemoved: ({ item, sent }, outcome) => {
+        if (item.kind === 'logbook' && !sent && isConfirmationConflict(item, outcome) && item.entry?.flightId != null) {
+          handleConfirmationConflict(mission.id, item.entryId, item.entry.flightId, outcome)
+          return
+        }
         if (item.kind !== 'section') return
         const error = sent ? null : sectionErrorText(outcome)
         updateSuchlageLink(mission.id, (l) => {
@@ -82,6 +139,24 @@ async function syncAll(force: boolean, isStopped: () => boolean): Promise<boolea
     if (result.rested) return true
   }
   return false
+}
+
+/**
+ * Ein anderer Trupp hat den Flug schon bestätigt: Der Eintrag bleibt als
+ * Handeintrag ohne Suchlage-Bezug (die nächste Runde meldet ihn so) und das
+ * Flugbuch zeigt einen Hinweis.
+ */
+function handleConfirmationConflict(missionId: string, entryId: string, flightId: number, outcome: SendOutcome): void {
+  const entries = getMissionField<FlightLogEntry[]>(missionId, FLIGHT_LOG_KEY, [])
+  const next = dropConfirmation(entries, entryId, flightId)
+  if (next === entries) return
+  setMissionField(missionId, FLIGHT_LOG_KEY, next)
+  const message = !outcome.ok && outcome.message ? outcome.message : 'Flug wurde von einer anderen Flugmappe bestätigt'
+  addSuchlageLogbookNotice(missionId, {
+    entryId,
+    text: `${message}. Der Eintrag bleibt im Flugbuch, jetzt ohne Suchlage-Bezug.`,
+    at: Date.now(),
+  }, flightId)
 }
 
 /**
@@ -132,13 +207,24 @@ async function sendItem(missionId: string, item: OutboxItem): Promise<SendOutcom
         await suchlage.uploadPhoto(id, missionId, item.segmentId, jpeg)
         break
       }
-      case 'close':
-        await suchlage.closeMission(id, missionId)
+      case 'logbook':
+        if (item.entry) {
+          await suchlage.putLogbookEntry(id, missionId, item.entryId, toFmLogbookEntry(item.entry, item.revision, link.sections))
+        } else {
+          await suchlage.deleteLogbookEntry(id, missionId, item.entryId, item.revision)
+        }
         break
+      case 'close': {
+        // Meldet den eigenen Teil als fertig. Offen bleibt der Einsatz, solange
+        // andere Flugmappen noch nicht fertig sind – kein Fehler.
+        const mission = await suchlage.closeMission(id, missionId)
+        applySuchlageMissionInfo(missionId, mission)
+        return { ok: true, closed: mission.state === 'closed' }
+      }
     }
     return { ok: true }
   } catch (e) {
-    if (isSuchlageError(e)) return { ok: false, kind: e.kind, status: e.status }
+    if (isSuchlageError(e)) return { ok: false, kind: e.kind, status: e.status, message: e.serverMessage }
     // Bild nicht lesbar o. Ä.: kann nie gelingen.
     return { ok: false, kind: 'other', status: null }
   }
@@ -152,7 +238,9 @@ async function sendItem(missionId: string, item: OutboxItem): Promise<SendOutcom
  */
 export function useSuchlageSync(): void {
   const { isAuthenticated, user } = useAuth()
-  const enabled = isSuchlageConfigured() && isAuthenticated
+  // Andere Schnittstellenversion: nichts senden (die Aufrufe gingen ins Leere und würden verworfen).
+  const { incompatible } = useSuchlage()
+  const enabled = isSuchlageConfigured() && isAuthenticated && !incompatible
   const token = user?.access_token ?? null
 
   useEffect(() => {

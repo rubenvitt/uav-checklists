@@ -4,7 +4,7 @@ import { useMissionId } from '../context/useMissionId'
 import { useSegmentPersistedState } from './useSegmentPersistedState'
 import { errorKindOf, useSuchlageMission, type SuchlageMission } from './useSuchlage'
 import { isRestingErrorKind, isSuchlageError, suchlage } from '../services/suchlageApi'
-import { OUTBOX_KEY, hintSuchlageRemoteState, kickSuchlageSync, setSuchlageRemoteState } from '../utils/suchlageStore'
+import { OUTBOX_KEY, applySuchlageMissionInfo, hintSuchlageRemoteState, kickSuchlageSync, setSuchlageRemoteState } from '../utils/suchlageStore'
 import { useMissionPersistedState } from './useMissionPersistedState'
 import type { OutboxItem } from '../utils/suchlageOutbox'
 import { storeSuchlageMap, type StoredSuchlageMap } from '../utils/suchlageMapStore'
@@ -16,24 +16,25 @@ export const FLIGHTS_POLL_IDLE_MS = 60_000
 export const MAP_POLL_MS = 60_000
 
 /**
- * Lesefehler bei Flügen/Karte auswerten: 409 → von anderer Flugmappe
- * übernommen, 401/403/503 → Probe neu (Teile ruhen), 404 → nur den Zustand
+ * Lesefehler bei Flügen/Karte auswerten: 409 → Verknüpfung in Suchlage
+ * gelöst, 401/403/503 → Probe neu (Teile ruhen), 404 → nur den Zustand
  * des Einsatzes neu prüfen. Ob er weg ist, entscheidet allein `GET /missions/{id}`.
  */
 export function handleSuchlageReadError(missionId: string, error: unknown, queryClient: QueryClient): void {
   const kind = errorKindOf(error)
   if (!kind) return
   const status = isSuchlageError(error) ? error.status : null
-  if (kind === 'conflict') hintSuchlageRemoteState(missionId, 'replaced')
+  if (kind === 'conflict') hintSuchlageRemoteState(missionId, 'released')
   else if (isRestingErrorKind(kind)) void queryClient.invalidateQueries({ queryKey: ['suchlage', 'me'] })
   else if (status === 404) void queryClient.invalidateQueries({ queryKey: ['suchlage', 'mission'] })
 }
 
 /**
  * Zustand des verknüpften Einsatzes in Suchlage (`GET /missions/{id}`), solange
- * ein Einsatz offen ist, jede Minute: abgeschlossen, gelöscht (404) oder von
- * einer anderen Flugmappe übernommen (409). Liefert er wieder 200, löst sich
- * „weg“ bzw. „abgelöst“ wieder auf. Einmal je Einsatz eingehängt (Router).
+ * ein Einsatz offen ist, jede Minute: abgeschlossen, gelöscht (404) oder die
+ * Verknüpfung in Suchlage gelöst (409). Liefert er wieder 200, löst sich „weg“
+ * bzw. „gelöst“ wieder auf. Nebenbei: die anderen verknüpften Flugmappen und
+ * ob der eigene Teil fertig ist. Einmal je Einsatz eingehängt (Router).
  */
 export function useSuchlageRemoteWatch(): void {
   const missionId = useMissionId()
@@ -54,6 +55,7 @@ export function useSuchlageRemoteWatch(): void {
   useEffect(() => {
     if (!mission.data) return
     setSuchlageRemoteState(missionId, mission.data.state === 'closed' ? 'closed' : undefined)
+    applySuchlageMissionInfo(missionId, mission.data)
   }, [mission.data, mission.dataUpdatedAt, missionId])
 
   useEffect(() => {
@@ -61,7 +63,7 @@ export function useSuchlageRemoteWatch(): void {
     const kind = errorKindOf(mission.error)
     const status = isSuchlageError(mission.error) ? mission.error.status : null
     if (status === 404) setSuchlageRemoteState(missionId, 'gone')
-    else if (kind === 'conflict') setSuchlageRemoteState(missionId, 'replaced')
+    else if (kind === 'conflict') setSuchlageRemoteState(missionId, 'released')
     else if (kind && isRestingErrorKind(kind)) void queryClient.invalidateQueries({ queryKey: ['suchlage', 'me'] })
   }, [mission.error, mission.errorUpdatedAt, missionId, queryClient])
 }
@@ -118,7 +120,7 @@ export function useSuchlageMap(sl: SuchlageMission, segmentId: string | null) {
   const query = useQuery({
     queryKey: ['suchlage', 'map', id, missionId, segmentId],
     queryFn: ({ signal }) => suchlage.map(id!, missionId, segmentId, signal),
-    enabled: sl.linked && id !== null && sectionKnown && remote !== 'gone' && remote !== 'replaced',
+    enabled: sl.linked && id !== null && sectionKnown && remote !== 'gone' && remote !== 'released',
     refetchInterval: MAP_POLL_MS,
     staleTime: 30_000,
     retry: false,

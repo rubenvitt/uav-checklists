@@ -18,7 +18,7 @@ export const SUCHLAGE_URL = 'https://suchlage.handbuch.invalid'
 const SIGN_URL = 'https://sign.handbuch.invalid'
 const OIDC_AUTHORITY = 'https://id.handbuch.invalid'
 const OIDC_CLIENT_ID = 'flugmappe-handbuch'
-const API = `${SUCHLAGE_URL}/api/flugmappe/v1`
+const API = `${SUCHLAGE_URL}/api/flugmappe/v2`
 
 /** Einsatz-ID in Suchlage, mit dem der Beispiel-Einsatz verknüpft wird. */
 export const SL_MISSION_ID = 4
@@ -40,14 +40,16 @@ function shift(coords) {
 
 /**
  * Suchlage-Stand passend zum Beispiel-Einsatz. Aus den Beispieldaten:
- * Nutzer, Einsätze (einer läuft, einer ist schon mit einer anderen Flugmappe
- * verknüpft), Flüge mit Fluggerät, Höhe, Strecke, Fotos und die Karte mit
- * Suchgebiet und gestrichelter Flugspur.
+ * Nutzer, Einsätze (einer läuft und hat schon einen anderen Trupp mit der
+ * M200, einer ist vorbereitet und mit einer anderen Flugmappe verknüpft),
+ * Flüge mit Fluggerät, Höhe, Strecke, Fotos und die Karte mit Suchgebiet und
+ * gestrichelter Flugspur.
  */
 export function buildSuchlage(now, { MID, SEG }) {
   const [vermisst, kiesgrube] = clone(fmMissions)
+  const [m350, m200] = vermisst.links
 
-  // Unser Einsatz: läuft in Suchlage, noch mit keiner Flugmappe verknüpft.
+  // Unser Einsatz: läuft in Suchlage, ein anderer Trupp (M200) ist schon verknüpft.
   const ours = {
     ...vermisst,
     id: SL_MISSION_ID,
@@ -56,15 +58,15 @@ export function buildSuchlage(now, { MID, SEG }) {
     created_by: 'Erika Mustermann',
     created_at_ms: minsAgo(now, 100),
     started_at_ms: minsAgo(now, 90),
-    link: null,
+    links: [{ ...m200, linked_at_ms: minsAgo(now, 85), done_at_ms: null }],
     sections: [{ ...vermisst.sections[0], id: 7, flugmappe_section_id: null, created_at_ms: minsAgo(now, 100) }],
   }
-  // Der zweite: vorbereitet und schon an einer anderen Flugmappe („Übernehmen …“).
+  // Der zweite: vorbereitet und schon mit einer anderen Flugmappe verknüpft.
   const other = {
     ...kiesgrube,
     id: 3,
     created_at_ms: minsAgo(now, 180),
-    link: { ...vermisst.link, linked_at_ms: minsAgo(now, 170) },
+    links: [{ ...m350, linked_at_ms: minsAgo(now, 170) }],
   }
 
   const [landed, running] = clone(fmFlights)
@@ -73,6 +75,8 @@ export function buildSuchlage(now, { MID, SEG }) {
     ended_at_ms: minsAgo(now, endMin),
     end_reason: 'landed',
     flugmappe_section_id: SEG,
+    // Keinen hat ein anderer Trupp bestätigt: alle können Vorschlag sein.
+    confirmed_by: null,
     id,
   })
   const flights = [
@@ -138,6 +142,9 @@ export function linkStorage(sl, linkedAt) {
         linkedAt,
         sections: { [sl.SEG]: true },
         mapImport: 'ok',
+        peers: sl.missions[0].links
+          .filter((l) => l.released_at_ms === null && l.flugmappe_mission_id !== sl.MID)
+          .map((l) => ({ aircraftLabel: l.aircraft_label, linkedBy: l.linked_by, linkedAt: l.linked_at_ms, doneAt: l.done_at_ms })),
       },
       timestamp: linkedAt,
     }),
@@ -177,7 +184,7 @@ export function linkFlightLog(storage, sl, { confirmed = [], drop = [] } = {}) {
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-headers': 'authorization, content-type, x-flugmappe-einsatz',
-  'access-control-allow-methods': 'GET, POST, PUT, OPTIONS',
+  'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
 }
 
 /**
@@ -205,17 +212,35 @@ export async function routeSuchlage(ctx, sl) {
     if (mission && rest === '' && req.method() === 'GET') return json(route, mission)
     if (mission && rest === '/link' && req.method() === 'POST') {
       const body = req.postDataJSON()
-      mission.link = { flugmappe_mission_id: body.flugmappe_mission_id, linked_at_ms: Date.now(), linked_by: sl.me.name }
+      mission.links = mission.links.filter((l) => l.flugmappe_mission_id !== body.flugmappe_mission_id)
+      mission.links.push({
+        flugmappe_mission_id: body.flugmappe_mission_id,
+        aircraft_label: body.aircraft_label,
+        linked_at_ms: Date.now(),
+        linked_by: sl.me.name,
+        done_at_ms: null,
+        released_at_ms: null,
+      })
       mission.sections[0].flugmappe_section_id = body.flugmappe_section_id
       return json(route, mission)
     }
+    // Flugbuch der Flugmappe: Suchlage nimmt jeden Stand an.
+    const logbook = /^\/logbook\/([^/?]+)$/.exec(rest)
+    if (mission && logbook && req.method() === 'PUT') {
+      const entry = req.postDataJSON()
+      return json(route, { entry_id: logbook[1], revision: entry.revision, entry })
+    }
+    if (mission && logbook && req.method() === 'DELETE') return route.fulfill({ status: 204, headers: CORS })
     if (mission && rest === '/map/import') return json(route, { imported: 2 })
     if (mission && rest === '/flights') return json(route, mission.id === SL_MISSION_ID ? sl.flights : [])
     if (mission && rest === '/map') return json(route, sl.map)
     if (mission && rest === '/sections' && req.method() === 'POST') return json(route, mission)
     if (mission && /^\/sections\/[^/]+\/photo$/.test(rest)) return route.fulfill({ status: 204, headers: CORS })
     if (mission && rest === '/close' && req.method() === 'POST') {
-      mission.state = 'closed'
+      // Meldet den Teil dieser Flugmappe als fertig; zu ist der Einsatz erst, wenn alle fertig sind.
+      const fm = req.headers()['x-flugmappe-einsatz']
+      for (const l of mission.links) if (l.flugmappe_mission_id === fm) l.done_at_ms ??= Date.now()
+      if (mission.links.every((l) => l.released_at_ms !== null || l.done_at_ms !== null)) mission.state = 'closed'
       return json(route, mission)
     }
     console.log('    (Suchlage: unerwartete Anfrage', req.method(), p, ')')

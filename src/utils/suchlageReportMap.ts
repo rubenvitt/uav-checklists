@@ -37,7 +37,7 @@ export async function prepareSuchlageReportMaps(missionId: string, canFetch: boo
   if (!link) return
   const segmentIds = getSegments(missionId).map((s) => s.id).filter((id) => link.sections[id])
   if (segmentIds.length === 0) return
-  const fetchAllowed = canFetch && link.remoteState !== 'gone' && link.remoteState !== 'replaced'
+  const fetchAllowed = canFetch && link.remoteState !== 'gone' && link.remoteState !== 'released'
   const ctrl = new AbortController()
 
   const work = async () => {

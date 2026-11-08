@@ -16,6 +16,7 @@ import type { FlightLogEntry } from '../types/flightLog'
 import { enqueueSuchlage } from '../utils/suchlageStore'
 import { prepareSuchlageReportMaps } from '../utils/suchlageReportMap'
 import { useSuchlageMission } from '../hooks/useSuchlage'
+import SuchlageCloseNotice from './suchlage/SuchlageCloseNotice'
 import DigitalSignaturePanel from './DigitalSignaturePanel'
 import EinsatzabschlussSection from './sections/EinsatzabschlussSection'
 import FlightDisruptionsSection from './sections/FlightDisruptionsSection'
@@ -108,6 +109,7 @@ export default function NachbereitungPhase() {
             </p>
           </div>
         </div>
+        {suchlageMission.linked && <SuchlageCloseNotice link={suchlageMission.link} when="after" />}
         <div className="flex gap-2">
           <button
             onClick={() => void handleDownloadPdf()}
@@ -169,6 +171,8 @@ export default function NachbereitungPhase() {
           </div>
         </div>
       )}
+
+      {suchlageMission.linked && <SuchlageCloseNotice link={suchlageMission.link} when="before" />}
 
       {confirmComplete && !signaturesMissing && (
         <div className="flex items-start gap-3 rounded-xl bg-caution-bg p-4">

@@ -8,7 +8,12 @@
  * - Erfolg → Eintrag entfernt.
  * - Netzfehler/Schnittstelle aus → Eintrag bleibt, Backoff, Abbruch der Runde.
  * - 401/403 → nichts ändern, alles ruht bis zur nächsten Anmeldung.
- * - 409 (andere Flugmappe hat übernommen) → bleibt, Hinweis „abgelöst“, Senden pausiert.
+ * - 409 (Verknüpfung in Suchlage gelöst) → bleibt, Hinweis „gelöst“, Senden pausiert.
+ * - Flugbucheintrag mit Suchlage-Flug und 409, weil eine andere Flugmappe den
+ *   Flug schon bestätigt hat → verworfen; der Aufrufer macht den Eintrag zum
+ *   Handeintrag (`isConfirmationConflict`), der dann neu gemeldet wird.
+ * - Flugbucheinträge: je Eintrag nur der letzte Stand (mit Revision), immer vor
+ *   dem Abschluss.
  * - `close` mit 422 (Flug läuft noch) → später erneut.
  * - Foto und Abschnittsänderung, deren Abschnitt in Suchlage noch angelegt wird
  *   → zurückstellen (`defer`), der Rest läuft weiter.
@@ -17,7 +22,7 @@
  */
 import type { SuchlageErrorKind } from '../services/suchlageApi'
 
-export type OutboxKind = 'section' | 'sectionUpdate' | 'photo' | 'close'
+export type OutboxKind = 'section' | 'sectionUpdate' | 'photo' | 'logbook' | 'close'
 
 interface OutboxBase {
   id: string
@@ -57,20 +62,60 @@ export interface OutboxClose extends OutboxBase {
   kind: 'close'
 }
 
-export type OutboxItem = OutboxSection | OutboxSectionUpdate | OutboxPhoto | OutboxClose
+/**
+ * Stand eines Flugbucheintrags für Suchlage (`FmLogbookEntry` ohne Revision).
+ * `segmentId` ist schon geprüft: gesetzt nur, wenn Suchlage den Abschnitt kennt
+ * oder er vorher in der Liste angelegt wird.
+ */
+export interface LogbookSnapshot {
+  /** Bestätigter Suchlage-Flug; `null` = Handeintrag */
+  flightId: number | null
+  segmentId: string | null
+  startedAtMs: number
+  landedAtMs: number | null
+  aircraftLabel: string
+  pilot: string | null
+  landingStatus: string | null
+  changedAtMs: number
+}
+
+/** Flugbucheintrag melden (`entry`) oder löschen (`entry: null`), mit Revision. */
+export interface OutboxLogbook extends OutboxBase {
+  kind: 'logbook'
+  entryId: string
+  revision: number
+  entry: LogbookSnapshot | null
+}
+
+export type OutboxItem = OutboxSection | OutboxSectionUpdate | OutboxPhoto | OutboxLogbook | OutboxClose
 
 export type NewOutboxItem =
   | { kind: 'section'; segmentId: string; label: string; location: string | null }
   | { kind: 'sectionUpdate'; segmentId: string }
   | { kind: 'photo'; segmentId: string }
+  | { kind: 'logbook'; entryId: string; revision: number; entry: LogbookSnapshot | null }
   | { kind: 'close' }
 
+/** Antworttexte von Suchlage zu 409, die die Verknüpfung betreffen (nicht den einzelnen Flug). */
+export const BINDING_CONFLICT_MESSAGES: readonly string[] = [
+  'Verknüpfung in Suchlage gelöst',
+  'Der Einsatz ist nicht mit dieser Flugmappe verknüpft',
+]
+/** Antworttext von Suchlage zu 422, wenn der Einsatz abgeschlossen ist. */
+export const CLOSED_MESSAGE = 'Der Einsatz ist abgeschlossen'
+
 export type SendOutcome =
-  | { ok: true }
+  | {
+      ok: true
+      /** Nur Abschluss: `false`, wenn der Einsatz in Suchlage offen bleibt (andere Flugmappen). */
+      closed?: boolean
+    }
   | {
       ok: false
       kind: SuchlageErrorKind
       status: number | null
+      /** Text aus `ApiError.error`, falls vorhanden. */
+      message?: string | null
       /**
        * Noch nicht möglich, später schon (Foto oder Änderung, deren Abschnitt in
        * Suchlage noch angelegt wird): zurückstellen statt verwerfen, der Rest läuft weiter.
@@ -88,11 +133,21 @@ export type OutboxEffect =
   | 'retry'
   /** 401/403: alles ruht bis zur nächsten Anmeldung. */
   | 'rest'
-  /** Dieser Einsatz pausiert (abgelöst), andere Einsätze laufen weiter. */
+  /** Dieser Einsatz pausiert (Verknüpfung gelöst), andere Einsätze laufen weiter. */
   | 'pause'
 
 /** Zustand des Einsatzes in Suchlage, den eine Antwort verrät. */
-export type RemoteHint = 'closed' | 'replaced'
+export type RemoteHint = 'closed' | 'released'
+
+/**
+ * 409 auf einen bestätigten Flugbucheintrag, weil eine andere Flugmappe den
+ * Flug schon bestätigt hat (nicht, weil die Verknüpfung gelöst ist).
+ */
+export function isConfirmationConflict(item: OutboxItem, outcome: SendOutcome): boolean {
+  if (outcome.ok || outcome.kind !== 'conflict') return false
+  if (item.kind !== 'logbook' || !item.entry || item.entry.flightId === null) return false
+  return !!outcome.message && !BINDING_CONFLICT_MESSAGES.includes(outcome.message)
+}
 
 export const BACKOFF_BASE_MS = 30_000
 export const BACKOFF_MAX_MS = 10 * 60_000
@@ -105,7 +160,9 @@ export function backoffMs(attempts: number, max = BACKOFF_MAX_MS): number {
 
 /**
  * Fügt einen Eintrag hinzu – idempotent: je Abschnitt höchstens ein `section`,
- * ein `sectionUpdate` und ein `photo`, je Einsatz höchstens ein `close`. Ein
+ * ein `sectionUpdate` und ein `photo`, je Einsatz höchstens ein `close`, je
+ * Flugbucheintrag höchstens ein `logbook` (der neueste Stand ersetzt den
+ * wartenden an seiner Stelle, mit neuer ID; neue kommen vor den Abschluss). Ein
  * neues Foto für einen Abschnitt mit wartendem Foto setzt nur dessen Versuche
  * zurück (das Bild wird beim Senden frisch gelesen).
  *
@@ -134,6 +191,15 @@ export function enqueue(items: OutboxItem[], entry: NewOutboxItem, now: number, 
         return items.map((i, idx) => (idx === existing ? { ...i, attempts: 0, notBefore: 0, lastError: undefined } : i))
       }
       return [...items, { ...base, ...entry }]
+    }
+    case 'logbook': {
+      const existing = items.findIndex((i) => i.kind === 'logbook' && i.entryId === entry.entryId)
+      if (existing >= 0) {
+        return items.map((i, idx) => (idx === existing ? { ...base, createdAt: i.createdAt, ...entry } : i))
+      }
+      const closeAt = items.findIndex((i) => i.kind === 'close')
+      const at = closeAt < 0 ? items.length : closeAt
+      return [...items.slice(0, at), { ...base, ...entry }, ...items.slice(at)]
     }
     case 'close':
       if (items.some((i) => i.kind === 'close')) return items
@@ -168,7 +234,7 @@ export function applyOutcome(items: OutboxItem[], id: string, outcome: SendOutco
       items: without,
       effect: 'continue',
       removed: { item, sent: true },
-      remote: item.kind === 'close' ? 'closed' : undefined,
+      remote: item.kind === 'close' && outcome.closed !== false ? 'closed' : undefined,
     }
   }
 
@@ -199,11 +265,17 @@ export function applyOutcome(items: OutboxItem[], id: string, outcome: SendOutco
   // 5xx ohne eigene Klasse: vorübergehend behandeln.
   if (status !== null && status >= 500) return retry()
 
-  // 409 heißt bei allen schreibenden Aufrufen: eine andere Flugmappe hat den Einsatz
-  // übernommen. Nichts verwerfen, sondern pausieren: Stellt GET /missions/{id} die
-  // Bindung wieder fest, geht es weiter.
+  // Ein anderer Trupp hat den Flug schon bestätigt: Diese Meldung kann nie gelingen.
+  // Der Aufrufer macht den Eintrag zum Handeintrag, der neu gemeldet wird.
+  if (isConfirmationConflict(item, outcome)) {
+    return { items: without, effect: 'continue', removed: { item, sent: false } }
+  }
+
+  // Sonst heißt 409: Die Verknüpfung ist in Suchlage gelöst (oder fehlt). Nichts
+  // verwerfen, sondern pausieren: Stellt GET /missions/{id} die Bindung wieder fest
+  // (neu verknüpft), geht es weiter.
   if (kind === 'conflict') {
-    return { items, effect: 'pause', remote: 'replaced' }
+    return { items, effect: 'pause', remote: 'released' }
   }
 
   // Abschluss bei 422: es läuft noch ein Flug – später erneut.
@@ -212,8 +284,11 @@ export function applyOutcome(items: OutboxItem[], id: string, outcome: SendOutco
   }
 
   // Endgültig abgelehnt: verwerfen, damit der Rest weiterläuft. Ein 404 ist nur ein
-  // Hinweis; ob der Einsatz weg ist, entscheidet allein GET /missions/{id}.
-  const remote: RemoteHint | undefined = kind === 'unprocessable' ? 'closed' : undefined
+  // Hinweis; ob der Einsatz weg ist, entscheidet allein GET /missions/{id}. Beim
+  // Flugbuch heißt 422 nicht immer „abgeschlossen“ (auch: Flug gehört nicht dazu).
+  const closedHint = kind === 'unprocessable'
+    && (item.kind !== 'logbook' || outcome.message === CLOSED_MESSAGE)
+  const remote: RemoteHint | undefined = closedHint ? 'closed' : undefined
   return { items: without, effect: 'continue', removed: { item, sent: false }, remote }
 }
 

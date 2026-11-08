@@ -11,6 +11,7 @@ import {
   mergeFlight,
   needsManualLanding,
   syncFromSuchlage,
+  takenByOthers,
   toFlightRef,
 } from './suchlageFlights'
 
@@ -29,6 +30,7 @@ function flight(id: number, startMin: number, endMin: number | null, extra: Part
     max_elevation_m: 80,
     distance_m: 1200,
     photo_count: 0,
+    confirmed_by: null,
     ...extra,
   }
 }
@@ -47,6 +49,18 @@ function entry(id: string, startMin: number, endMin: number | null, extra: Parti
 }
 
 describe('computeProposals', () => {
+  it('schlägt keine Flüge vor, die eine andere Flugmappe bestätigt hat', () => {
+    const flights = [flight(1, 0, 10, { confirmed_by: 'DJI Matrice 200' }), flight(2, 30, 40)]
+    expect(computeProposals(flights, []).map((x) => x.flight.id)).toEqual([2])
+    // Auch kein Zusammenführen mit einem eigenen Eintrag daneben.
+    expect(computeProposals([flights[0]], [entry('a', 1, 10)])).toEqual([])
+  })
+
+  it('meldet Vorschläge, die inzwischen ein anderer Trupp bestätigt hat', () => {
+    const flights = [flight(1, 0, 10, { confirmed_by: 'DJI Matrice 200' }), flight(2, 30, 40, { confirmed_by: 'X' }), flight(3, 50, 60)]
+    expect(takenByOthers(flights, new Set([1, 3])).map((f) => f.id)).toEqual([1])
+  })
+
   it('schlägt nur Flüge vor, die in keinem Eintrag stehen, ältester zuerst', () => {
     const flights = [flight(2, 30, 40), flight(1, 0, 10), flight(3, 50, null)]
     const entries = [entry('a', 0, 10, { suchlage: toFlightRef(flights[1]) })]

@@ -5,10 +5,11 @@ import {
   isRestingErrorKind,
   isSuchlageConfigured,
   isSuchlageError,
+  SUCHLAGE_API_VERSION,
   suchlage,
   type SuchlageErrorKind,
 } from '../services/suchlageApi'
-import { LINK_KEY, type SuchlageLink } from '../utils/suchlageStore'
+import { LINK_KEY, migrateLink, type SuchlageLink } from '../utils/suchlageStore'
 import type { FmMe } from '../types/suchlage'
 
 export const SUCHLAGE_ME_STALE_MS = 5 * 60_000
@@ -26,7 +27,12 @@ export interface SuchlageStatus {
   me: FmMe | null
   /** Netzfehler/Zeitlimit bei der Probe. */
   unreachable: boolean
-  /** 401/403 oder 503 (Schnittstelle aus): Suchlage-Teile ruhen still. */
+  /**
+   * Suchlage spricht eine andere Schnittstellenversion (`api_version` ≠ 2 oder
+   * 404 auf `/api/flugmappe/v2`): Suchlage-Teile ruhen still, nichts wird gesendet.
+   */
+  incompatible: boolean
+  /** 401/403, 503 (Schnittstelle aus) oder andere Version: Suchlage-Teile ruhen still. */
   resting: boolean
 }
 
@@ -48,13 +54,17 @@ export function useSuchlage(): SuchlageStatus {
     meta: { persist: false },
   })
   const kind = errorKindOf(query.error)
-  const resting = enabled && kind !== null && isRestingErrorKind(kind)
+  const status = isSuchlageError(query.error) ? query.error.status : null
+  const incompatible = enabled
+    && (status === 404 || (!query.error && !!query.data && query.data.api_version !== SUCHLAGE_API_VERSION))
+  const resting = enabled && ((kind !== null && isRestingErrorKind(kind)) || incompatible)
   const me = enabled && !resting ? query.data ?? null : null
   return {
     enabled,
     available: me !== null,
     me,
     unreachable: enabled && kind === 'offline',
+    incompatible,
     resting,
   }
 }
@@ -73,7 +83,8 @@ export interface SuchlageMission extends SuchlageStatus {
 
 export function useSuchlageMission(): SuchlageMission {
   const status = useSuchlage()
-  const [link, setLink] = useMissionPersistedState<SuchlageLink | null>(LINK_KEY, null)
+  const [storedLink, setLink] = useMissionPersistedState<SuchlageLink | null>(LINK_KEY, null)
+  const link = migrateLink(storedLink)
   const linked = status.enabled && !status.resting && link !== null
   return { ...status, link, setLink, linked, remoteEnded: linked && !!link?.remoteState }
 }
