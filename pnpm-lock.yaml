@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  vite: ^8.2.2
+  vite: ^8.3.8
 
 pnpmfileChecksum: sha256-KiednaIkK+hKDMg9nYIyHiw8egTeb2yR76KWCXKllCU=
 
@@ -1297,7 +1297,7 @@ packages:
       '@babel/plugin-transform-runtime': ^7.29.0 || ^8.0.0-rc.1
       '@babel/runtime': ^7.27.0 || ^8.0.0-rc.1
       rolldown: ^1.0.0-rc.5
-      vite: ^8.2.2
+      vite: ^8.3.8
     peerDependenciesMeta:
       '@babel/plugin-transform-runtime':
         optional: true
@@ -1648,7 +1648,7 @@ packages:
   '@tailwindcss/vite@4.3.5':
     resolution: {integrity: sha512-BCNiY0a1ZjdOHVqw7kyb7U72BwfMF3dfUuN+tQsLWky/J5JOI/r7abibglXfygrZhVO/3u3V+E25kkKTeMkXaQ==}
     peerDependencies:
-      vite: ^8.2.2
+      vite: ^8.3.8
 
   '@tanstack/devtools-bundler-core@0.1.4':
     resolution: {integrity: sha512-NaDbpESGyGLV4XPbLsL1b7XeGnYovbnRjoTZ9LoAwllaaposdcrgtBsAcbdr0n4p+mltEVrUB6AFpvAmjj0VGQ==}
@@ -1677,7 +1677,7 @@ packages:
     resolution: {integrity: sha512-CkaVqh3P7cJmQ6mMIxQfEmmR8gwlmgRCcoiWOMLigHaPobrrwTqsZvKqvYRHBybZ3ZT1ZSBj5TwlP7ukJJcRlg==}
     engines: {node: '>=18'}
     peerDependencies:
-      vite: ^8.2.2
+      vite: ^8.3.8
 
   '@tanstack/devtools@0.16.0':
     resolution: {integrity: sha512-SgmsZ1RwWgohY+S2GhZ1bCttZ+bICb8EKaI1DUFBrs/CXL67IaW25TouoHflj5fGzrppfDM2ld56+TLuzMwJSA==}
@@ -2003,7 +2003,7 @@ packages:
       '@rolldown/plugin-babel': ^0.1.7 || ^0.2.0 || ^0.3.0
       babel-plugin-react-compiler: ^1.0.0
       oxc-transform-react: '>=0.152.0 <0.157.0'
-      vite: ^8.2.2
+      vite: ^8.3.8
     peerDependenciesMeta:
       '@rolldown/plugin-babel':
         optional: true
@@ -2016,7 +2016,7 @@ packages:
     resolution: {integrity: sha512-b2OgTB4+3ImWIVafXKazJXwLKwQxUNnix6b3xUvUTMh7RyXlrtzoxfZr8aEz9zkHOMAS4K5lu3TvFWoiVeVTQg==}
     peerDependencies:
       msw: ^2.4.9 || ^3.0.0
-      vite: ^8.2.2
+      vite: ^8.3.8
     peerDependenciesMeta:
       msw:
         optional: true
@@ -3483,7 +3483,7 @@ packages:
     engines: {node: '>=20.19.0'}
     peerDependencies:
       '@vite-pwa/assets-generator': ^1.0.0 || ^2.0.0
-      vite: ^8.2.2
+      vite: ^8.3.8
       workbox-build: ^7.4.1
       workbox-window: ^7.4.1
     peerDependenciesMeta:
@@ -3549,7 +3549,7 @@ packages:
       '@vitest/ui': 5.1.1
       happy-dom: '*'
       jsdom: '*'
-      vite: ^8.2.2
+      vite: ^8.3.8
     peerDependenciesMeta:
       '@edge-runtime/vm':
         optional: true
