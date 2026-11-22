@@ -5,3 +5,7 @@
 allowBuilds:
   better-sqlite3: true
   esbuild: true
+
+# Neue Paketversionen erst nach 1 Tag übernehmen (wie Dependabot-Cooldown
+# und pnpm ≥ 11 als Default; sonst lehnt dessen --frozen-lockfile ab).
+minimumReleaseAge: 1440
