@@ -59,8 +59,8 @@ importers:
         specifier: ^8.5.2
         version: 8.5.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       signature_pad:
-        specifier: ^5.1.5
-        version: 5.1.5
+        specifier: ^5.1.7
+        version: 5.1.7
       vaul:
         specifier: ^1.1.2
         version: 1.1.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -3237,8 +3237,8 @@ packages:
     resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
     engines: {node: '>=14'}
 
-  signature_pad@5.1.5:
-    resolution: {integrity: sha512-0KuciUW0OJKnWJQ2N+6HvmgUWug1vrK7FihLrGYA5uyJ8yq/2XMLzYHlmoSo3ntG2oNwJzUQhHf/rQ/bCHV1dw==}
+  signature_pad@5.1.7:
+    resolution: {integrity: sha512-qlAdrVK8wlr1EJLz/ZxBL4doOesdsCZm+zr/y/keF/yX+Eg9Gn1scmg331X4cLGnhsNjSk+hqF6+CQ195G6Myw==}
 
   smob@1.6.2:
     resolution: {integrity: sha512-RQsvleCbF8cVHEv+xuDGaA4pOizFqJ0GgjtMSRo6oP8pnN7WsigHgVGey6aILRBKv4W2YOMHLqbKdnB6hpB9fw==}
@@ -6938,7 +6938,7 @@ snapshots:
 
   signal-exit@4.1.0: {}
 
-  signature_pad@5.1.5: {}
+  signature_pad@5.1.7: {}
 
   smob@1.6.2: {}
 
